@@ -35,7 +35,7 @@
       </div>
       <button type="submit" name="signup" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition cursor-pointer">Create Account</button>
     </form>
-    <p class="text-center text-sm text-gray-500 mt-6">Already have an account?<a href="/login" class="text-blue-600 hover:underline">Log in</a></p>
+    <p class="text-center text-sm text-gray-500 mt-6 cursor-pointer" id="signup-button">Already have an account?<span class="text-blue-600 hover:underline">Log in</span></p>
   </div>
 
   <!-- Login Form -->
@@ -55,14 +55,15 @@
       </div>
 
       <?php
-      $status = $_GET['status'] ?? null;
-      if($status === 'invalid_data'){
-        echo '<div class="text-red-500 text-start mt-2">Please check your info, your password or email is wrong!</div>';
-      }
+        $status = $_GET['status'] ?? null;
+        if($status === 'invalid_data'){
+          echo '<div class="text-red-500 text-center mt-2">Please check your info, your password or email is wrong!</div>';
+        }
       ?>
+
       <button type="submit" name="login" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition cursor-pointer">Login</button>
     </form>
-    <p class="text-center text-sm text-gray-500 mt-6">Don't have an account?<a href="/login" class="text-blue-600 hover:underline">Signup in</a></p>
+    <p class="text-center text-sm text-gray-500 mt-6 cursor-pointer" id="login-button">Don't have an account?<span class="text-blue-600 hover:underline">Signup in</span></p>
   </div>
 
   <script src="main.js"></script>

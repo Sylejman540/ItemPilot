@@ -22,7 +22,7 @@ if (isset($_POST['signup'])) {
         $stmt->bind_param("sss", $name, $email, $hash);
 
         if ($stmt->execute()) {
-            header("Location: home.php");
+            header("Location: /ItemPilot/home.php");
             exit;
         } else {
             echo "Error: " . $stmt->error;
