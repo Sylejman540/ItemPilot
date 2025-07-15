@@ -10,22 +10,24 @@ if (isset($_POST['signup'])) {
 
     $checkEmail = "SELECT * FROM users WHERE email = ?";
     $stmt = $conn->prepare($checkEmail);
-    $stmt->bind_param("s", $email);
+    $stmt->bind_param('s', $email);
     $stmt->execute();
+
     $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
-        header("Location: /ItemPilot/index.php?status=invalid_email");
-    } else {
-        $insertInto = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
+    if($result->num_rows>0){
+        header("location: /ItemPilot/index.php?status=invalid_email");
+        exit;
+    }else{
+        $insertInto = "INSERT INTO users(name, email, password) VALUES (?, ?, ?)";
         $stmt = $conn->prepare($insertInto);
-        $stmt->bind_param("sss", $name, $email, $hash);
+        $stmt->bind_param('sss', $name, $email, $hash);
 
-        if ($stmt->execute()) {
-            header("Location: /ItemPilot/home.php");
+        if($stmt->execute()){
+            header("location: /ItemPilot/home.php");
             exit;
-        } else {
-            echo "Error: " . $stmt->error;
+        }else{
+            echo "Error!";
         }
     }
 }
