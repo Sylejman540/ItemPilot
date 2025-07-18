@@ -12,10 +12,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $name     = $_POST['name']     ?? '';
   $notes    = $_POST['notes']    ?? '';
   $assignee = $_POST['assignee'] ?? '';
+  $status = $_POST['status'] ?? '';
 
-  $sql = "UPDATE universal SET name = ?, notes = ?, assignee = ? WHERE id = ?";
+  $sql = "UPDATE universal SET name = ?, notes = ?, assignee = ?, status = ? WHERE id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param('sssi', $name, $notes, $assignee, $id);
+  $stmt->bind_param('ssssi', $name, $notes, $assignee, $status, $id);
   if ($stmt->execute()) {
     header("Location: insert_universal.php");
     exit;
@@ -25,10 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 
-$stmt = $conn->prepare("SELECT name, notes, assignee FROM universal WHERE id = ?");
+$stmt = $conn->prepare("SELECT name, notes, assignee, status FROM universal WHERE id = ?");
 $stmt->bind_param('i', $id);
 $stmt->execute();
-$stmt->bind_result($name, $notes, $assignee);
+$stmt->bind_result($name, $notes, $assignee, $status);
 if (! $stmt->fetch()) {
   die("Record #{$id} not found");
 }
@@ -65,6 +66,15 @@ $stmt->close();
       <div>
         <label for="name" class="block text-gray-700 font-medium mb-2">Assignee</label>
         <input type="assigne" name="assignee" id="assignee" value="<?= htmlspecialchars($assignee)?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label for="name" class="block text-gray-700 font-medium mb-2">Status</label>
+        <select type="status" name="status" id="status" value="<?= htmlspecialchars($status)?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+          <option name="do" id="do">To Do</option>
+          <option name="progress" id="progress">In Progress</option>
+          <option name="done" id="done">Done</option>
+        </select> 
       </div>
 
       <div>
