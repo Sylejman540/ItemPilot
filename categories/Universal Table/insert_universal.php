@@ -3,6 +3,22 @@ require_once __DIR__ . '/../../db.php';
  session_start();
   $uid = $_SESSION['user_id'] ?? 'guest';  // or username if you prefer
 
+  $labels = [];
+$stmt = $conn->prepare("
+  SELECT col_key,label_text
+    FROM user_table_labels
+   WHERE user_id = ?
+");
+$stmt->bind_param("i",$uid);
+$stmt->execute();
+$res = $stmt->get_result();
+while($r = $res->fetch_assoc()){
+  $labels[$r['col_key']] = $r['label_text'];
+}
+$stmt->close();
+
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $id = $_POST['id'] ?? '';
   $name = $_POST['name'] ?? '';
@@ -41,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $stmt->close();
 
-  header("Location: /Itempilot/home.php");
+  header("Location: /Itempilot/categories/Universal Table/insert_universal.php");
   exit;
 }
 
@@ -69,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-white min-h-screen">
 
   <!-- Header -->
   <header class="absolute w-full">
@@ -81,17 +97,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </a>
 
       <?php if ($hasRecord): ?>
-        <?php foreach ($rows as $row): ?>
-          <div data-id="<?= $row['id'] ?>">
-            <div data-field="title" class="px-4 py-2 text-lg text-center text-black font-semibold">
-              <?= htmlspecialchars($row['title']) ?>
-            </div>
-          </div>
-
-      <div class="flex">
-        <a href="edit.php?id=<?= $row['id'] ?>" class="mr-2 bg-gray-50 text-sm hover:bg-gray-100 px-4 py-3 rounded-lg inline-block">Edit Title</a>
-      <?php endforeach; ?>
-      <?php endif; ?>
+      <?php $first = $rows[0];?>
+        <div data-id="<?= $first['id'] ?>" class="px-4 py-2 text-center flex">
+          <div data-field="title" contenteditable class="text-lg font-semibold text-black"><?= htmlspecialchars($first['title']) ?></div>
+        </div>
+        
+        <div class="flex gap-4">
+          <a href="edit.php?id=<?= $first['id'] ?>" class=" bg-gray-50 text-sm hover:bg-gray-100 px-4 py-3 rounded-lg">Edit Title</a>
+        <?php endif; ?>
         <a id="addIcon" class="flex gap-1 mr-5 bg-gray-50 hover:bg-gray-100 cursor-pointer px-2 rounded-lg">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mt-[17px]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
         <button class="cursor-pointer text-sm">Create New</button>
@@ -99,62 +112,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </section>
     
-  <!-- Table -->
-  <div class="overflow-x-auto">
-    <table class="w-200 md:w-[97%] md:ml-5 md:mr-5 border-separate border-spacing-2">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Name</th>
-          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Notes</th>
-          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Assignee</th>
-          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Status</th>
-          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Attachment</th>
-          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Action</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white">
-        <?php if ($hasRecord): ?>
-          <?php foreach ($rows as $row): ?>
-            <tr data-id="<?= $row['id'] ?>" class="hover:bg-gray-50">
-              <td data-field="name" contenteditable class="px-4 py-2 text-sm text-gray-800">
-                <?= htmlspecialchars($row['name']) ?>
+    <div class="overflow-x-auto md:mx-8 mt-5">
+      <table class="md:w-full w-240 divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Assignee</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Attachment</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <?php if($hasRecord): foreach($rows as $r): ?>
+            <tr class="odd:bg-gray-100 hover:bg-gray-200">
+              <td data-field="name"      contenteditable class="px-4 py-2 text-sm text-gray-900">
+                <?= htmlspecialchars($r['name']) ?>
               </td>
-              <td data-field="notes" contenteditable class="px-4 py-2 text-sm text-gray-800">
-                <?= htmlspecialchars($row['notes']) ?>
+              <td data-field="notes"     contenteditable class="px-4 py-2 text-sm text-gray-700">
+                <?= htmlspecialchars($r['notes']) ?>
               </td>
-              <td data-field="assignee" contenteditable class="px-4 py-2 text-sm text-gray-800">
-                <?= htmlspecialchars($row['assignee']) ?>
+              <td data-field="assignee"  contenteditable class="px-4 py-2 text-sm text-gray-900">
+                <?= htmlspecialchars($r['assignee']) ?>
               </td>
-              <td class="px-2 py-2 text-sm">
-                <div data-field="status" contenteditable
-                    class="bg-green-700 text-white px-4 py-2 rounded-lg font-semibold">
-                  <?= htmlspecialchars($row['status']) ?>
-                </div>
+              <td class="px-4 py-2">
+                <span data-field="status" contenteditable class="px-2 py-1 text-xs bg-green-100 rounded">
+                  <?= htmlspecialchars($r['status']) ?>
+                </span>
               </td>
-              <td class="px-4 py-2 text-sm text-gray-800">
-                <?php if ($row['attachment_summary']): ?>
-                  <img src="uploads/<?= htmlspecialchars($row['attachment_summary']) ?>"
-                      alt="" class="w-16 h-16 object-cover rounded-md">
+              <td class="px-4 py-2 text-sm text-gray-500">
+                <?php if ($r['attachment_summary']): ?>
+                  <img src="uploads/<?= htmlspecialchars($r['attachment_summary']) ?>"
+                      class="w-10 h-10 rounded-md" alt="Attachment">
                 <?php else: ?>
-                  <span class="text-gray-400">No image</span>
+                  <span class="italic text-gray-400">None</span>
                 <?php endif; ?>
               </td>
-              <td class="px-4 py-2 text-sm text-red-500 underline">
-                <a href="delete.php?id=<?= $row['id'] ?>"
-                  onclick="return confirm('Are you sure?')">Delete</a>
+              <td class="px-4 py-2 text-left text-sm">
+                <a href="delete.php?id=<?= $r['id'] ?>"
+                  onclick="return confirm('Are you sure?')"
+                  class="inline-block px-2 py-1 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
+                  <!-- Trash Icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7
+                            m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
+                  </svg>
+                </a>
               </td>
             </tr>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <tr>
-            <td colspan="6" class="px-4 py-6 text-center text-gray-500">
-              No records found for your account.
-            </td>
-          </tr>
-        <?php endif; ?>
-      </tbody>
-    </table>
-  </div>
+          <?php endforeach; else: ?>
+            <tr>
+              <td colspan="6" class="px-4 py-2 text-center text-gray-500">
+                No records found.
+              </td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
   </header>
 
   <!-- Add a new record -->
@@ -245,6 +262,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     });
     });
     
+document.querySelectorAll('th[contenteditable]').forEach(th=>{
+  th.addEventListener('blur',()=>{
+    fetch('update_label.php', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`col_key=${th.dataset.key}&label_text=${encodeURIComponent(th.textContent)}`
+    });
+  });
+});
+
+
 
             
     const addIcon = document.getElementById("addIcon");
