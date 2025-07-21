@@ -1,5 +1,41 @@
 <?php
- require_once "register/register.php";
+  require_once __DIR__ . "/db.php";
+  require_once "register/register.php";
+
+  session_start();
+  $uid = $_SESSION['user_id'] ?? 0;
+  
+    // 1️⃣ Total records in `universal`
+  $totalRecords = $conn
+    ->query("SELECT COUNT(*) FROM universal")
+    ->fetch_row()[0];
+
+  // 2️⃣ “Completed” entries (whatever you’re calling completed in your status column)
+  $completed = $conn
+    ->query("
+      SELECT COUNT(*)
+        FROM universal
+       WHERE status = 'completed'
+    ")
+    ->fetch_row()[0];
+
+  // 3️⃣ New records in the last 7 days
+  $newLast7 = $conn
+    ->query("
+      SELECT COUNT(*)
+        FROM universal
+       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ")
+    ->fetch_row()[0];
+
+  // 4️⃣ Active users in the last 30 days (distinct user_id)
+  $activeUsers = $conn
+    ->query("
+      SELECT COUNT(DISTINCT user_id)
+        FROM universal
+       WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    ")
+    ->fetch_row()[0];
 ?>
 <!DOCTYPE html>
 <html lang="en" class="overflow-x-hidden">
@@ -39,27 +75,35 @@
           <div class="w-[2px] h-5 bg-black mt-1"></div>
         <div class="hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2 flex gap-2" id="home">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.75L12 3l9 6.75v10.5a.75.75 0 0 1-.75.75H3.75a.75.75 0 0 1-.75-.75V9.75z" /><path d="M9 21V12h6v9" /></svg>
-          <li><a href="#home" class="font-medium text-sm text-gray-700 hover:text-black">Home</a></li>
+          <li><a href="#home" class="font-medium text-sm text-gray-700 hover:text-black">Overview</a></li>
         </div>
         </div>
-        <div class="flex gap-2 ml-6 mt-3 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2" id="events">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"  stroke-linejoin="round"><rect x="4" y="4" width="14" height="14" rx="2" /><rect x="8" y="8" width="14" height="14" rx="2" /></svg>
-          <li><a href="#events" class="font-medium text-sm text-gray-700 hover:text-black">Events</a></li>
-        </div>
+      <div class="relative group">
+      <!-- Trigger, with your exact old styling -->
+      <div class="flex gap-2 ml-6 mt-3 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2 items-center" id="events">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <rect x="4" y="4" width="14" height="14" rx="2" /><rect x="8" y="8" width="14" height="14" rx="2" /></svg>
+        <span class="font-medium text-sm text-gray-700 group-hover:text-black">Items</span>
+        <svg class="ml-auto h-4 w-4 text-gray-700 group-hover:text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7" /></svg>
+      </div>
+
+      <!-- Dropdown menu -->
+      <ul class="absolute left-6 px-4 top-full mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+        <?php
+          $result = $conn->query("SELECT * FROM universal WHERE user_id = {$uid} ORDER BY id DESC");
+        ?>
+         <a href="categories/Universal Table/insert_universal.php">  
+          <?php while($row = $result->fetch_assoc()): ?>
+          <div class="py-2"><?php echo htmlspecialchars($row['title']) ?></div>
+          <?php endwhile; ?>
+        </a></li>
+      </ul>
+      </div>
         <div class="flex mt-3 ml-6 gap-2 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2" id="contact">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
           <li><a href="#contact" class="font-medium text-sm text-gray-700 hover:text-black">Contact Us</a></li>
         </div>
       </ul>
-    </nav>
-
-    <section class="ml-5 mt-30">
-      <h6 class="text-sm text-gray-400 px-2">Upcoming Events</h6>
-      <h3 class="text-sm font-medium text-black mt-4 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2">Coming Up</h3>
-      <h3 class="text-sm font-medium text-black mt-2 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2">This Week’s Highlights</h3>
-      <h3 class="text-sm font-medium text-black mt-2 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2">Next Milestones</h3>
-      <h3 class="text-sm font-medium text-black mt-2 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2">Planned Features</h3>
-    </section>
+    </nav>  
 
     <section class="ml-5 mt-70">
       <div class="flex gap-2 hover:bg-gray-200 rounded-md w-60 cursor-pointer px-2 mt-2 mb-2">
@@ -82,60 +126,36 @@
     <!-- Header -->
     <header class="flex justify-between md:ml-0 md:mr-0 md:mt-0 ml-4 mr-4 md:px-50">
       <h1 class="text-lg font-semibold">Good Afternoon, sir<h1>
-      <!-- The + Button -->
-      <div class="flex justify-end" id="home">
-        <button type="button" data-modal-target="categories" class="modal-open">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-black cursor-pointer md:mt-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round" stroke-linejoin="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
     </header>
 
     <article class="ml-8 md:ml-15 md:mr-25">
       <h4 class="md:text-sm text-md font-medium mt-20 mb-5">Overview</h4>
-      <div class="h-[1px] bg-gray-200 w-90 mt-2 md:hidden"></div>
-      <!-- 4 Lines -->
-      <div class="md:flex hidden justify-between">
-        <div class="h-[1px] bg-gray-200 w-68 mt-2"></div>
-        <div class="h-[1px] bg-gray-200 w-68 mt-2"></div>
-        <div class="h-[1px] bg-gray-200 w-68 mt-2"></div>
-        <div class="h-[1px] bg-gray-200 w-68 mt-2"></div>
-      </div>
 
       <div class="md:flex md:justify-between">
+        <!-- Total Records -->
         <div class="grid">
-          <h3 class="text-md font-medium mt-5">Total Tables</h3>
-          <h1 class="mt-3 text-gray-400">Unknown</h1>
-          <span class="bg-green-200 text-green-600 py-1 px-3 w-15 rounded-xl text-sm mt-3">4.5%</span>
-          <div class="h-[1px] bg-gray-200 w-90 mt-2 md:hidden"></div>
+          <h3 class="text-md font-medium mt-5">Total Records</h3>
+          <canvas id="chart1" data-value="<?php echo $totalRecords ?>" width="120" height="80"></canvas>
         </div>
 
+        <!-- Completed -->
         <div class="grid">
-          <h3 class="text-md font-medium mt-5">Completed Tasks</h3>
-          <h1 class="mt-3 text-gray-400">Unknown</h1>
-          <span class="bg-pink-200 text-pink-600 py-1 px-3 w-15 rounded-xl text-sm mt-3">2.5%</span>
-          <div class="h-[1px] bg-gray-200 w-90 mt-2 md:hidden"></div>
+          <h3 class="text-md font-medium mt-5">Completed</h3>
+          <canvas id="chart2" data-value="<?php echo $completed ?>" width="120" height="80"></canvas>
         </div>
 
+        <!-- New (7d) -->
         <div class="grid">
-          <h3 class="text-md font-medium mt-5">New Records</h3>
-          <h1 class="mt-3 text-gray-400">Unknown</h1>
-          <span class="bg-yellow-200 text-yellow-600 py-1 px-3 w-15 rounded-xl text-sm mt-3">3.5%</span>
-          <div class="h-[1px] bg-gray-200 w-90 mt-2 md:hidden"></div>
+          <h3 class="text-md font-medium mt-5">New (7d)</h3>
+          <canvas id="chart3" data-value="<?php echo $newLast7 ?>" width="120" height="80"></canvas>
         </div>
 
+        <!-- Active Users (30d) -->
         <div class="grid">
-          <h3 class="text-md font-medium mt-5">Active Users</h3>
-          <h1 class="mt-3 text-gray-400">Unknown</h1>
-          <span class="bg-red-200 text-red-600 py-1 px-3 w-15 rounded-xl text-sm mt-3">0.5%</span>
-          <div class="h-[1px] bg-gray-200 w-90 mt-2 md:hidden"></div>
+          <h3 class="text-md font-medium mt-5">Active Users (30d)</h3>
+          <canvas id="chart4" data-value="<?php echo $activeUsers ?>" width="120" height="80"></canvas>
         </div>
       </div>
-    </article>
-
-    <article class="md:ml-0 ml-8 md:mr-0 mr-8 md:px-50">
-      <!-- Recents Tables -->
-      <h2 class="text-md font-medium mt-20">Recents Tables</h2>
-      <p class="text-gray-400 text-center mt-10">No tables avaiable, click on that "+" icon to add a table</p>
     </article>
   </section>
 
@@ -185,11 +205,11 @@
 
   <!-- Event Section --->
   <section class="bg-white rounded-md md:mt-5 md:mr-5 py-10 hidden w-full" id="event-right">
-    <h4 class="text-lg font-medium md:mt-20 mb-5 md:px-50 text-center md:text-start">Events</h4>
+    <h4 class="text-lg font-medium md:mt-20 mb-5 md:px-50 text-center md:text-start">Tables</h4>
 
     <div class="md:flex md:justify-between md:px-50 md:ml-0 md:mr-0 ml-4 mr-4">
       <div class="flex gap-5">
-        <input type="search" placeholder="Search events..." class="rounded-lg px-2 border-1 border-gray-300 h-10 w-80">
+        <input type="search" placeholder="Search tables..." class="rounded-lg px-2 border-1 border-gray-300 h-10 w-80">
         <select name="" id="" class="border-1 border-gray-300 rounded-lg px-2">
           <option value="name">Sort by name</option>
           <option value="date">Sort by date</option>
@@ -198,18 +218,61 @@
       </div>
 
       <div class="flex justify-center md:block">
-        <button class="bg-black text-white rounded-lg py-1 px-4 cursor-pointer md:mt-0 mt-5" type="submit">Check for more</button>
+        <button class="bg-black text-white rounded-lg py-1 px-4 cursor-pointer md:mt-0 mt-5 modal-open" type="submit" data-modal-target="categories">Choose a template</button>
       </div>
     </div>
 
     <div class="h-[1px] bg-gray-200 md:w-240 w-100 mt-2 md:ml-50 md:mr-0 ml-4 mr-4"></div>
 
-    <p class="text-center text-gray-400 mt-20">No available events..</p>
+    <?php
+      $result = $conn->query("SELECT * FROM universal WHERE user_id = {$uid} ORDER BY id DESC");
+    ?>
+    <div class="container mx-auto px-4 py-6">
+     <?php if ($result->num_rows): ?>
+    <div class="overflow-x-auto bg-white shadow rounded-lg">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Notes</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assignee</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created At</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <?php while($row = $result->fetch_assoc()): ?>
+            <tr class="odd:bg-gray-50 hover:bg-gray-100 transition-colors">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><?php echo htmlspecialchars($row['name']) ?></td>
+              <td class="px-6 py-4 whitespace-normal text-sm text-gray-700"><?php echo htmlspecialchars($row['notes']) ?></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><?php echo htmlspecialchars($row['assignee']) ?></td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex px-2 text-xs font-semibold leading-5 rounded-full
+                  <?php
+                    echo $row['status']==='completed'
+                      ? 'bg-green-100 text-green-800'
+                      : ($row['status']==='pending'
+                         ? 'bg-yellow-100 text-yellow-800'
+                         : 'bg-gray-100 text-gray-800');
+                  ?>">
+                  <?php echo htmlspecialchars(ucfirst($row['status'])) ?>
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($row['created_at']) ?></td>
+            </tr>
+          <?php endwhile; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php else: ?>
+    <p class="text-center text-gray-400 mt-20">No records available, choose a template and create one!</p>
+  <?php endif; ?>
+  </div>
   </section>
 
 
   <!-- CATEGORIES MODAL -->
-  <main id="categories" class="fixed inset-0 z-50 hidden max-w-md mx-auto p-12 overflow-auto shadow-md mt-10 mb-10 bg-white/100 ">
+  <main id="categories" class="fixed inset-0 z-50 hidden max-w-md mx-auto p-12 overflow-auto shadow-md rounded-lg mt-5 mb-5 bg-white/100">
     <!-- Header -->
     <header class="flex justify-between">
       <h1 class="text-xl font-semibold">Choose a template</h1>
@@ -220,7 +283,7 @@
     <section class="mt-20 space-y-5">
     <a href="categories/Universal Table/insert_universal.php">
       <!-- Universal Table -->
-      <article class="flex justify-between items-center mb-4">
+      <article class="flex justify-between items-center mb-4" id="blank">
         <div class="border rounded-sm px-3 py-2 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round" stroke-linejoin="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
@@ -341,7 +404,51 @@
     </section>
 </main>
 
-<script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script> 
+    const cfg = [
+    { id: 'chart1', color: '#10B981' },
+    { id: 'chart2', color: '#EC4899' },
+    { id: 'chart3', color: '#FBBF24' },
+    { id: 'chart4', color: '#EF4444' },
+  ];
+
+  cfg.forEach(({id, color}) => {
+    const c = document.getElementById(id);
+    const v = +c.dataset.value;
+    new Chart(c.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [v, Math.max(0, 100 - v)],
+          backgroundColor: [color, '#E5E7EB'],
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        cutout: '75%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false },
+          // center‑label plugin if you like
+        }
+      }
+    });
+  });
+
+    document.querySelectorAll('.template-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id   = el.dataset.id;
+      const name = el.dataset.name;
+
+      // 1) Shfaq emrin që ke klikuar
+      document.getElementById('selectedTemplate').textContent = name;
+
+      // 2) Redirect drejt asaj tabeleje (me parametra GET)
+      window.location.href = `home.php?table_id=${id}`;
+    });
+  });
+
     const menuBtn       = document.getElementById('menuBtn');
     const sidebar       = document.getElementById('sidebar');
     const hamburgerIcon = document.getElementById('hamburgerIcon');

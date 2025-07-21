@@ -9,14 +9,12 @@ if ($id <= 0) {
 
 // 1) If this is a POST, run the UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $name     = $_POST['name']     ?? '';
-  $notes    = $_POST['notes']    ?? '';
-  $assignee = $_POST['assignee'] ?? '';
-  $status = $_POST['status'] ?? '';
+  $id = $_POST['id'] ?? '';
+  $title     = $_POST['title']     ?? '';
 
-  $sql = "UPDATE universal SET name = ?, notes = ?, assignee = ?, status = ? WHERE id = ?";
+  $sql = "UPDATE universal SET title = ? WHERE id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param('ssssi', $name, $notes, $assignee, $status, $id);
+  $stmt->bind_param('si', $title, $id);
   if ($stmt->execute()) {
     header("Location: insert_universal.php");
     exit;
@@ -26,10 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 
-$stmt = $conn->prepare("SELECT name, notes, assignee, status FROM universal WHERE id = ?");
+$stmt = $conn->prepare("SELECT title FROM universal WHERE id = ?");
 $stmt->bind_param('i', $id);
 $stmt->execute();
-$stmt->bind_result($name, $notes, $assignee, $status);
+$stmt->bind_result($title);
 if (! $stmt->fetch()) {
   die("Record #{$id} not found");
 }
@@ -49,40 +47,20 @@ $stmt->close();
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
   <!-- Register Form -->
   <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg" id="signup">
-    <div class="flex gap-1 justify-center items-center">
-      <img src="/ItemPilot/images/icon.png" alt="Icon" class="w-15 h-15">
-      <h1 class="text-4xl font-bold text-center mb-8 mt-6">Edit Table</h1></a>
+    <a href="insert_universal.php" class="text-blue-500 underline"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></a>
+    <div class="flex gap-1 justify-center items-center">  
+      <h1 class="text-4xl font-bold text-center mb-8 mt-6">Edit Title</h1></a>
     </div>
-    <form method="POST" enctype="multipart/form-data" class="space-y-6">
-      <div>
-        <label for="name" class="block text-gray-700 font-medium mb-2">Name</label>
-        <input type="text" name="name" value="<?= htmlspecialchars($name)?>" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-      </div>
-      <div>
-        <label for="name" class="block text-gray-700 font-medium mb-2">Notes</label>
-        <input type="text" name="notes" id="notes" value="<?= htmlspecialchars($notes)?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-      </div>
+    <form method="POST">
+      <input type="hidden" name="id" value="<?= $id ?>">
 
       <div>
-        <label for="name" class="block text-gray-700 font-medium mb-2">Assignee</label>
-        <input type="assigne" name="assignee" id="assignee" value="<?= htmlspecialchars($assignee)?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <label for="title" class="block text-gray-700 font-medium mb-2">Title</label>
+        <input type="text" name="title" id="title" value="<?= htmlspecialchars($title) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
-      <div>
-        <label for="name" class="block text-gray-700 font-medium mb-2">Status</label>
-        <select type="status" name="status" id="status" value="<?= htmlspecialchars($status)?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
-          <option name="do" id="do">To Do</option>
-          <option name="progress" id="progress">In Progress</option>
-          <option name="done" id="done">Done</option>
-        </select> 
-      </div>
-
-      <div>
-        <a href="insert_universal.php"><button type="submit" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition cursor-pointer">Edit Table</button></a>
-      </div>
-
-      <div class="flex justify-center">
-        <a href="insert_universal.php" class="text-center text-blue-500 underline">Go Back</a>
+      <div class="mt-4 flex justify-between">
+        <button type="submit" class="px-6 py-2 bg-black text-white rounded-lg">Save</button>
       </div>
     </form>
   </div>

@@ -1,52 +1,62 @@
 <?php
 require_once __DIR__ . '/../../db.php';
-session_start();
-$uid = $_SESSION['user_id'] ?? 0;
+ session_start();
+  $uid = $_SESSION['user_id'] ?? 'guest';  // or username if you prefer
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id       = $_POST['id']       ?? '';
-    $name     = $_POST['name']     ?? '';
-    $notes    = $_POST['notes']    ?? '';
-    $assignee = $_POST['assignee'] ?? '';
-    $status = $_POST['status'] ?? '';
+  $id = $_POST['id'] ?? '';
+  $name = $_POST['name'] ?? '';
+  $title = $_POST['title'] ?? '';
+  $notes = $_POST['notes'] ?? '';
+  $assignee = $_POST['assignee'] ?? '';
+  $status = $_POST['status'] ?? '';
+  $attachment_summary = null;
 
-    // Handle file upload (optional)
-    $attachment_summary = null;
-    if (
-      isset($_FILES['attachment_summary']) &&
-      $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK
-    ) {
-      $tmp  = $_FILES['attachment_summary']['tmp_name'];
-      $orig = basename($_FILES['attachment_summary']['name']);
-      $dest = __DIR__ . '/uploads/' . $orig;
-      if (! move_uploaded_file($tmp, $dest)) {
-        die("Failed to save uploaded file.");
-      }
-      $attachment_summary = $orig;
+  if(
+    isset($_FILES['attachment_summary']) &&
+    $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK
+  ){
+    $tmp  = $_FILES['attachment_summary']['tmp_name'];
+    $orig = basename($_FILES['attachment_summary']['name']);
+    $dest = __DIR__ . '/uploads/' . $orig;
+    
+    if (! move_uploaded_file($tmp, $dest)) {
+      die("Failed to save uploaded file.");
     }
 
-    if (empty($id)) {
-      $stmt = $conn->prepare("INSERT INTO universal(name, notes, assignee, status, attachment_summary, user_id)VALUES (?, ?, ?, ?, ?, ?)");
-      $stmt->bind_param('sssssi', $name, $notes, $assignee, $status, $attachment_summary, $uid);
-    } else {
-      $stmt = $conn->prepare("UPDATE universal SET name= ?, notes = ?, assignee = ?, status = ?, attachment_summary = ? WHERE id = ? AND user_id = ?");
-      $stmt->bind_param('sssssii', $name, $notes, $assignee, $status, $attachment_summary, $id, $uid);
-    }
+    $attachment_summary = $orig;
+  }
 
-    if (! $stmt->execute()) {
-      die("Database error: " . $stmt->error);
-    }
+  if(empty($id)){
+    $stmt = $conn->prepare("INSERT INTO universal (name, notes, title, assignee, status, attachment_summary, user_id)VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param('ssssssi', $name, $notes, $title, $assignee, $status, $attachment_summary, $uid);
+  } else {
+    $stmt = $conn->prepare("UPDATE universal SET name = ?, notes = ?, title = ?, assignee = ?, status = ?, attachment_summary = ? WHERE id = ? AND user_id = ?");
+    $stmt->bind_param('ssssssii', $name, $notes, $title, $assignee, $status, $attachment_summary, $id, $uid);
+  }
 
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit;
+  if (! $stmt->execute()) {
+    die("Database error: " . $stmt->error);
+  }
+
+  $stmt->close();
+
+  header("Location: /Itempilot/home.php");
+  exit;
 }
 
-$stmt = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC");
-$stmt->bind_param('i', $uid);
-$stmt->execute();
-$result = $stmt->get_result();
-?>
+  $stmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC");
+  $stmt->bind_param('i', $uid);
+  $stmt->execute();
+  $result = $stmt->get_result();
 
+  // ←– INSERT THESE TWO LINES RIGHT HERE
+  $rows      = $result->fetch_all(MYSQLI_ASSOC);
+  $hasRecord = count($rows) > 0;
+
+  $stmt->close();
+
+?>
 <!DOCTYPE html> 
 <html lang="en">
 <head>
@@ -62,102 +72,221 @@ $result = $stmt->get_result();
 <body class="bg-gray-100 min-h-screen">
 
   <!-- Header -->
-  <header>
-    <section class="flex justify-around bg-green-600 py-4">
-      <a href="/ItemPilot/home.php">
-        <button class="p-2 rounded transition" aria-label="Go back">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+  <header class="absolute w-full">
+    <section class="flex py-4 justify-between bg-gray-200" id="randomHeader">
+      <a href="/ItemPilot/home.php#events">
+        <button class="p-2 rounded transition ml-4" aria-label="Go back">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-black cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
         </button>
       </a>
 
-      <h1 id="pageTitle" class="text-white font-semibold text-xl mt-1" contenteditable="true">Untitled Base</h1>
+      <?php if ($hasRecord): ?>
+        <?php foreach ($rows as $row): ?>
+          <div data-id="<?= $row['id'] ?>">
+            <div data-field="title" class="px-4 py-2 text-lg text-center text-black font-semibold">
+              <?= htmlspecialchars($row['title']) ?>
+            </div>
+          </div>
 
-      <button title="Invite team member" class="flex-shrink-0 p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v6m3-3h-6m-6 0a4 4 0 1 0-8 0 4 4 0 0 0 8 0z" /></svg>
-      </button>
+      <div class="flex">
+        <a href="edit.php?id=<?= $row['id'] ?>" class="mr-2 bg-gray-50 text-sm hover:bg-gray-100 px-4 py-3 rounded-lg inline-block">Edit Title</a>
+      <?php endforeach; ?>
+      <?php endif; ?>
+        <a id="addIcon" class="flex gap-1 mr-5 bg-gray-50 hover:bg-gray-100 cursor-pointer px-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mt-[17px]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        <button class="cursor-pointer text-sm">Create New</button>
+        </a>
+      </div>
     </section>
     
   <!-- Table -->
   <div class="overflow-x-auto">
-    <table class="w-200 md:w-[97%] md:ml-5 md:mr-5">
+    <table class="w-200 md:w-[97%] md:ml-5 md:mr-5 border-separate border-spacing-2">
       <thead class="bg-gray-50">
         <tr>
+          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Name</th>
           <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Notes</th>
           <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Assignee</th>
           <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Status</th>
-          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Attachment Summary</th>
+          <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Attachment</th>
           <th class="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-600">Action</th>
         </tr>
       </thead>
       <tbody class="bg-white">
-        <?php if ($result->num_rows): ?>
-        <?php while ($row = $result->fetch_assoc()): ?>
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2 text-sm text-gray-800"><?= htmlspecialchars($row['notes']) ?></td>
-          <td class="px-4 py-2 text-sm text-gray-800"><?= htmlspecialchars($row['assignee']) ?></td>
-          <td class="px-4 py-2 text-sm text-white font-semibold"><div class="bg-green-400 rounded-lg px-4 md:w-[40%] w-[80%] py-2"><?= htmlspecialchars($row['status']) ?></div></td>
-          <td class="px-4 py-2 text-sm text-gray-800"><?php if ($row['attachment_summary']): ?>
-          <img src="uploads/<?= htmlspecialchars($row['attachment_summary']) ?>" alt="Attachment" class="w-16 h-16 object-cover rounded-md">
+        <?php if ($hasRecord): ?>
+          <?php foreach ($rows as $row): ?>
+            <tr data-id="<?= $row['id'] ?>" class="hover:bg-gray-50">
+              <td data-field="name" contenteditable class="px-4 py-2 text-sm text-gray-800">
+                <?= htmlspecialchars($row['name']) ?>
+              </td>
+              <td data-field="notes" contenteditable class="px-4 py-2 text-sm text-gray-800">
+                <?= htmlspecialchars($row['notes']) ?>
+              </td>
+              <td data-field="assignee" contenteditable class="px-4 py-2 text-sm text-gray-800">
+                <?= htmlspecialchars($row['assignee']) ?>
+              </td>
+              <td class="px-2 py-2 text-sm">
+                <div data-field="status" contenteditable
+                    class="bg-green-700 text-white px-4 py-2 rounded-lg font-semibold">
+                  <?= htmlspecialchars($row['status']) ?>
+                </div>
+              </td>
+              <td class="px-4 py-2 text-sm text-gray-800">
+                <?php if ($row['attachment_summary']): ?>
+                  <img src="uploads/<?= htmlspecialchars($row['attachment_summary']) ?>"
+                      alt="" class="w-16 h-16 object-cover rounded-md">
+                <?php else: ?>
+                  <span class="text-gray-400">No image</span>
+                <?php endif; ?>
+              </td>
+              <td class="px-4 py-2 text-sm text-red-500 underline">
+                <a href="delete.php?id=<?= $row['id'] ?>"
+                  onclick="return confirm('Are you sure?')">Delete</a>
+              </td>
+            </tr>
+          <?php endforeach; ?>
         <?php else: ?>
-          <span class="text-gray-400">No image</span>
+          <tr>
+            <td colspan="6" class="px-4 py-6 text-center text-gray-500">
+              No records found for your account.
+            </td>
+          </tr>
         <?php endif; ?>
-          </td>
-          <td class="px-8 py-2 text-sm text-red-500 underline"><a href="delete.php?id=<?= $row['id'] ?>"onclick="return confirm('Are you sure?')">Delete</a><a class="text-blue-500 underline px-3" href="edit.php?id=<?= $row['id'] ?>">Edit</a></td>
-        </tr>
-          <?php endwhile; ?>
-          <?php else: ?>
-        <tr>   
-          <td colspan="5" class="px-4 py-6 text-center text-gray-500">
-            No records found for your account.
-          </td>
-        </tr>
-          <?php endif; ?>
       </tbody>
     </table>
   </div>
   </header>
 
-  <section class="flex justify-center">
-    <img src="/ItemPilot/images/arrow.png?v2" alt="arrow" class="absolute w-30 h-30 bottom-15 mr-10" id="arrowIcon">
-  </section>
+  <!-- Add a new record -->
+  <div class="min-h-screen flex items-center justify-center p-4 hidden relative" id="addForm">
+   <div class="bg-white w-full max-w-lg p-8 rounded-2xl shadow-lg" id="signup">
+    <div class="flex justify-between">
+      <a href="insert_universal.php">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+      </a>
+
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    </div>
+
+    <h1 class="text-4xl font-bold text-center md:mb-8 mb-1 md:mt-6 mt-2">Unnamed record</h1></a>
+    <form action="insert_universal.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <?php if (! $hasRecord): ?>
+      <div>
+        <label for="title" class="block text-gray-700 font-medium mb-2">Tabel Name</label>
+        <input type="text" name="title" id="title" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+    <?php endif; ?>
+
+      <div>
+        <label for="name" class="block text-gray-700 font-medium mb-2">Name</label>
+        <input type="text" name="name" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+      
+      <div>
+        <label for="notes" class="block text-gray-700 font-medium mb-2">Notes</label>
+        <input type="text" name="notes" id="notes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label for="assignee" class="block text-gray-700 font-medium mb-2">Assignee</label>
+        <input type="text" name="assignee" id="assignee" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label for="status" class="block text-gray-700 font-medium mb-2">Status</label>
+        <select type="text" name="status" id="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+          <option name="do" id="do">To Do</option>
+          <option name="progress" id="progress">In Progress</option>
+          <option name="done" id="done">Done</option>
+        </select>
+      </div>
+      
+      <div>
+        <label for="attachment_summary" class="block text-gray-700 font-medium mb-2">Attachment</label>
+        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full border border-gray-300 rounded-lg p-2 text-smfile:bg-pink-100 file:border-0 file:rounded-md file:px-4 file:py-2 file:text-[#B5707D]">
+      </div>
+
+      <div>
+        <button type="submit" name="universal" class="w-full py-3 bg-black text-white font-semibold rounded-lg transition cursor-pointer">Create New Record</button>
+      </div>
+    </form>
+   </div>
+  </div>
   
-
-  <footer class="absolute bottom-0 flex justify-around bg-gray-200 w-full py-3">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round"  stroke-linejoin="round"  d="M4 6h16M4 12h16M4 18h16" /></svg>
-    
-    <a href="universal.php" id="addIcon">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-    </a>
-
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round"  stroke-linejoin="round"  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-  </footer>
-
-
-
-
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const title = document.getElementById('pageTitle');
+    const el     = document.getElementById('pageTitle');
+    const userId = <?= json_encode($uid) ?>;
+    const KEY    = `pageTitle_${userId}`;
 
-      const saved = localStorage.getItem('pageTitle');
-      if (saved) title.textContent = saved;
+    // 1) Load saved title for this user
+    const saved = localStorage.getItem(KEY);
+    if (saved) {
+      el.textContent = saved;
+      document.title = saved;
+    }
 
-      title.addEventListener('blur', () => {
-        localStorage.setItem('pageTitle', title.textContent.trim());
-      });
+    // 2) On blur or Enter → save under the per‑user key
+    function save() {
+      const txt = el.textContent.trim();
+      if (txt) {
+        localStorage.setItem(KEY, txt);
+        document.title = txt;
+      }
+    }
+
+    el.addEventListener('blur', save);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        el.blur();
+      }
     });
+    });
+    
 
+            
     const addIcon = document.getElementById("addIcon");
 
     addIcon.addEventListener('click', removeArrow);
 
     function removeArrow(){
-      const arrowIcon = document.getElementById("arrowIcon");
+      const arrowIcon = document.getElementById("addForm");
+      const removeRecord = document.getElementById("removeRecord");
 
-      arrowIcon.style.display = "none";
+      arrowIcon.style.display = "flex";
+      removeRecord.style.display = "none";
     }
+
+    
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+    el.addEventListener('blur', () => {
+      const tr    = el.closest('tr');
+      const id    = tr?.dataset.id;
+      const field = el.dataset.field;
+      const value = el.textContent.trim();
+
+      if (!id || !field) return;
+
+      fetch('update_cell.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ id, field, value })
+      })
+      .then(res => res.json())
+      .then(json => {
+        if (!json.success) {
+          alert('⚠️ Save failed');
+        }
+      })
+      .catch(err => console.error(err));
+    });
+  });
+});
 </script>
+
 </body>
 </html>
 
