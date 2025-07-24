@@ -1,9 +1,35 @@
 <?php
-  require_once __DIR__ . "/db.php";
-  require_once "register/register.php";
 
-  session_start();
-  $uid = $_SESSION['user_id'] ?? 0;
+session_start();
+require_once __DIR__ . '/db.php';
+require_once "register/register.php";
+$uid = $_SESSION['user_id'] ?? 0;
+
+// If a table_id is passed, load that instead of the default
+$tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
+
+if ($tableId) {
+  $stmt = $conn->prepare("
+    SELECT id,name,notes,assignee,status,attachment_summary
+      FROM universal
+     WHERE user_id = ? AND id = ?
+  ");
+  $stmt->bind_param('ii', $uid, $tableId);
+} else {
+  $stmt = $conn->prepare("
+    SELECT id,name,notes,assignee,status,attachment_summary
+      FROM universal
+     WHERE user_id = ?
+  ORDER BY id ASC
+  ");
+  $stmt->bind_param('i', $uid);
+}
+
+$stmt->execute();
+$rows      = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$hasRecord = !empty($rows);
+$first     = $hasRecord ? $rows[0] : null;
+$stmt->close();
   
     // 1️⃣ Total records in `universal`
   $totalRecords = $conn
@@ -78,26 +104,29 @@
           <li><a href="#home" class="font-medium text-sm text-gray-700 hover:text-black">Overview</a></li>
         </div>
         </div>
-      <div class="relative group">
-      <!-- Trigger, with your exact old styling -->
-      <div class="flex gap-2 ml-6 mt-3 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2 items-center" id="events">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <rect x="4" y="4" width="14" height="14" rx="2" /><rect x="8" y="8" width="14" height="14" rx="2" /></svg>
-        <span class="font-medium text-sm text-gray-700 group-hover:text-black">Items</span>
-        <svg class="ml-auto h-4 w-4 text-gray-700 group-hover:text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7" /></svg>
-      </div>
+        <div class="relative group">
+          <div id="events" class="flex items-center gap-2 ml-6 mt-3 px-2 py-1 w-60 rounded-md hover:bg-gray-200 cursor-pointer">
+            <span class="font-medium text-sm text-gray-700 group-hover:text-black ml-8">Tables</span>
+          </div>
 
-      <!-- Dropdown menu -->
-      <ul class="absolute left-6 px-4 top-full mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-        <?php
-          $result = $conn->query("SELECT * FROM universal WHERE user_id = {$uid} ORDER BY id DESC");
-        ?>
-         <a href="categories/Universal Table/insert_universal.php">  
-          <?php while($row = $result->fetch_assoc()): ?>
-          <div class="py-2"><?php echo htmlspecialchars($row['title']) ?></div>
-          <?php endwhile; ?>
-        </a></li>
-      </ul>
-      </div>
+          <div class="absolute left-6 top-full mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+            <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id DESC");
+              if ($res->num_rows):
+              while ($row = $res->fetch_assoc()):
+            ?>
+              <li>
+                <a href="" id="universal" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                  <?= htmlspecialchars($row['title']) ?>
+                </a>
+              </li>
+            <?php
+              endwhile;
+              else:
+            ?>
+              <li class="px-4 py-2 italic text-gray-500">No tables yet.</li>
+            <?php endif; ?>
+          </div>
+        </div>
         <div class="flex mt-3 ml-6 gap-2 hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2" id="contact">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
           <li><a href="#contact" class="font-medium text-sm text-gray-700 hover:text-black">Contact Us</a></li>
@@ -203,7 +232,7 @@
       </form>
   </section>
 
-  <!-- Event Section --->
+  <!-- Tables Section --->
   <section class="bg-white rounded-md md:mt-5 md:mr-5 py-10 hidden w-full" id="event-right">
     <h4 class="text-lg font-medium md:mt-20 mb-5 md:px-50 text-center md:text-start">Tables</h4>
 
@@ -223,53 +252,7 @@
     </div>
 
     <div class="h-[1px] bg-gray-200 md:w-240 w-100 mt-2 md:ml-50 md:mr-0 ml-4 mr-4"></div>
-
-    <?php
-      $result = $conn->query("SELECT * FROM universal WHERE user_id = {$uid} ORDER BY id DESC");
-    ?>
-    <div class="container mx-auto px-4 py-6">
-     <?php if ($result->num_rows): ?>
-    <div class="overflow-x-auto bg-white shadow rounded-lg">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Notes</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assignee</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created At</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <?php while($row = $result->fetch_assoc()): ?>
-            <tr class="odd:bg-gray-50 hover:bg-gray-100 transition-colors">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><?php echo htmlspecialchars($row['name']) ?></td>
-              <td class="px-6 py-4 whitespace-normal text-sm text-gray-700"><?php echo htmlspecialchars($row['notes']) ?></td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><?php echo htmlspecialchars($row['assignee']) ?></td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex px-2 text-xs font-semibold leading-5 rounded-full
-                  <?php
-                    echo $row['status']==='completed'
-                      ? 'bg-green-100 text-green-800'
-                      : ($row['status']==='pending'
-                         ? 'bg-yellow-100 text-yellow-800'
-                         : 'bg-gray-100 text-gray-800');
-                  ?>">
-                  <?php echo htmlspecialchars(ucfirst($row['status'])) ?>
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?php echo htmlspecialchars($row['created_at']) ?></td>
-            </tr>
-          <?php endwhile; ?>
-        </tbody>
-      </table>
-    </div>
-  <?php else: ?>
-    <p class="text-center text-gray-400 mt-20">No records available, choose a template and create one!</p>
-  <?php endif; ?>
-  </div>
   </section>
-
 
   <!-- CATEGORIES MODAL -->
   <main id="categories" class="fixed inset-0 z-50 hidden max-w-md mx-auto p-12 overflow-auto shadow-md rounded-lg mt-5 mb-5 bg-white/100">
@@ -281,8 +264,8 @@
 
     <!-- Some Templates Will Be Shown/Add Here -->
     <section class="mt-20 space-y-5">
-    <a href="categories/Universal Table/insert_universal.php">
       <!-- Universal Table -->
+    <a href="home.php?table_id=<?= $row['id'] ?>">
       <article class="flex justify-between items-center mb-4" id="blank">
         <div class="border rounded-sm px-3 py-2 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round" stroke-linejoin="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -294,6 +277,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
       </article>
     </a>
+
       <!-- Groceries Table -->
       <article class="flex justify-between items-center mb-4">
         <div class="bg-yellow-400 rounded-sm px-3 py-2 flex items-center justify-center">
@@ -411,43 +395,40 @@
     { id: 'chart2', color: '#EC4899' },
     { id: 'chart3', color: '#FBBF24' },
     { id: 'chart4', color: '#EF4444' },
-  ];
+    ];
 
-  cfg.forEach(({id, color}) => {
-    const c = document.getElementById(id);
-    const v = +c.dataset.value;
-    new Chart(c.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        datasets: [{
-          data: [v, Math.max(0, 100 - v)],
-          backgroundColor: [color, '#E5E7EB'],
-          hoverOffset: 4
-        }]
-      },
-      options: {
-        cutout: '75%',
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: false },
-          // center‑label plugin if you like
+    cfg.forEach(({id, color}) => {
+      const c = document.getElementById(id);
+      const v = +c.dataset.value;
+      new Chart(c.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [v, Math.max(0, 100 - v)],
+            backgroundColor: [color, '#E5E7EB'],
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          cutout: '75%',
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          }
         }
-      }
+      });
     });
-  });
 
     document.querySelectorAll('.template-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const id   = el.dataset.id;
-      const name = el.dataset.name;
+      el.addEventListener('click', () => {
+        const id   = el.dataset.id;
+        const name = el.dataset.name;
 
-      // 1) Shfaq emrin që ke klikuar
-      document.getElementById('selectedTemplate').textContent = name;
+        document.getElementById('selectedTemplate').textContent = name;
 
-      // 2) Redirect drejt asaj tabeleje (me parametra GET)
-      window.location.href = `home.php?table_id=${id}`;
+        window.location.href = `home.php?table_id=${id}`;
+      });
     });
-  });
 
     const menuBtn       = document.getElementById('menuBtn');
     const sidebar       = document.getElementById('sidebar');
@@ -455,10 +436,8 @@
     const closeIcon     = document.getElementById('closeIcon');
 
     menuBtn.addEventListener('click', () => {
-      // Toggle the 'hidden' class on <aside>
       const nowVisible = !sidebar.classList.toggle('hidden');
 
-      // Swap icons: hide hamburger when open, show when closed
       hamburgerIcon.classList.toggle('hidden', nowVisible);
       closeIcon.classList.toggle('hidden', !nowVisible);
     });
@@ -517,6 +496,54 @@
         }
       });
     });
+
+    
+
+    blank.addEventListener("click", function(e) {
+    e.preventDefault();
+    document.getElementById("categories").classList.add("hidden");
+
+    fetch("categories/Universal Table/insert_universal.php")
+      .then(r => r.text())
+      .then(html => {
+        eventRight.innerHTML = html;
+        homeRight.style.display    = "none";
+        contactRight.style.display = "none";
+        eventRight.style.display   = "block";
+      });
+    });
+
+    document.body.addEventListener('click', function(e) {
+      if (e.target.closest('#addIcon')) {
+        e.preventDefault();
+        document.getElementById('addForm').classList.toggle('hidden');
+      }
+    });
+
+    const universal = document.getElementById("universal");
+    universal.addEventListener("click", function(e) {
+    e.preventDefault();
+    document.getElementById("categories").classList.add("hidden");
+
+    fetch("categories/Universal Table/insert_universal.php")
+      .then(r => r.text())
+      .then(html => {
+        eventRight.innerHTML = html;
+        homeRight.style.display    = "none";
+        contactRight.style.display = "none";
+        eventRight.style.display   = "block";
+      });
+    });
+
+        const edit_button = document.getElementById("edit-button");
+
+    edit_button.addEventListener('click', showForm);
+
+    function showForm(){
+      const edit_form = document.getElementById("edit-form");
+
+      edit_form.style.display = "block"
+    }
 </script>
 </body>
 </html>

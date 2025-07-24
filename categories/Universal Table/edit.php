@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt = $conn->prepare($sql);
   $stmt->bind_param('si', $title, $id);
   if ($stmt->execute()) {
-    header("Location: insert_universal.php");
+    header("Location: /ItemPilot/home.php");
     exit;
   }else {
     die("Update failed: " . $stmt->error);
@@ -47,7 +47,7 @@ $stmt->close();
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
   <!-- Register Form -->
   <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg" id="signup">
-    <a href="insert_universal.php" class="text-blue-500 underline"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></a>
+    <a href="/ItemPilot/home.php" class="text-blue-500 underline"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></a>
     <div class="flex gap-1 justify-center items-center">  
       <h1 class="text-4xl font-bold text-center mb-8 mt-6">Edit Title</h1></a>
     </div>
