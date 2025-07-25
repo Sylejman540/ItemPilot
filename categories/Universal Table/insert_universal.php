@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 
     
-    <div class="md:mx-8 mt-5 overflow-x-auto">
+    <div class="md:mx-8 mt-5">
       <table class="md:w-full w-240 divide-y divide-gray-200 border-collapse border border-gray-300 overflow-x-auto ">
         <thead class="bg-[#333333] text-white h-10">
           <tr>
@@ -234,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <div id="theadForm" class="fixed inset-0 flex items-center justify-center p-4 hidden cursor-pointer">
-  <!-- Edit Tbody Form -->
+  <!-- Edit Tbod Form -->
   <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative>
           <a href="#" data-close-thead class="absolute top-12">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
