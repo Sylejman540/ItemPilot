@@ -22,5 +22,5 @@ if ($stmt->affected_rows === 0) {
 
 $stmt->close();
 
-header("Location: /ItemPilot/home.php");
+header("Location: /ItemPilot/home.php#events");
 exit;

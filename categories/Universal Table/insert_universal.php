@@ -3,10 +3,8 @@ require_once __DIR__ . '/../../db.php';
 session_start();
 $uid = $_SESSION['user_id'] = 1; 
 
-
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $id = $_POST['id'] ?? '';
+  $id = $_POST['id'];
   $name = $_POST['name'] ?? '';
   $title = $_POST['title'] ?? '';
   $notes = $_POST['notes'] ?? '';
@@ -36,18 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $conn->prepare("UPDATE universal SET name = ?, notes = ?, title = ?, assignee = ?, status = ?, attachment_summary = ? WHERE id = ? AND user_id = ?");
     $stmt->bind_param('ssssssii', $name, $notes, $title, $assignee, $status, $attachment_summary, $id, $uid);
   }
-
+  
   if (! $stmt->execute()) {
     die("Database error: " . $stmt->error);
   }
-
   $stmt->close();
 
   header("Location: /Itempilot/home.php");
   exit;
 }
 
-  $stmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC");
+  $stmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC LIMIT 5");
   $stmt->bind_param('i', $uid);
   $stmt->execute();
   $result = $stmt->get_result();
@@ -62,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
   <!-- Header -->
-  <header class="absolute w-313">
+  <header class="absolute md:w-[75%] md:ml-16 md:mr-16">
     <section class="flex py-4 justify-between" id="randomHeader">
       <?php if ($hasRecord): ?>
       <?php $first = $rows[0];?>
@@ -71,60 +68,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <div class="flex gap-4">
-          <a href="/ItemPilot/categories/Universal Table/edit.php?id=<?= $first['id'] ?>" class=" bg-gray-100 text-sm hover:bg-gray-200 px-4 py-3 rounded-lg">Edit Title</a>
+        <a href="#" 
+          id="openForm" 
+          data-id="<?= $first['id'] ?>" 
+          data-title="<?= htmlspecialchars($first['title']) ?>" 
+          class="bg-gray-100 text-sm hover:bg-gray-200 px-4 py-3 rounded-lg">
+          Edit Title
+        </a>
         <?php endif; ?>
-        <button id="addIcon" type="button" class="flex items-center gap-1 mr-5 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+        <button id="addIcon" type="button" class="flex items-center gap-1 mr-5 bg-gray-100 hover:bg-gray-200 px-2 rounded-lg cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
         <span class="text-sm">Create New</span>
       </button>
       </div>
     </section>
 
     
-    <div class="overflow-x-auto md:mx-8 mt-5">
-      <table class="md:w-full w-240 divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+    <div class="md:mx-8 mt-5 overflow-x-auto">
+      <table class="md:w-full w-240 divide-y divide-gray-200 border-collapse border border-gray-300 overflow-x-auto ">
+        <thead class="bg-[#333333] text-white h-10">
           <tr>
-            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" contentEditable="true" data-column-key="name">Name</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" contentEditable="true" data-col=1>Notes</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Assignee</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase" contentEditable="true" data-col=4>Attachment</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+            <th class="border-l border-gray-300 px-4 py-2 text-left text-xs font-medium uppercase">Name</th>
+            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Notes</th>
+            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Assignee</th>
+            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Status</th>
+            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Attachment</th>
+            <th class="border-r border-gray-300 px-4 py-2 text-left text-xs font-medium uppercase">Action</th>
           </tr>
         </thead>
+        <?php $rowIndex = 0; ?>
         <tbody class="divide-y divide-gray-200">
           <?php if($hasRecord): foreach($rows as $r): ?>
-            <tr class="odd:bg-gray-100 hover:bg-gray-200">
-              <td data-field="name" contentEditable="true" data-row=1 data-col=0 class="px-4 py-2 text-sm text-gray-900">
+            <tr>
+              <td data-row="<?= $rowIndex ?>" data-col="0" class="border-l border-gray-300 px-4 py-2 text-sm text-gray-900" tabindex="0">
                 <?= htmlspecialchars($r['name']) ?>
               </td>
-              <td data-field="notes" contentEditable="true" data-row=1 data-col=1 class="px-4 py-2 text-sm text-gray-700">
+              <td data-row="<?= $rowIndex ?>" data-col="1" class="border-l border-gray-300 px-4 py-2 text-sm text-gray-700" tabindex="0">
                 <?= htmlspecialchars($r['notes']) ?>
               </td>
-              <td data-field="assignee" contentEditable="true" data-row=1 data-col=2 class="px-4 py-2 text-sm text-gray-900">
+              <td data-row="<?= $rowIndex ?>" data-col="2" class="border-l border-gray-300 px-4 py-2 text-sm text-gray-900" tabindex="0">
                 <?= htmlspecialchars($r['assignee']) ?>
               </td>
-              <td class="px-4 py-2">
-                <span data-field="status" contentEditable="true" data-row=1 data-col=3 class="px-2 py-1 text-xs bg-green-100 rounded">
+              <td class="border-l border-gray-300 px-4 py-2">
+                <span data-row="<?= $rowIndex ?>" data-col="3" class="border-l border-gray-300 px-2 py-1 text-xs bg-green-100 rounded" tabindex="0">
                   <?= htmlspecialchars($r['status']) ?>
                 </span>
               </td>
-              <td class="px-4 py-2 text-sm text-gray-500" contentEditable="true" data-row=1 data-col=4>
+              <td data-row="<?= $rowIndex ?>" data-col="4" class="border-l border-gray-300 px-4 py-2 text-sm text-gray-500" tabindex="0">
                 <?php if ($r['attachment_summary']): ?>
-                  <img src="categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>"
-                      class="w-10 h-10 rounded-md" alt="Attachment">
+                  <img src="categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-10 h-10 rounded-md" alt="Attachment">
                 <?php else: ?>
                   <span class="italic text-gray-400">None</span>
                 <?php endif; ?>
               </td>
-              <td class="px-4 py-2 text-left text-sm">
+              <td class="border-l border-gray-300 px-2 py-4 text-left text-sm flex gap-5">
                 <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>" onclick="return confirm('Are you sure?')" class="inline-block px-2 py-1 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
                   <!-- Trash Icon -->
-                  <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/></svg>
-                <a href="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $first['id'] ?>" class="text-blue-500 ml-4 underline" id="edit-button">Edit</a>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/></svg>
+                </a>
+                <a id="openTheadForm" href="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" class="inline-block px-2 py-1 text-blue-500 border border-blue-500 rounded hover:bg-blue-50 transition" id="edit-button">
+                  <!-- Pen Icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" stroke="blue" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
+                </a>
               </td>
             </tr>
+            <?php $rowIndex++; ?>
           <?php endforeach; else: ?>
             <tr>
               <td colspan="6" class="px-4 py-2 text-center text-gray-500">
@@ -138,11 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </header>
   <!-- Add a new record -->
   <div id="addForm" class="min-h-screen flex items-center justify-center p-4 hidden relative">
-   <div class="bg-white w-full max-w-lg p-8 rounded-2xl shadow-lg" id="signup">
+   <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg" id="signup">
     <div class="flex justify-between">
-      <a href="/ItemPilot/home.php">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+      <a href="#" data-close-add>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="6" y1="18" x2="18" y2="6" />
+        </svg>
       </a>
+
 
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
@@ -192,6 +204,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
    </div>
   </div>
 
+
+  <!-- Edit Title -->
+  <div id="editFormWrapper" class="flex items-center justify-center p-4 hidden cursor-pointer">
+    <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative">
+      <button data-close-modal class="absolute top-3 left-4 text-gray-500 hover:text-black">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+
+      <h1 class="text-3xl font-bold text-center mb-6">Edit Title</h1>
+
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php?id=<?= $first['id'] ?>">
+
+        <input type="hidden" name="id" value="<?= $id ?>">
+
+        <div>
+          <label for="title" class="block text-gray-700 font-medium mb-2">Title</label>
+          <input type="text" name="title" id="title" value="<?= htmlspecialchars($first['title']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+
+        <div class="mt-4 flex justify-between">
+          <button type="submit" class="px-6 py-2 bg-black text-white rounded-lg">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="theadForm" class="fixed inset-0 flex items-center justify-center p-4 hidden cursor-pointer">
+  <!-- Edit Tbody Form -->
+  <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative>
+          <a href="#" data-close-thead class="absolute top-12">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </a>
+    <div class="flex gap-1 justify-center items-center">  
+      <h1 class="text-4xl font-bold text-center mb-8 mt-6">Edit Data</h1></a>
+    </div>
+    <form  action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" method="post">
+      <input type="hidden" name="id" value="<?= $id ?>">
+
+      <div>
+        <label for="name" class="block text-gray-700 font-medium mb-2 mt-4">Name</label>
+        <input type="text" name="name" id="name" value="<?= htmlspecialchars($first['name']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+      
+      <div>
+        <label for="notes" class="block text-gray-700 font-medium mb-2 mt-4">Notes</label>
+        <input type="text" name="notes" id="notes" value="<?= htmlspecialchars($first['notes']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label for="assignee" class="block text-gray-700 font-medium mb-2 mt-4">Assignee</label>
+        <input type="text" name="assignee" id="assignee" value="<?= htmlspecialchars($first['assignee']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label for="status" class="block text-gray-700 font-medium mb-2 mt-4">Status</label>
+        <input type="text" name="status" id="status" value="<?= htmlspecialchars($first['status']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="mt-7 flex justify-between">
+        <button type="submit" class="px-6 py-2 bg-black text-white rounded-lg">Save</button>
+      </div>
+    </form>
+  </div>
+  </div>
 
 </body>
 </html>

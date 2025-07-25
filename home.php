@@ -77,7 +77,7 @@ $stmt->close();
     body { font-family: 'Poppins', sans-serif; }
   </style>
 </head>
-<body class="bg-gray-100 overflow-x-hidden">
+<body class="bg-gray-100">
     <button id="menuBtn" class="fixed top-1 left-2 z-50 p-2 md:hidden">
     <!-- Hamburger (☰) -->
     <svg id="hamburgerIcon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">  <path stroke-linecap="round" stroke-linejoin="round"  d="M4 6h16M4 12h16M4 18h16"/>  </svg>
@@ -513,12 +513,19 @@ $stmt->close();
       });
     });
 
-    document.body.addEventListener('click', function(e) {
-      if (e.target.closest('#addIcon')) {
+    document.body.addEventListener('click', function (e) {
+      const openBtn = e.target.closest('#addIcon');
+      if (openBtn) {
         e.preventDefault();
-        document.getElementById('addForm').classList.toggle('hidden');
+        document.getElementById('addForm').classList.remove('hidden');
+      }
+
+      const closeBtn = e.target.closest('[data-close-add]');
+      if (closeBtn) {
+        document.getElementById('addForm').classList.add('hidden');
       }
     });
+
 
     const universal = document.getElementById("universal");
     universal.addEventListener("click", function(e) {
@@ -535,15 +542,35 @@ $stmt->close();
       });
     });
 
-        const edit_button = document.getElementById("edit-button");
+    document.body.addEventListener('click', function (e) {
+      const btn = e.target.closest('#openForm');
+      if (btn) {
+        e.preventDefault();
+        document.getElementById('editFormWrapper').classList.remove('hidden');
+      }
 
-    edit_button.addEventListener('click', showForm);
+      // Close modal if close button is clicked
+      const closeBtn = e.target.closest('[data-close-modal]');
+      if (closeBtn) {
+        document.getElementById('editFormWrapper').classList.add('hidden');
+      }
+    });
 
-    function showForm(){
-      const edit_form = document.getElementById("edit-form");
+    document.body.addEventListener('click', function (e) {
+      // Open theadForm
+      const btn = e.target.closest('#openTheadForm');
+      if (btn) {
+        e.preventDefault();
+        document.getElementById('theadForm').classList.remove('hidden');
+        btn.style.display = "block";
+      }
 
-      edit_form.style.display = "block"
-    }
+      // Close theadForm if a close element is clicked
+      const closeBtn = e.target.closest('[data-close-thead]');
+      if (closeBtn) {
+        document.getElementById('theadForm').classList.add('hidden');
+      }
+    });
 </script>
 </body>
 </html>
