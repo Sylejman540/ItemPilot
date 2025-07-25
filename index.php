@@ -63,7 +63,7 @@
 
       <button type="submit" name="login" class="w-full py-3 bg-black text-white font-semibold rounded-lg transition cursor-pointer">Login</button>
     </form>
-    <p class="text-center text-sm text-gray-500 mt-6 cursor-pointer" id="login-button">Don't have an account?<span class="text-blue-600 hover:underline">Signup in</span></p>
+    <p class="text-center text-sm text-gray-500 mt-6 cursor-pointer" id="login-button">Don't have an account?<span class="text-blue-600 hover:underline">Sign In</span></p>
   </div>
 
   <script src="main.js"></script>

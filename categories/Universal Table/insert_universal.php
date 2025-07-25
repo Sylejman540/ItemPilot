@@ -1,7 +1,14 @@
 <?php
 require_once __DIR__ . '/../../db.php';
 session_start();
-$uid = $_SESSION['user_id'] = 1; 
+$uid = $_SESSION['user_id'] ?? 0;
+
+if ($uid <= 0) {
+  // Redirect to login or deny access
+  header("Location: /register/login.php");
+  exit;
+}
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $id = $_POST['id'];
@@ -59,22 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
   <!-- Header -->
-  <header class="absolute md:w-[75%] md:ml-16 md:mr-16">
-    <section class="flex py-4 justify-between" id="randomHeader">
+  <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[100%] h-96 bg-white">
+    <section class="md:flex py-4 md:justify-between justify-center md:ml-0 ml-3" id="randomHeader">
       <?php if ($hasRecord): ?>
       <?php $first = $rows[0];?>
         <div data-id="<?= $first['id'] ?>" class="px-4 py-2 text-center flex">
-          <div data-field="title" class="text-lg font-semibold text-black"><?= htmlspecialchars($first['title']) ?></div>
+          <div data-field="title" class="text-lg font-semibold  text-center text-black"><?= htmlspecialchars($first['title']) ?></div>
         </div>
         
-        <div class="flex gap-4">
-        <a href="#" 
-          id="openForm" 
-          data-id="<?= $first['id'] ?>" 
-          data-title="<?= htmlspecialchars($first['title']) ?>" 
-          class="bg-gray-100 text-sm hover:bg-gray-200 px-4 py-3 rounded-lg">
-          Edit Title
-        </a>
+        <div class="flex md:gap-4 justify-between">
+        <a href="#"  id="openForm"  data-id="<?= $first['id'] ?>"  data-title="<?= htmlspecialchars($first['title']) ?>"  class="bg-gray-100 text-sm hover:bg-gray-200 px-4 py-3 rounded-lg">Edit Title</a>
         <?php endif; ?>
         <button id="addIcon" type="button" class="flex items-center gap-1 mr-5 bg-gray-100 hover:bg-gray-200 px-2 rounded-lg cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
@@ -84,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 
     
-    <div class="md:mx-8 mt-5">
-      <table class="md:w-full w-240 divide-y divide-gray-200 border-collapse border border-gray-300 overflow-x-auto ">
+    <div class="md:mx-8 mt-5 overflow-x-auto md:ml-0 ml-3">
+      <table class="md:w-full w-240 divide-y divide-gray-200 border-collapse border border-gray-300">
         <thead class="bg-[#333333] text-white h-10">
           <tr>
             <th class="border-l border-gray-300 px-4 py-2 text-left text-xs font-medium uppercase">Name</th>
@@ -235,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <div id="theadForm" class="fixed inset-0 flex items-center justify-center p-4 hidden cursor-pointer">
   <!-- Edit Tbod Form -->
-  <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative>
+  <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative">
           <a href="#" data-close-thead class="absolute top-12">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
