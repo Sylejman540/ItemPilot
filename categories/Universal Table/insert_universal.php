@@ -42,12 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param('ssssssii', $name, $notes, $title, $assignee, $status, $attachment_summary, $id, $uid);
   }
   
-  if (! $stmt->execute()) {
-    die("Database error: " . $stmt->error);
-  }
+    $stmt->execute();
+  $newId = $stmt->insert_id;
   $stmt->close();
 
-  header("Location: /Itempilot/home.php");
+  header("Location: /ItemPilot/home.php?table_id=$newId");
   exit;
 }
 
@@ -60,10 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $rows      = $result->fetch_all(MYSQLI_ASSOC);
   $hasRecord = count($rows) > 0;
 
-  $stmt->close();
+$stmt = $conn->prepare("SELECT * FROM universal_thead WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+$stmt->bind_param("i", $uid);
+$stmt->execute();
+$result = $stmt->get_result();
+$thead = $result->fetch_assoc(); // clearer than $r
+$stmt->close();
+
 
 ?>
-
 
   <!-- Header -->
   <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[100%] h-96 bg-white">
@@ -84,22 +88,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </section>
 
-    
     <div class="md:mx-8 mt-5 overflow-x-auto md:ml-0 ml-3">
       <table class="md:w-full w-240 divide-y divide-gray-200 border-collapse border border-gray-300">
         <thead class="bg-[#333333] text-white h-10">
           <tr>
-            <th class="border-l border-gray-300 px-4 py-2 text-left text-xs font-medium uppercase">Name</th>
-            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Notes</th>
-            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Assignee</th>
-            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Status</th>
-            <th class="px-4 py-2 text-left text-xs font-medium uppercase">Attachment</th>
-            <th class="border-r border-gray-300 px-4 py-2 text-left text-xs font-medium uppercase">Action</th>
+            <th class="border-l px-4 py-2 text-xs font-medium uppercase">
+              <?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>
+            </th>
+            <th class="px-4 py-2 text-xs font-medium uppercase">
+              <?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>
+            </th>
+            <th class="px-4 py-2 text-xs font-medium uppercase">
+              <?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>
+            </th>
+            <th class="px-4 py-2 text-xs font-medium uppercase">
+              <?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>
+            </th>
+            <th class="px-4 py-2 text-xs font-medium uppercase">
+              <?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>
+            </th>
+            <th class="px-4 py-2 text-xs font-medium uppercase">
+              <button id="openTbodyForm" class="text-blue-400 underline">Edit</button>
+            </th>
           </tr>
         </thead>
+
+        <?php if($hasRecord): foreach($rows as $r): ?>
         <?php $rowIndex = 0; ?>
         <tbody class="divide-y divide-gray-200">
-          <?php if($hasRecord): foreach($rows as $r): ?>
             <tr>
               <td data-row="<?= $rowIndex ?>" data-col="0" class="border-l border-gray-300 px-4 py-2 text-sm text-gray-900" tabindex="0">
                 <?= htmlspecialchars($r['name']) ?>
@@ -159,8 +175,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
-
-    <h1 class="text-4xl font-bold text-center md:mb-8 mb-1 md:mt-6 mt-2">Unnamed record</h1></a>
+    <?php if ($hasRecord): ?>
+    <?php $first = $rows[0];?>
+      <div data-id="<?= $first['id'] ?>" class="px-4 py-2 text-center flex justify-center">
+      <div data-field="title" class="text-lg font-semibold  text-center text-black"><?= htmlspecialchars($first['title']) ?></div>
+      </div>
+    <?php endif; ?>
     <form action="/ItemPilot/categories/Universal Table/insert_universal.php" method="POST" enctype="multipart/form-data" class="space-y-6">
     <?php if (! $hasRecord): ?>
       <div>
@@ -170,22 +190,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
       <div>
-        <label for="name" class="block text-gray-700 font-medium mb-2">Name</label>
+        <label><?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?></label>
         <input type="text" name="name" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
       
       <div>
-        <label for="notes" class="block text-gray-700 font-medium mb-2">Notes</label>
+        <label><?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?></label>
         <input type="text" name="notes" id="notes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
-        <label for="assignee" class="block text-gray-700 font-medium mb-2">Assignee</label>
+        <label><?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?></label>
         <input type="text" name="assignee" id="assignee" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
-        <label for="status" class="block text-gray-700 font-medium mb-2">Status</label>
+        <label><?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?></label>
         <select type="text" name="status" id="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
           <option name="do" id="do">To Do</option>
           <option name="progress" id="progress">In Progress</option>
@@ -194,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       
       <div>
-        <label for="attachment_summary" class="block text-gray-700 font-medium mb-2">Attachment</label>
+        <label><?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?></label>
         <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full border border-gray-300 rounded-lg p-2 text-smfile:bg-pink-100 file:border-0 file:rounded-md file:px-4 file:py-2 file:text-[#B5707D]">
       </div>
 
@@ -234,8 +254,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 
-  <div id="theadForm" class="fixed inset-0 flex items-center justify-center p-4 hidden cursor-pointer">
-  <!-- Edit Tbod Form -->
+ <div id="theadForm" class="fixed inset-0 flex items-center hidden justify-center p-4 cursor-pointer">
+  <!-- Edit Thead Form -->
+  <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative">
+    <!-- Close Button -->
+    <a href="#" data-close-thead class="absolute top-12">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </a>
+
+    <div class="flex gap-1 justify-center items-center">  
+      <h1 class="text-4xl font-bold text-center mb-8 mt-6">Edit Table Head</h1>
+    </div>
+
+    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php?id=<?= $r['id'] ?>" method="post">
+      <input type="hidden" name="id" value="<?= $r['id'] ?>">
+
+      <div>
+        <label><?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?></label>
+        <input type="text" name="thead_name" id="thead_name" value="<?= htmlspecialchars($r['thead_name'] ?? '') ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+      
+      <div>
+        <label><?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?></label>
+        <input type="text" name="thead_notes" id="thead_notes" value="<?= htmlspecialchars($r['thead_notes'] ?? '') ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label><?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?></label>
+        <input type="text" name="thead_assignee" id="thead_assignee" value="<?= htmlspecialchars($r['thead_assignee'] ?? '') ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label><?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?></label>
+        <input type="text" name="thead_status" id="thead_status" value="<?= htmlspecialchars($r['thead_status'] ?? '') ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label><?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?></label>
+        <input type="text" name="thead_attachment" id="thead_attachment" value="<?= htmlspecialchars($r['thead_attachment'] ?? '') ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="mt-7 flex justify-between">
+        <button type="submit" class="px-6 py-2 bg-black text-white rounded-lg">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+  <div id="tbodyForm" class="fixed inset-0 flex items-center justify-center p-4 hidden cursor-pointer">
+  <!-- Edit Tbody Form -->
   <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative">
           <a href="#" data-close-thead class="absolute top-12">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-600 hover:text-gray-800 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -249,22 +319,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="hidden" name="id" value="<?= $id ?>">
 
       <div>
-        <label for="name" class="block text-gray-700 font-medium mb-2 mt-4">Name</label>
+        <label><?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?></label>
         <input type="text" name="name" id="name" value="<?= htmlspecialchars($first['name']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
       
       <div>
-        <label for="notes" class="block text-gray-700 font-medium mb-2 mt-4">Notes</label>
+        <label><?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?></label>
         <input type="text" name="notes" id="notes" value="<?= htmlspecialchars($first['notes']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
-        <label for="assignee" class="block text-gray-700 font-medium mb-2 mt-4">Assignee</label>
+        <label><?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?></label>
         <input type="text" name="assignee" id="assignee" value="<?= htmlspecialchars($first['assignee']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
-        <label for="status" class="block text-gray-700 font-medium mb-2 mt-4">Status</label>
+        <label><?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?></label>
         <input type="text" name="status" id="status" value="<?= htmlspecialchars($first['status']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 

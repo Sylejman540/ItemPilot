@@ -390,35 +390,6 @@ $stmt->close();
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script> 
-    const cfg = [
-    { id: 'chart1', color: '#10B981' },
-    { id: 'chart2', color: '#EC4899' },
-    { id: 'chart3', color: '#FBBF24' },
-    { id: 'chart4', color: '#EF4444' },
-    ];
-
-    cfg.forEach(({id, color}) => {
-      const c = document.getElementById(id);
-      const v = +c.dataset.value;
-      new Chart(c.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          datasets: [{
-            data: [v, Math.max(0, 100 - v)],
-            backgroundColor: [color, '#E5E7EB'],
-            hoverOffset: 4
-          }]
-        },
-        options: {
-          cutout: '75%',
-          plugins: {
-            legend: { display: false },
-            tooltip: { enabled: false },
-          }
-        }
-      });
-    });
-
     document.querySelectorAll('.template-item').forEach(el => {
       el.addEventListener('click', () => {
         const id   = el.dataset.id;
@@ -558,7 +529,7 @@ $stmt->close();
 
     document.body.addEventListener('click', function (e) {
       // Open theadForm
-      const btn = e.target.closest('#openTheadForm');
+      const btn = e.target.closest('#openTbodyForm');
       if (btn) {
         e.preventDefault();
         document.getElementById('theadForm').classList.remove('hidden');
@@ -569,6 +540,22 @@ $stmt->close();
       const closeBtn = e.target.closest('[data-close-thead]');
       if (closeBtn) {
         document.getElementById('theadForm').classList.add('hidden');
+      }
+    });
+
+    document.body.addEventListener('click', function (e) {
+      // Open tbodyForm
+      const btn = e.target.closest('#openTheadForm');
+      if (btn) {
+        e.preventDefault();
+        document.getElementById('tbodyForm').classList.remove('hidden');
+        btn.style.display = "block";
+      }
+
+      // Close tbodyForm if a close element is clicked
+      const closeBtn = e.target.closest('[data-close-thead]');
+      if (closeBtn) {
+        document.getElementById('tbodyForm').classList.add('hidden');
       }
     });
 </script>
