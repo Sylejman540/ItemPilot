@@ -110,12 +110,12 @@ $stmt->close();
           </div>
 
           <div class="absolute left-6 top-full mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-            <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id DESC");
+            <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 1");
               if ($res->num_rows):
               while ($row = $res->fetch_assoc()):
             ?>
               <li>
-                <a href="" id="universal" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                <a href="#" id="universal" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
                   <?= htmlspecialchars($row['title']) ?>
                 </a>
               </li>

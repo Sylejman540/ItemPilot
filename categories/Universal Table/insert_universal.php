@@ -59,14 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $rows      = $result->fetch_all(MYSQLI_ASSOC);
   $hasRecord = count($rows) > 0;
 
-$stmt = $conn->prepare("SELECT * FROM universal_thead WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-$stmt->bind_param("i", $uid);
-$stmt->execute();
-$result = $stmt->get_result();
-$thead = $result->fetch_assoc(); // clearer than $r
-$stmt->close();
-
-
+  $stmt = $conn->prepare("SELECT * FROM universal_thead WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+  $stmt->bind_param("i", $uid);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $thead = $result->fetch_assoc();
+  $stmt->close();
 ?>
 
   <!-- Header -->
@@ -177,7 +175,7 @@ $stmt->close();
     </div>
     <?php if ($hasRecord): ?>
     <?php $first = $rows[0];?>
-      <div data-id="<?= $first['id'] ?>" class="px-4 py-2 text-center flex justify-center">
+      <div data-id="<?= $first['id'] ?>" class="px-4 py-2 text-center flex">
       <div data-field="title" class="text-lg font-semibold  text-center text-black"><?= htmlspecialchars($first['title']) ?></div>
       </div>
     <?php endif; ?>
