@@ -1,29 +1,29 @@
 <?php
 
-session_start();
-require_once __DIR__ . '/db.php';
-require_once "register/register.php";
-$uid = $_SESSION['user_id'] ?? 0;
+  session_start();
+  require_once __DIR__ . '/db.php';
+  require_once "register/register.php";
+  $uid = $_SESSION['user_id'] ?? 0;
 
-// If a table_id is passed, load that instead of the default
-$tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
+  // If a table_id is passed, load that instead of the default
+  $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
 
-if ($tableId) {
-  $stmt = $conn->prepare("
-    SELECT id,name,notes,assignee,status,attachment_summary
-      FROM universal
-     WHERE user_id = ? AND id = ?
-  ");
-  $stmt->bind_param('ii', $uid, $tableId);
-} else {
-  $stmt = $conn->prepare("
-    SELECT id,name,notes,assignee,status,attachment_summary
-      FROM universal
-     WHERE user_id = ?
-  ORDER BY id ASC
-  ");
-  $stmt->bind_param('i', $uid);
-}
+  if ($tableId) {
+    $stmt = $conn->prepare("
+      SELECT id,name,notes,assignee,status,attachment_summary
+        FROM universal
+      WHERE user_id = ? AND id = ?
+    ");
+    $stmt->bind_param('ii', $uid, $tableId);
+  } else {
+    $stmt = $conn->prepare("
+      SELECT id,name,notes,assignee,status,attachment_summary
+        FROM universal
+      WHERE user_id = ?
+    ORDER BY id ASC
+    ");
+    $stmt->bind_param('i', $uid);
+  }
 
 $stmt->execute();
 $rows      = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

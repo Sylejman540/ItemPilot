@@ -49,8 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   header("Location: /ItemPilot/home.php?table_id=$newId");
   exit;
 }
-
-  $stmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC LIMIT 5");
+  $stmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC LIMIT 4");
   $stmt->bind_param('i', $uid);
   $stmt->execute();
   $result = $stmt->get_result();
@@ -159,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </table>
     </div>
   </header>
+
   <!-- Add a new record -->
   <div id="addForm" class="min-h-screen flex items-center justify-center p-4 hidden relative">
    <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg" id="signup">
