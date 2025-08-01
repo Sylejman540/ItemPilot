@@ -115,7 +115,7 @@ $stmt->close();
           </div>
 
           <div class="absolute left-6 top-full mt-1 w-60 bg-white rounded-md shadow-lg transition-all z-10 hidden" id="dropdown">
-            <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 1");
+            <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 5");
               if ($res->num_rows):
               while ($row = $res->fetch_assoc()):
             ?>
@@ -394,39 +394,35 @@ $stmt->close();
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (function() {
-  // Grab elements safely
   const eventRight   = document.getElementById("event-right");
   const homeRight    = document.getElementById("home-right");
   const contactRight = document.getElementById("contact-right");
   const blank        = document.getElementById("blank");
   const universal    = document.getElementById("universal");
+  const openTable    = document.getElementById("openTable");
 
-  const openTable = document.getElementById("openTable");
-  openTable.addEventListener('click', tableOpened);
+  let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
+  let currentTableId = parseInt(new URLSearchParams(window.location.search).get("table_id")) || 1;
 
-  function tableOpened(){
-    const dropdown = document.getElementById("dropdown");
-
-    dropdown.style.display = "block";
+  if (openTable) {
+    openTable.addEventListener('click', () => {
+      const dropdown = document.getElementById("dropdown");
+      if (dropdown) dropdown.style.display = "block";
+    });
   }
 
-  // Preserve the current page from the URL
-  let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
-
-  // Utility to load a given page of the table via AJAX
   function loadTable(page) {
-    fetch(`categories/Universal Table/insert_universal.php?page=${page}`)
+    fetch(`categories/Universal Table/insert_universal.php?page=${page}&table_id=${currentTableId}`)
       .then(r => r.text())
       .then(html => {
-        eventRight.innerHTML   = html;
-        if (homeRight)    homeRight.style.display    = "none";
+        eventRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
         if (contactRight) contactRight.style.display = "none";
         eventRight.style.display = "block";
         currentPage = page;
       });
   }
 
-  // 1. Template-item clicks
   document.querySelectorAll('.template-item').forEach(el => {
     el.addEventListener('click', () => {
       const id   = el.dataset.id;
@@ -437,7 +433,6 @@ $stmt->close();
     });
   });
 
-  // 2. Sidebar menu toggle
   const menuBtn = document.getElementById('menuBtn');
   if (menuBtn) {
     const sidebar       = document.getElementById('sidebar');
@@ -452,32 +447,14 @@ $stmt->close();
     });
   }
 
-  // 3. Section tabs
   const homeTab    = document.getElementById("home");
   const contactTab = document.getElementById("contact");
   const eventsTab  = document.getElementById("events");
 
-  function homePage(){
-    if (homeRight)    homeRight.style.display    = "block";
-    if (contactRight) contactRight.style.display = "none";
-    if (eventRight)   eventRight.style.display   = "none";
-  }
-  function contactPage(){
-    if (homeRight)    homeRight.style.display    = "none";
-    if (contactRight) contactRight.style.display = "block";
-    if (eventRight)   eventRight.style.display   = "none";
-  }
-  function eventsPage(){
-    if (homeRight)    homeRight.style.display    = "none";
-    if (contactRight) contactRight.style.display = "none";
-    if (eventRight)   eventRight.style.display   = "block";
-  }
+  if (homeTab)    homeTab.addEventListener('click', () => { homeRight.style.display = "block"; contactRight.style.display = "none"; eventRight.style.display = "none"; });
+  if (contactTab) contactTab.addEventListener('click', () => { homeRight.style.display = "none"; contactRight.style.display = "block"; eventRight.style.display = "none"; });
+  if (eventsTab)  eventsTab.addEventListener('click', () => { homeRight.style.display = "none"; contactRight.style.display = "none"; eventRight.style.display = "block"; });
 
-  if (homeTab)    homeTab.addEventListener('click', homePage);
-  if (contactTab) contactTab.addEventListener('click', contactPage);
-  if (eventsTab)  eventsTab.addEventListener('click', eventsPage);
-
-  // 4. Open modals via data-modal-target
   document.querySelectorAll('[data-modal-target]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.preventDefault();
@@ -486,7 +463,6 @@ $stmt->close();
     });
   });
 
-  // 5. Close modals (.modal-close)
   document.querySelectorAll('.modal-close').forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = btn.closest('.fixed');
@@ -494,7 +470,6 @@ $stmt->close();
     });
   });
 
-  // 6. Dismiss register/login overlays
   ['register-modal','login-modal'].forEach(id => {
     const modal = document.getElementById(id);
     if (modal) {
@@ -504,21 +479,24 @@ $stmt->close();
     }
   });
 
-  // 7 & 8. Load insert_universal via AJAX on “blank” or “universal” clicks
   [blank, universal].forEach(el => {
     if (el && eventRight) {
       el.addEventListener("click", e => {
         e.preventDefault();
         const categories = document.getElementById("categories");
         if (categories) categories.classList.add("hidden");
-        loadTable(currentPage);
+
+        if (el === blank) {
+          currentTableId = Date.now();
+          loadTable(1);
+        } else {
+          loadTable(currentPage);
+        }
       });
     }
   });
 
-  // 9. Intercept pagination links inside eventRight
   document.body.addEventListener('click', e => {
-    // pagination links
     const pg = e.target.closest('.pagination a');
     if (pg) {
       e.preventDefault();
@@ -528,7 +506,6 @@ $stmt->close();
       return;
     }
 
-    // Open “Add New” form
     const addBtn = e.target.closest('#addIcon');
     if (addBtn) {
       e.preventDefault();
@@ -536,33 +513,32 @@ $stmt->close();
       if (addForm) addForm.classList.remove('hidden');
     }
 
-    // Close “Add New”
     const closeAdd = e.target.closest('[data-close-add]');
     if (closeAdd) {
       const addForm = document.getElementById('addForm');
       if (addForm) addForm.classList.add('hidden');
     }
 
-    // Edit Title modal
     const editBtn = e.target.closest('#openForm');
     if (editBtn) {
       e.preventDefault();
       const wrap = document.getElementById('editFormWrapper');
       if (wrap) wrap.classList.remove('hidden');
     }
+
     const closeModal = e.target.closest('[data-close-modal]');
     if (closeModal) {
       const wrap = document.getElementById('editFormWrapper');
       if (wrap) wrap.classList.add('hidden');
     }
 
-    // THEAD form
     const openThead = e.target.closest('#openTbodyForm');
     if (openThead) {
       e.preventDefault();
       const theadF = document.getElementById('theadForm');
       if (theadF) theadF.classList.remove('hidden');
     }
+
     const closeTheadBtn = e.target.closest('[data-close-thead]');
     if (closeTheadBtn) {
       const theadF = document.getElementById('theadForm');
@@ -571,7 +547,6 @@ $stmt->close();
       if (tbodyF) tbodyF.classList.add('hidden');
     }
 
-    // TBODY form
     const openTbody = e.target.closest('#openTheadForm');
     if (openTbody) {
       e.preventDefault();
@@ -579,14 +554,12 @@ $stmt->close();
       if (tbodyF) tbodyF.classList.remove('hidden');
     }
   });
-  // Auto-load table if redirected from edit_thead.php
+
   const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
   if (shouldAutoload) {
     loadTable(currentPage);
   }
-
 })();
 </script>
-
 </body>
 </html>
