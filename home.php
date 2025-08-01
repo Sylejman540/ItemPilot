@@ -90,9 +90,11 @@ $stmt->close();
   <!-- Aside -->
   <aside id="sidebar" class="mt-5 md:block hidden">
     <!-- Logo will be put here -->
-    <div class="flex hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2 flex gap-9 ml-2 mb-2"> 
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 50" class="w-48 h-8"><polygon points="10,25 60,5 70,25 60,20 20,30" fill="black"/><text x="90" y="32"  font-family="Arial, sans-serif"  font-size="24"  font-weight="bold"  fill="black">ItemPilot</text></svg>
-    </div>
+    <a href="/ItemPilot/home.php">
+      <div class="flex hover:bg-gray-200 rounded-md w-60 py-1 cursor-pointer px-2 flex gap-9 ml-2 mb-2"> 
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 50" class="w-48 h-8"><polygon points="10,25 60,5 70,25 60,20 20,30" fill="black"/><text x="90" y="32"  font-family="Arial, sans-serif"  font-size="24"  font-weight="bold"  fill="black">ItemPilot</text></svg>
+      </div>
+    </a>
     <!-- Line -->
     <div class="h-[1px] w-60 bg-gray-300"></div>
     <nav>

@@ -62,8 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $returnPage = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
     header("Location: /ItemPilot/home.php?autoload=1");
-exit;
-
+    exit;
 }
 
 // Pagination logic
@@ -137,48 +136,21 @@ $theadStmt->close();
     <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
     <div class="grid grid-cols-[repeat(6,1fr)_auto] gap-0 bg-[#333333] text-white text-xs uppercase font-semibold">
       <div class="border-l px-4 py-2">
-        <input
-          name="thead_name"
-          value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>"
-          placeholder="Name"
-          class="w-full bg-transparent border-none focus:outline-none"
-        />
+        <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none focus:outline-none"/>
       </div>
       <div class="px-4 py-2">
-        <input
-          name="thead_notes"
-          value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>"
-          placeholder="Notes"
-          class="w-full bg-transparent border-none focus:outline-none"
-        />
+        <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none focus:outline-none"/>
       </div>
       <div class="px-4 py-2">
-        <input
-          name="thead_assignee"
-          value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>"
-          placeholder="Assignee"
-          class="w-full bg-transparent border-none focus:outline-none"
-        />
+        <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none focus:outline-none"/>
       </div>
       <div class="px-4 py-2">
-        <input
-          name="thead_status"
-          value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>"
-          placeholder="Status"
-          class="w-full bg-transparent border-none focus:outline-none"
-        />
+        <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none focus:outline-none"/>
       </div>
       <div class="px-4 py-2">
-        <input
-          name="thead_attachment"
-          value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>"
-          placeholder="Attachment"
-          class="w-full bg-transparent border-none focus:outline-none"
-        />
+        <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none focus:outline-none"/>
       </div>
-      <div class="px-4 py-2">
-        <!-- empty column to keep alignment if needed -->
-      </div>
+
       <div class="px-4 py-2 flex items-center">
         <button type="submit" class="px-3 py-1 bg-black text-white rounded-md text-xs whitespace-nowrap">
           Save
