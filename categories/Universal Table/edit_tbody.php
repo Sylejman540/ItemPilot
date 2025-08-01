@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt = $conn->prepare($sql);
   $stmt->bind_param('ssssi', $name, $notes, $assignee, $status ,$id);
   if ($stmt->execute()) {
-    header("Location: /ItemPilot/home.php");
+    header("Location: /ItemPilot/home.php?autoload=1");
     exit;
   }else {
     die("Update failed: " . $stmt->error);

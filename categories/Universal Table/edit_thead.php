@@ -13,16 +13,18 @@ $thead_assignee   = $_POST['thead_assignee'] ?? '';
 $thead_status     = $_POST['thead_status'] ?? '';
 $thead_attachment = $_POST['thead_attachment'] ?? '';
 
-$sql = "INSERT INTO universal_thead (thead_name, thead_notes, thead_assignee, thead_status, thead_attachment, user_id) 
-        VALUES (?, ?, ?, ?, ?, ?)";
+$sql = "INSERT INTO universal_thead (thead_name, thead_notes, thead_assignee, thead_status, thead_attachment, user_id) VALUES (?, ?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param('sssssi', $thead_name, $thead_notes, $thead_assignee, $thead_status, $thead_attachment, $uid);
 
 if (! $stmt->execute()) {
-  die("Insert failed: " . $stmt->error);
+  // if it fails, send a 500 and the error
+  http_response_code(500);
+  echo "Insert failed: " . $stmt->error;
+  exit;
 }
 $stmt->close();
 
-// ✅ Redirect only after successful insert
-header("Location: /ItemPilot/home.php");
+// ✅ Only after a successful insert, redirect
+header("Location: /ItemPilot/home.php?autoload=1");
 exit;

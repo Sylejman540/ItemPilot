@@ -107,9 +107,12 @@ $stmt->close();
         <div class="relative group">
           <div id="events" class="flex items-center gap-2 ml-6 mt-3 px-2 py-1 w-60 rounded-md hover:bg-gray-200 cursor-pointer">
             <span class="font-medium text-sm text-gray-700 group-hover:text-black ml-8">Tables</span>
+            <li id="openTable" class="ml-5">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-label="Chevron down" role="img" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </li>
           </div>
 
-          <div class="absolute left-6 top-full mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+          <div class="absolute left-6 top-full mt-1 w-60 bg-white rounded-md shadow-lg transition-all z-10 hidden" id="dropdown">
             <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 1");
               if ($res->num_rows):
               while ($row = $res->fetch_assoc()):
@@ -119,7 +122,7 @@ $stmt->close();
                   <?= htmlspecialchars($row['title']) ?>
                 </a>
               </li>
-            <?php
+            <?php   
               endwhile;
               else:
             ?>
@@ -265,7 +268,6 @@ $stmt->close();
     <!-- Some Templates Will Be Shown/Add Here -->
     <section class="mt-20 space-y-5">
       <!-- Universal Table -->
-    <a href="home.php?table_id=<?= $row['id'] ?>">
       <article class="flex justify-between items-center mb-4" id="blank">
         <div class="border rounded-sm px-3 py-2 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round" stroke-linejoin="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -276,8 +278,7 @@ $stmt->close();
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
       </article>
-    </a>
-
+      
       <!-- Groceries Table -->
       <article class="flex justify-between items-center mb-4">
         <div class="bg-yellow-400 rounded-sm px-3 py-2 flex items-center justify-center">
@@ -389,175 +390,201 @@ $stmt->close();
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script> 
-    document.querySelectorAll('.template-item').forEach(el => {
-      el.addEventListener('click', () => {
-        const id   = el.dataset.id;
-        const name = el.dataset.name;
+<script>
+(function() {
+  // Grab elements safely
+  const eventRight   = document.getElementById("event-right");
+  const homeRight    = document.getElementById("home-right");
+  const contactRight = document.getElementById("contact-right");
+  const blank        = document.getElementById("blank");
+  const universal    = document.getElementById("universal");
 
-        document.getElementById('selectedTemplate').textContent = name;
+  const openTable = document.getElementById("openTable");
+  openTable.addEventListener('click', tableOpened);
 
-        window.location.href = `home.php?table_id=${id}`;
+  function tableOpened(){
+    const dropdown = document.getElementById("dropdown");
+
+    dropdown.style.display = "block";
+  }
+
+  // Preserve the current page from the URL
+  let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
+
+  // Utility to load a given page of the table via AJAX
+  function loadTable(page) {
+    fetch(`categories/Universal Table/insert_universal.php?page=${page}`)
+      .then(r => r.text())
+      .then(html => {
+        eventRight.innerHTML   = html;
+        if (homeRight)    homeRight.style.display    = "none";
+        if (contactRight) contactRight.style.display = "none";
+        eventRight.style.display = "block";
+        currentPage = page;
       });
-    });
+  }
 
-    const menuBtn       = document.getElementById('menuBtn');
+  // 1. Template-item clicks
+  document.querySelectorAll('.template-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id   = el.dataset.id;
+      const name = el.dataset.name;
+      const sel  = document.getElementById('selectedTemplate');
+      if (sel) sel.textContent = name;
+      window.location.href = `home.php?table_id=${id}&page=${currentPage}`;
+    });
+  });
+
+  // 2. Sidebar menu toggle
+  const menuBtn = document.getElementById('menuBtn');
+  if (menuBtn) {
     const sidebar       = document.getElementById('sidebar');
     const hamburgerIcon = document.getElementById('hamburgerIcon');
     const closeIcon     = document.getElementById('closeIcon');
-
     menuBtn.addEventListener('click', () => {
       const nowVisible = !sidebar.classList.toggle('hidden');
-
-      hamburgerIcon.classList.toggle('hidden', nowVisible);
-      closeIcon.classList.toggle('hidden', !nowVisible);
+      if (hamburgerIcon && closeIcon) {
+        hamburgerIcon.classList.toggle('hidden', nowVisible);
+        closeIcon.classList.toggle('hidden', !nowVisible);
+      }
     });
+  }
 
+  // 3. Section tabs
+  const homeTab    = document.getElementById("home");
+  const contactTab = document.getElementById("contact");
+  const eventsTab  = document.getElementById("events");
 
-    const home = document.getElementById("home");
-    const homeRight = document.getElementById("home-right");
-    const contact = document.getElementById('contact');
-    const contactRight = document.getElementById("contact-right");
-    const events = document.getElementById('events');
-    const eventRight = document.getElementById("event-right");
+  function homePage(){
+    if (homeRight)    homeRight.style.display    = "block";
+    if (contactRight) contactRight.style.display = "none";
+    if (eventRight)   eventRight.style.display   = "none";
+  }
+  function contactPage(){
+    if (homeRight)    homeRight.style.display    = "none";
+    if (contactRight) contactRight.style.display = "block";
+    if (eventRight)   eventRight.style.display   = "none";
+  }
+  function eventsPage(){
+    if (homeRight)    homeRight.style.display    = "none";
+    if (contactRight) contactRight.style.display = "none";
+    if (eventRight)   eventRight.style.display   = "block";
+  }
 
-    home.addEventListener('click', homePage);
-    contact.addEventListener('click', contactPage);
-    events.addEventListener('click', eventsPage);
+  if (homeTab)    homeTab.addEventListener('click', homePage);
+  if (contactTab) contactTab.addEventListener('click', contactPage);
+  if (eventsTab)  eventsTab.addEventListener('click', eventsPage);
 
-    function homePage(){
-      homeRight.style.display = "block";
-      contactRight.style.display = "none";
-      eventRight.style.display = "none";
+  // 4. Open modals via data-modal-target
+  document.querySelectorAll('[data-modal-target]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const tgt = document.getElementById(btn.dataset.modalTarget);
+      if (tgt) tgt.classList.remove('hidden');
+    });
+  });
+
+  // 5. Close modals (.modal-close)
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modal = btn.closest('.fixed');
+      if (modal) modal.classList.add('hidden');
+    });
+  });
+
+  // 6. Dismiss register/login overlays
+  ['register-modal','login-modal'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (modal) {
+      modal.addEventListener('click', e => {
+        if (e.target === modal) modal.classList.add('hidden');
+      });
+    }
+  });
+
+  // 7 & 8. Load insert_universal via AJAX on “blank” or “universal” clicks
+  [blank, universal].forEach(el => {
+    if (el && eventRight) {
+      el.addEventListener("click", e => {
+        e.preventDefault();
+        const categories = document.getElementById("categories");
+        if (categories) categories.classList.add("hidden");
+        loadTable(currentPage);
+      });
+    }
+  });
+
+  // 9. Intercept pagination links inside eventRight
+  document.body.addEventListener('click', e => {
+    // pagination links
+    const pg = e.target.closest('.pagination a');
+    if (pg) {
+      e.preventDefault();
+      const url = new URL(pg.href, window.location.origin);
+      const p   = parseInt(url.searchParams.get('page')) || 1;
+      loadTable(p);
+      return;
     }
 
-    function contactPage(){
-      homeRight.style.display = "none";
-      contactRight.style.display = "block";
-      eventRight.style.display = "none";
+    // Open “Add New” form
+    const addBtn = e.target.closest('#addIcon');
+    if (addBtn) {
+      e.preventDefault();
+      const addForm = document.getElementById('addForm');
+      if (addForm) addForm.classList.remove('hidden');
     }
 
-    function eventsPage(){
-      homeRight.style.display = "none";
-      contactRight.style.display = "none";
-      eventRight.style.display = "block";
+    // Close “Add New”
+    const closeAdd = e.target.closest('[data-close-add]');
+    if (closeAdd) {
+      const addForm = document.getElementById('addForm');
+      if (addForm) addForm.classList.add('hidden');
     }
 
+    // Edit Title modal
+    const editBtn = e.target.closest('#openForm');
+    if (editBtn) {
+      e.preventDefault();
+      const wrap = document.getElementById('editFormWrapper');
+      if (wrap) wrap.classList.remove('hidden');
+    }
+    const closeModal = e.target.closest('[data-close-modal]');
+    if (closeModal) {
+      const wrap = document.getElementById('editFormWrapper');
+      if (wrap) wrap.classList.add('hidden');
+    }
 
-    document.querySelectorAll('[data-modal-target]').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        const tgt = document.getElementById(btn.dataset.modalTarget);
-        tgt?.classList.remove('hidden');
-      });
-    });
+    // THEAD form
+    const openThead = e.target.closest('#openTbodyForm');
+    if (openThead) {
+      e.preventDefault();
+      const theadF = document.getElementById('theadForm');
+      if (theadF) theadF.classList.remove('hidden');
+    }
+    const closeTheadBtn = e.target.closest('[data-close-thead]');
+    if (closeTheadBtn) {
+      const theadF = document.getElementById('theadForm');
+      if (theadF) theadF.classList.add('hidden');
+      const tbodyF = document.getElementById('tbodyForm');
+      if (tbodyF) tbodyF.classList.add('hidden');
+    }
 
-    document.querySelectorAll('.modal-close').forEach(btn => {
-      btn.addEventListener('click', () => {
-        btn.closest('.fixed')?.classList.add('hidden');
-      });
-    });
+    // TBODY form
+    const openTbody = e.target.closest('#openTheadForm');
+    if (openTbody) {
+      e.preventDefault();
+      const tbodyF = document.getElementById('tbodyForm');
+      if (tbodyF) tbodyF.classList.remove('hidden');
+    }
+  });
+  // Auto-load table if redirected from edit_thead.php
+  const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
+  if (shouldAutoload) {
+    loadTable(currentPage);
+  }
 
-    ['register-modal', 'login-modal'].forEach(id => {
-      const modal = document.getElementById(id);
-      if (!modal) return;
-      modal.addEventListener('click', function (e) {
-        if (e.target === modal) {
-          modal.classList.add('hidden');
-        }
-      });
-    });
-
-    
-
-    blank.addEventListener("click", function(e) {
-    e.preventDefault();
-    document.getElementById("categories").classList.add("hidden");
-
-    fetch("categories/Universal Table/insert_universal.php")
-      .then(r => r.text())
-      .then(html => {
-        eventRight.innerHTML = html;
-        homeRight.style.display    = "none";
-        contactRight.style.display = "none";
-        eventRight.style.display   = "block";
-      });
-    });
-
-    document.body.addEventListener('click', function (e) {
-      const openBtn = e.target.closest('#addIcon');
-      if (openBtn) {
-        e.preventDefault();
-        document.getElementById('addForm').classList.remove('hidden');
-      }
-
-      const closeBtn = e.target.closest('[data-close-add]');
-      if (closeBtn) {
-        document.getElementById('addForm').classList.add('hidden');
-      }
-    });
-
-
-    const universal = document.getElementById("universal");
-    universal.addEventListener("click", function(e) {
-    e.preventDefault();
-    document.getElementById("categories").classList.add("hidden");
-
-    fetch("categories/Universal Table/insert_universal.php")
-      .then(r => r.text())
-      .then(html => {
-        eventRight.innerHTML = html;
-        homeRight.style.display    = "none";
-        contactRight.style.display = "none";
-        eventRight.style.display   = "block";
-      });
-    });
-
-    document.body.addEventListener('click', function (e) {
-      const btn = e.target.closest('#openForm');
-      if (btn) {
-        e.preventDefault();
-        document.getElementById('editFormWrapper').classList.remove('hidden');
-      }
-
-      // Close modal if close button is clicked
-      const closeBtn = e.target.closest('[data-close-modal]');
-      if (closeBtn) {
-        document.getElementById('editFormWrapper').classList.add('hidden');
-      }
-    });
-
-    document.body.addEventListener('click', function (e) {
-      // Open theadForm
-      const btn = e.target.closest('#openTbodyForm');
-      if (btn) {
-        e.preventDefault();
-        document.getElementById('theadForm').classList.remove('hidden');
-        btn.style.display = "block";
-      }
-
-      // Close theadForm if a close element is clicked
-      const closeBtn = e.target.closest('[data-close-thead]');
-      if (closeBtn) {
-        document.getElementById('theadForm').classList.add('hidden');
-      }
-    });
-
-    document.body.addEventListener('click', function (e) {
-      // Open tbodyForm
-      const btn = e.target.closest('#openTheadForm');
-      if (btn) {
-        e.preventDefault();
-        document.getElementById('tbodyForm').classList.remove('hidden');
-        btn.style.display = "block";
-      }
-
-      // Close tbodyForm if a close element is clicked
-      const closeBtn = e.target.closest('[data-close-thead]');
-      if (closeBtn) {
-        document.getElementById('tbodyForm').classList.add('hidden');
-      }
-    });
+})();
 </script>
+
 </body>
 </html>
