@@ -115,7 +115,7 @@ $stmt->close();
           </div>
 
           <div class="absolute left-6 top-full mt-1 w-60 bg-white rounded-md shadow-lg transition-all z-10 hidden" id="dropdown">
-            <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 5");
+            <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 1");
               if ($res->num_rows):
               while ($row = $res->fetch_assoc()):
             ?>
@@ -402,7 +402,7 @@ $stmt->close();
   const openTable    = document.getElementById("openTable");
 
   let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
-  let currentTableId = parseInt(new URLSearchParams(window.location.search).get("table_id")) || 1;
+  let currentId = parseInt(new URLSearchParams(window.location.search).get("table_id")) || 1;
 
   if (openTable) {
     openTable.addEventListener('click', () => {
@@ -412,7 +412,7 @@ $stmt->close();
   }
 
   function loadTable(page) {
-    fetch(`categories/Universal Table/insert_universal.php?page=${page}&table_id=${currentTableId}`)
+    fetch(`categories/Universal Table/insert_universal.php?page=${page}&table_id=${currentId}`)
       .then(r => r.text())
       .then(html => {
         eventRight.innerHTML = html;
@@ -479,7 +479,8 @@ $stmt->close();
     }
   });
 
-  [blank, universal].forEach(el => {
+  
+  [blank].forEach(el => {
     if (el && eventRight) {
       el.addEventListener("click", e => {
         e.preventDefault();
@@ -487,10 +488,25 @@ $stmt->close();
         if (categories) categories.classList.add("hidden");
 
         if (el === blank) {
-          currentTableId = Date.now();
+          loadTable(100);
+        } else {
+          loadTable(currentId);
+        }
+      });
+    }
+  });
+
+  [universal].forEach(el => {
+    if (el && eventRight) {
+      el.addEventListener("click", e => {
+        e.preventDefault();
+        const categories = document.getElementById("categories");
+        if (categories) categories.classList.add("hidden");
+
+        if (el === blank) {
           loadTable(1);
         } else {
-          loadTable(currentPage);
+          loadTable(currentId);
         }
       });
     }

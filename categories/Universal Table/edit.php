@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 
-$stmt = $conn->prepare("SELECT title FROM universal WHERE id = ?");
+$stmt = $conn->prepare("SELECT title FROM universal_title WHERE id = ?");
 $stmt->bind_param('i', $id);
 $stmt->execute();
 $stmt->bind_result($title);
