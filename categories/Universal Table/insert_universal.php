@@ -4,8 +4,7 @@ session_start();
 $uid = $_SESSION['user_id'] ?? 0;
 
 if ($uid <= 0) {
-    header("Location: /register/register.php");
-    header("Location: /register/login.php");
+    header("Location: register/login.php");
     exit;
 }
 
@@ -114,106 +113,106 @@ $theadStmt->close();
 <title>Universal Table</title>
 </head>
 <body>
-    <!-- Header -->
-    <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-full h-96 bg-white">
-      <section class="md:flex py-4 md:justify-between justify-center ml-3" id="randomHeader">
-        <?php if ($tableTitle): ?>
-          <div class="px-4 py-2 text-center flex justify-center">
-            <div class="text-lg font-semibold text-black"><?= htmlspecialchars($tableTitle) ?></div>
-          </div>
-          <div class="flex md:gap-4 justify-between">
-            <button id="openForm" class="bg-gray-100 text-sm hover:bg-gray-200 px-4 py-3 rounded-lg">Edit Title</button>
+  <!-- Header -->
+  <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-full h-96">
+    <section class="md:flex mt-5 md:justify-between justify-center ml-3" id="randomHeader">
+      <?php if ($tableTitle): ?>
+      <div class="px-4 mt-2  text-center flex justify-center">
+          <div class="text-lg font-semibold text-black"><?= htmlspecialchars($tableTitle) ?></div>
+      </div>
+      <div class="flex md:gap-4 justify-between">
+        <button id="openForm" class="text-sm bg-[#258f71ff] cursor-pointer text-white px-4 py-3 rounded-lg">Edit Title</button>
         <?php endif; ?>
-            <button id="addIcon" type="button" class="flex items-center gap-1 mr-5 bg-gray-100 hover:bg-gray-200 px-2 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-              </svg>
-              <span class="text-sm">Create New</span>
+        <button id="addIcon" type="button" class="flex items-center gap-1 bg-slate-800 cursor-pointer hover:bg-slate-700 px-2 rounded-lg text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span class="text-sm">Create New</span>
+        </button>
+      </div>
+    </section>
+
+    <div class="md:mx-8 mt-5 overflow-x-auto ml-3">
+      <?php // Edit thead form ?>
+      <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full mb-2">
+        <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
+        <div class="grid grid-cols-[repeat(6,1fr)_auto] gap-0 bg-slate-800 text-white text-xs uppercase font-semibold">
+          <div class="border-l px-6 py-2">
+            <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none focus:outline-none"/>
+          </div>
+          <div class="md:px-8 py-2">
+            <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none focus:outline-none"/>
+          </div>
+          <div class="px-4 py-2">
+            <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none focus:outline-none"/>
+          </div>
+          <div class="md:px-12 py-2">
+            <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none focus:outline-none"/>
+          </div>
+          <div class="md:px-18 py-2">
+            <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none focus:outline-none"/>
+          </div>
+
+          <div class="md:px-14 py-2 flex items-center">
+            <button type="submit" class="px-3 py-1 bg-black text-white rounded-md text-xs whitespace-nowrap">
+              Save
             </button>
           </div>
-      </section>
-
-  <div class="md:mx-8 mt-5 overflow-x-auto ml-3">
-    <?php // Edit thead form ?>
-    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full mb-2">
-      <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
-      <div class="grid grid-cols-[repeat(6,1fr)_auto] gap-0 bg-[#333333] text-white text-xs uppercase font-semibold">
-        <div class="border-l px-4 py-2">
-          <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none focus:outline-none"/>
-        </div>
-        <div class="px-4 py-2">
-          <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none focus:outline-none"/>
-        </div>
-        <div class="px-4 py-2">
-          <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none focus:outline-none"/>
-        </div>
-        <div class="px-4 py-2">
-          <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none focus:outline-none"/>
-        </div>
-        <div class="px-4 py-2">
-          <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none focus:outline-none"/>
-        </div>
-
-        <div class="px-4 py-2 flex items-center">
-          <button type="submit" class="px-3 py-1 bg-black text-white rounded-md text-xs whitespace-nowrap">
-            Save
-          </button>
-        </div>
-      </div>
-    </form>
-
-    <div class="md:w-full w-240 divide-y divide-gray-500 border border-gray-500">
-    <?php if ($hasRecord): foreach ($rows as $r): ?>
-      <form method="POST" action="/ItemPilot/categories/Universal Table/insert_universal.php" enctype="multipart/form-data" class="flex flex-wrap md:flex-nowrap items-center divide-x divide-gray-500 border-gray-500">
-        
-        <input type="hidden" name="id" value="<?= $r['id'] ?>">
-        <input type="hidden" name="title" value=<?= htmlspecialchars($tableTitle) ?>>
-        <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
-
-        <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-900">
-          <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full p-1" />
-        </div>
-
-        <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-700">
-          <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full p-1" />
-        </div>
-
-        <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-900">
-          <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full p-1" />
-        </div>
-
-        <div class="w-full md:w-1/5 px-4 py-2">
-          <select name="status" class="w-full p-1">
-            <option value="To Do" <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
-            <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-            <option value="Done" <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
-          </select>
-        </div>
-
-        <div contentEditable="false" class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-500 flex items-center gap-3">
-          <?php if ($r['attachment_summary']): ?>
-            <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-10 h-10 rounded-md" alt="Attachment">
-          <?php else: ?>
-            <span class="italic text-gray-400">None</span>
-          <?php endif; ?>
-        </div>
-
-        <div class="w-full md:w-auto px-4 py-2 flex gap-3 items-center">
-          <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>" onclick="return confirm('Are you sure?')">
-             <button type="submit" class="inline-block px-3 py-1 text-white rounded hover:bg-red-700 transition bg-red-600">Delete</button>
-          </a>
-
-          <button type="submit" class="inline-block px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-            Save
-          </button>
         </div>
       </form>
-    <?php endforeach; else: ?>
-      <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
-    <?php endif; ?>
-  </div>
 
+      <div class="md:w-full w-240 divide-y divide-gray-200 border border-gray-300">
+      <?php if ($hasRecord): foreach ($rows as $r): ?>
+        <form method="POST" action="/ItemPilot/categories/Universal Table/insert_universal.php" enctype="multipart/form-data" class="flex flex-wrap md:flex-nowrap items-center border-b border-gray-300 odd:bg-gray-50">
+          
+          <input type="hidden" name="id" value="<?= $r['id'] ?>">
+          <input type="hidden" name="title" value=<?= htmlspecialchars($tableTitle) ?>>
+          <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
+          <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-900">
+            <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full p-1" />
+          </div>
+
+          <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-700">
+            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full p-1" />
+          </div>
+
+          <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-900">
+            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full p-1" />
+          </div>
+
+          <div class="w-full md:w-1/5 px-4 py-2">
+            <select name="status" class="w-full p-1">
+              <option value="To Do" <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
+              <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+              <option value="Done" <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
+            </select>
+          </div>
+
+          <div contentEditable="false" class="w-full md:w-1/5 px-14 py-2 text-sm text-gray-500 flex items-center gap-3">
+            <?php if ($r['attachment_summary']): ?>
+              <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-20 h-10 rounded-md" alt="Attachment">
+            <?php else: ?>
+              <span class="italic text-gray-400">None</span>
+            <?php endif; ?>
+          </div>
+
+          <div class="w-full md:w-auto px-4 py-2 flex gap-3 items-center">
+            <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>" onclick="return confirm('Are you sure?')" class="inline-block px-2 py-1 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
+              </svg>
+            </a>
+
+            <button type="submit" class="inline-block px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+              Save
+            </button>
+          </div>
+        </form>
+      <?php endforeach; else: ?>
+        <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
+      <?php endif; ?>
+    </div>
 
       <!-- Pagination (unchanged) -->
       <?php if ($totalPages > 1): ?>
@@ -224,8 +223,7 @@ $theadStmt->close();
         </div>
       <?php endif; ?>
     </div>
-
-    </header>
+  </header>
 
 
   <!-- Add a new record -->
@@ -238,8 +236,6 @@ $theadStmt->close();
           <line x1="6" y1="18" x2="18" y2="6" />
         </svg>
       </a>
-
-
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
     <?php if ($hasRecord): ?>
@@ -287,7 +283,7 @@ $theadStmt->close();
       </div>
 
       <div>
-        <button type="submit" name="universal" class="w-full py-3 bg-black text-white font-semibold rounded-lg transition cursor-pointer">Create New Record</button>
+        <button type="submit" name="universal" class="w-full py-3 bg-slate-800 hover:bg-slate-700 cursor-pointer text-white font-semibold rounded-lg transition cursor-pointer">Create New Record</button>
       </div>
     </form>
    </div>
@@ -316,7 +312,7 @@ $theadStmt->close();
         </div>
 
         <div class="mt-4 flex justify-between">
-          <button type="submit" class="px-6 py-2 bg-black text-white rounded-lg">Save</button>
+          <button type="submit" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 cursor-pointer text-white rounded-lg">Save</button>
         </div>
       </form>
     </div>
