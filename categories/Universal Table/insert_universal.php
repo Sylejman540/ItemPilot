@@ -136,8 +136,8 @@ $theadStmt->close();
       <?php // Edit thead form ?>
       <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full mb-2">
         <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
-        <div class="grid grid-cols-[repeat(6,1fr)_auto] gap-0 bg-slate-800 text-white text-xs uppercase font-semibold">
-          <div class="border-l px-6 py-2">
+        <div class="grid grid-cols-[repeat(6,1fr)_auto] gap-0 text-black text-xs uppercase font-semibold border-b border-gray-300">
+          <div class="px-6 py-2">
             <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none focus:outline-none"/>
           </div>
           <div class="md:px-8 py-2">
@@ -161,7 +161,7 @@ $theadStmt->close();
         </div>
       </form>
 
-      <div class="md:w-full w-240 divide-y divide-gray-200 border border-gray-300">
+      <div class="md:w-full w-240 divide-y divide-gray-200">
       <?php if ($hasRecord): foreach ($rows as $r): ?>
         <form method="POST" action="/ItemPilot/categories/Universal Table/insert_universal.php" enctype="multipart/form-data" class="flex flex-wrap md:flex-nowrap items-center border-b border-gray-300 odd:bg-gray-50">
           

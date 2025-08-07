@@ -946,6 +946,7 @@ $progress = [
     loadTable(currentPage);
   }
 })();
+
 </script>
 </body>
 </html>
