@@ -45,7 +45,7 @@ $deals = $conn->query("
 
 /* ──────────────  KPI CARDS CONFIG  ────────────── */
 $kpis = [
-  ['metric'=>'Impressions','value'=>$totalRecords,'dateRange'=>'Last 30 days','color'=>'text-blue-600'],
+  ['metric'=>'All Records','value'=>$totalRecords,'dateRange'=>'Last 30 days','color'=>'text-blue-600'],
   ['metric'=>'Completed','value'=>$completed,'dateRange'=>'Since launch','color'=>'text-emerald-500'],
   ['metric'=>'Impact','value'=>$totalRecords?round($completed/$totalRecords*100,1):0,
    'dateRange'=>'Success-rate','color'=>'text-amber-500','isPct'=>true],
@@ -875,13 +875,6 @@ $progress = [
       const tbodyF = document.getElementById('tbodyForm');
       if (tbodyF) tbodyF.classList.add('hidden');
     }
-
-    const openTbody = e.target.closest('#openTheadForm');
-    if (openTbody) {
-      e.preventDefault();
-      const tbodyF = document.getElementById('tbodyForm');
-      if (tbodyF) tbodyF.classList.remove('hidden');
-    }
   });
 
   am5.ready(function() {
@@ -939,6 +932,14 @@ $progress = [
       }, $deals)); ?>
     );
   });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault(); // prevent default Enter action
+    const form = e.target.closest('form'); // find the form for the current field
+    if (form) form.submit();
+  }
+});
 
 
   const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
