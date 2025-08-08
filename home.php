@@ -933,13 +933,13 @@ $progress = [
     );
   });
 
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault(); // prevent default Enter action
-    const form = e.target.closest('form'); // find the form for the current field
-    if (form) form.submit();
-  }
-});
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // prevent default Enter action
+      const form = e.target.closest('form'); // find the form for the current field
+      if (form) form.submit();
+    }
+  });
 
 
   const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");

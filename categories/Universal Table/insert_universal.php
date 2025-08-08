@@ -84,13 +84,7 @@ $countStmt->close();
 $totalPages = (int)ceil($totalRows / $limit);
 
 // Fetch current page rows
-$dataStmt = $conn->prepare(
-    "SELECT id, name, notes, title, assignee, status, attachment_summary
-     FROM universal
-     WHERE user_id = ?
-     ORDER BY id ASC
-     LIMIT ? OFFSET ?"
-);
+$dataStmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
 $dataStmt->bind_param('iii', $uid, $limit, $offset);
 $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -114,14 +108,14 @@ $theadStmt->close();
 </head>
 <body>
   <!-- Header -->
-  <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-full">
-    <section class="md:flex mt-5 md:justify-between justify-center ml-3" id="randomHeader">
-      <?php if ($tableTitle): ?>
-      <div class="px-4 mt-2  text-center flex justify-center">
-          <div class="text-lg font-semibold text-black"><?= htmlspecialchars($tableTitle) ?></div>
+  <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[90%] ml-5 mr-5">
+    <section class="flex mt-5 justify-between ml-3" id="randomHeader">
+    <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php?id=<?= $first['id'] ?>">
+            <?php if ($tableTitle): ?>
+      <div class="md:px-4 mt-2  text-center flex justify-center">
+          <input class="text-lg font-semibold text-black" value="<?= htmlspecialchars($tableTitle) ?>"></div>
       </div>
-      <div class="flex md:gap-4 items-center justify-between">
-        <button id="openForm" class="text-sm bg-blue-800 items-center cursor-pointer text-white px-4 py-[10px] rounded-lg">Edit Title</button>
+      </form>
         <?php endif; ?>
         <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -132,50 +126,53 @@ $theadStmt->close();
       </div>
     </section>
 
-    <div class="md:mx-8 mt-5 overflow-x-auto ml-3 mt-20 bg-white py-15 px-10 rounded-lg md:w-full w-240">
-      <?php // Edit thead form ?>
-      <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" id="myForm" class="w-full mb-2">
-        <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
-        <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
-          <div class="w-full md:w-1/5 px-6 py-2">
-            <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none focus:outline-none"/>
-          </div>
-          <div class="w-full md:w-1/5 md:px-8 py-2">
-            <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none focus:outline-none"/>
-          </div>
-          <div class="w-full md:w-1/5 px-4 py-2">
-            <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none focus:outline-none"/>
-          </div>
-          <div class="w-full md:w-1/5 md:px-12 py-2">
-            <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none focus:outline-none"/>
-          </div>
-          <div class="w-full md:w-1/5 md:px-10 py-2">
-            <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none focus:outline-none"/>
-          </div>
-        </div>
-      </form>
+  <div class="overflow-x-auto md:overflow-x-hidden">
+  <div class="md:mx-8 mt-20 ml-3 bg-white py-15 p-10 md:px-10 rounded-xl md:w-full w-240">
 
-      <div class="md:w-full w-240 divide-y divide-gray-200">
+    <!-- THEAD -->
+    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" id="myForm" class="w-full mb-2">
+      <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
+      <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
+        <div class="w-1/5 p-2">
+          <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none focus:outline-none"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none focus:outline-none"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none focus:outline-none"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none focus:outline-none"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none focus:outline-none"/>
+        </div>
+      </div>
+    </form>
+
+    <!-- TBODY -->
+    <div class="w-full divide-y divide-gray-200">
       <?php if ($hasRecord): foreach ($rows as $r): ?>
-        <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="flex flex-wrap md:flex-nowrap items-center border-b border-gray-300">
+        <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="flex items-center border-b border-gray-300 text-sm">
           
           <input type="hidden" name="id" value="<?= $r['id'] ?>">
-          <input type="hidden" name="title" value=<?= htmlspecialchars($tableTitle) ?>>
+          <input type="hidden" name="title" value="<?= htmlspecialchars($tableTitle) ?>">
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
-          <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-900" id="name">
+          <div class="w-1/5 p-2">
             <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full p-1" />
           </div>
 
-          <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-700" id="notes">
+          <div class="w-1/5 p-2">
             <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full p-1" />
           </div>
 
-          <div class="w-full md:w-1/5 px-4 py-2 text-sm text-gray-900" id="assignee">
+          <div class="w-1/5 p-2">
             <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full p-1" />
           </div>
 
-          <div class="w-full md:w-1/5 px-2 py-1" id="status">
+          <div class="w-1/5 p-2">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-gray-100 text-gray-800',
@@ -184,30 +181,29 @@ $theadStmt->close();
               ];
               $colorClass = $statusColors[$r['status']] ?? 'bg-white text-gray-900';
             ?>
-          <select name="status" class="w-full px-2 py-1  rounded-xl text-sm <?= $colorClass ?>">
-            <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
-            <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-            <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
-          </select>
-        </div>
+            <select name="status" class="w-full py-1 rounded-xl <?= $colorClass ?>">
+              <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
+              <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+              <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
+            </select>
+          </div>
 
-
-          <div contentEditable="false" class="w-full md:w-1/5 px-14 py-2 text-sm text-gray-500 flex items-center gap-3">
+          <div class="w-1/5 p-2  flex items-center gap-3">
             <?php if ($r['attachment_summary']): ?>
               <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-20 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
               <span class="italic text-gray-400">None</span>
             <?php endif; ?>
-          </div>
-
-          <div class="w-full md:w-auto px-4 py-2 flex gap-3 items-center">
-            <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>" onclick="return confirm('Are you sure?')" class="inline-block px-2 py-1 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
-              </svg>
-            </a>
-            <button type="submit" class="hidden" tabindex="-1" aria-hidden="true"></button>
-
+            <div class="ml-auto flex items-center">
+              <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>" 
+                onclick="return confirm('Are you sure?')" 
+                class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
+                </svg>
+              </a>
+            </div>
           </div>
         </form>
       <?php endforeach; else: ?>
@@ -215,15 +211,18 @@ $theadStmt->close();
       <?php endif; ?>
     </div>
 
-      <!-- Pagination (unchanged) -->
-      <?php if ($totalPages > 1): ?>
-        <div class="pagination my-4 flex justify-center space-x-2">
-          <?php if ($page > 1): ?><a href="insert_universal.php?page=<?= $page-1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">« Prev</a><?php endif; ?>
-          <?php for ($i=1; $i<=$totalPages; $i++): ?><a href="insert_universal.php?page=<?= $i ?>" class="px-3 py-1 border rounded <?= $i===$page?'bg-gray-200 font-semibold':'hover:bg-gray-100' ?>"><?= $i ?></a><?php endfor; ?>
-          <?php if ($page < $totalPages): ?><a href="insert_universal.php?page=<?= $page+1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">Next »</a><?php endif; ?>
-        </div>
-      <?php endif; ?>
-    </div>
+    <!-- Pagination (unchanged) -->
+    <?php if ($totalPages > 1): ?>
+      <div class="pagination my-4 flex justify-center space-x-2">
+        <?php if ($page > 1): ?><a href="insert_universal.php?page=<?= $page-1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">« Prev</a><?php endif; ?>
+        <?php for ($i=1; $i<=$totalPages; $i++): ?><a href="insert_universal.php?page=<?= $i ?>" class="px-3 py-1 border rounded <?= $i===$page?'bg-gray-200 font-semibold':'hover:bg-gray-100' ?>"><?= $i ?></a><?php endfor; ?>
+        <?php if ($page < $totalPages): ?><a href="insert_universal.php?page=<?= $page+1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">Next »</a><?php endif; ?>
+      </div>
+    <?php endif; ?>
+    
+  </div>
+</div>
+
   </header>
 
 
