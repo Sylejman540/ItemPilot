@@ -107,27 +107,40 @@ $theadStmt->close();
 <title>Universal Table</title>
 </head>
 <body>
-  <!-- Header -->
-  <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[90%] ml-5 mr-5">
-    <section class="flex mt-5 justify-between ml-3" id="randomHeader">
-    <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php?id=<?= $first['id'] ?>">
-            <?php if ($tableTitle): ?>
-      <div class="md:px-4 mt-2  text-center flex justify-center">
-          <input class="text-lg font-semibold text-black" value="<?= htmlspecialchars($tableTitle) ?>"></div>
-      </div>
+<?php
+// after your SELECT
+$rows  = $rows ?? [];               // make sure it's an array
+$first = $rows[0] ?? null;          // safe access
+?>
+
+<header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[90%] ml-5 mr-5">
+  <section class="flex mt-5 justify-between ml-3" id="randomHeader">
+
+    <?php if ($first): ?>
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php?id=<?= (int)$first['id'] ?>">
+        <input type="hidden" name="id" value="<?= (int)$first['id'] ?>">
+        <input type="text" name="title" id="title"
+               value="<?= htmlspecialchars($first['title'] ?? '') ?>"
+               class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </form>
-        <?php endif; ?>
-        <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
-          <span class="text-sm">Create New</span>
-        </button>
+    <?php else: ?>
+      <div class="w-full px-4 py-2 text-gray-400 italic">
+        No table yet. Create a new one.
       </div>
-    </section>
+    <?php endif; ?>
+
+    <button id="addIcon" type="button"
+            class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      <span class="text-sm">Create New</span>
+    </button>
+
+  </section>
 
   <div class="overflow-x-auto md:overflow-x-hidden">
-  <div class="md:mx-8 mt-20 ml-3 bg-white py-15 p-10 md:px-10 rounded-xl md:w-full w-240">
+  <div class="md:mx-8 mt-20 ml-3 bg-white py-15 md:p-8 md:px-10 rounded-xl md:w-full w-240">
 
     <!-- THEAD -->
     <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" id="myForm" class="w-full mb-2">
@@ -161,18 +174,18 @@ $theadStmt->close();
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
           <div class="w-1/5 p-2">
-            <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full p-1" />
+            <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full bg-transparent border-none focus:outline-none" />
           </div>
 
           <div class="w-1/5 p-2">
-            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full p-1" />
+            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full bg-transparent border-none focus:outline-none" />
           </div>
 
-          <div class="w-1/5 p-2">
-            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full p-1" />
+          <div class="w-1/5 p-2 ml-10">
+            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none focus:outline-none" />
           </div>
 
-          <div class="w-1/5 p-2">
+          <div class="w-1/5 p-2 mr-10">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-gray-100 text-gray-800',
@@ -181,7 +194,7 @@ $theadStmt->close();
               ];
               $colorClass = $statusColors[$r['status']] ?? 'bg-white text-gray-900';
             ?>
-            <select name="status" class="w-full py-1 rounded-xl <?= $colorClass ?>">
+            <select name="status" class="w-full px-2 py-1 rounded-xl  <?= $colorClass ?>">
               <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
               <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
               <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
@@ -195,9 +208,7 @@ $theadStmt->close();
               <span class="italic text-gray-400">None</span>
             <?php endif; ?>
             <div class="ml-auto flex items-center">
-              <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>" 
-                onclick="return confirm('Are you sure?')" 
-                class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
+              <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>"  onclick="return confirm('Are you sure?')"  class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
@@ -221,8 +232,7 @@ $theadStmt->close();
     <?php endif; ?>
     
   </div>
-</div>
-
+  </div>
   </header>
 
 
@@ -239,7 +249,6 @@ $theadStmt->close();
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
     <?php if ($hasRecord): ?>
-    <?php $first = $rows[0];?>
       <div data-id="<?= $first['id'] ?>" class="px-4 py-2 text-center flex justify-center">
       <div data-field="title" class="text-3xl font-bold text-center mb-6"><?= htmlspecialchars($first['title']) ?></div>
       </div>
@@ -288,36 +297,6 @@ $theadStmt->close();
     </form>
    </div>
   </div>
-
-
-  <!-- Edit Title -->
-  <div id="editFormWrapper" class="flex items-center justify-center p-4 hidden cursor-pointer">
-    <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg relative">
-      <button data-close-modal class="absolute top-3 left-4 text-gray-500 hover:text-black">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
-
-      <h1 class="text-3xl font-bold text-center mb-6">Edit Title</h1>
-
-        <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php?id=<?= $first['id'] ?>">
-
-          <input type="hidden" name="id" value="<?= $id ?>">
-
-          <div>
-            <label for="title" class="block text-gray-700 font-medium mb-2">Title</label>
-            <input type="text" name="title" id="title" value="<?= htmlspecialchars($first['title']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-          </div>
-
-          <div class="mt-4 flex justify-between">
-            <button type="submit" class="px-6 py-2 bg-blue-800 hover:bg-blue-700 cursor-pointer text-white rounded-lg">Save</button>
-          </div>
-        </form>
-    </div>
-  </div>
-
 </body>
 </html>
 

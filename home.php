@@ -150,37 +150,36 @@ $progress = [
             <li><a href="#home" class="text-gray-400">Dashboard</a></li>
           </div>
           <!-- TABLES -->
-          <div class="relative group">
-            <div id="events" class="w-60 py-1 cursor-pointer px-2 flex justify-start ml-4 gap-2 mt-3">
-                <svg class="w-4 h-4 mt-[2px] text-gray-400" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
+          <button class="w-60 px-2 ml-4 mt-3 py-1 flex items-center justify-start">
+            <div id="events" class="select-none">
+              <span class="flex justify-center items-center gap-2 text-gray-400">
+                <!-- icon -->
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-              <span class="text-gray-400">Tables</span>
-              <li id="openTable" class="ml-5">
-                <svg class="w-4 h-4 text-gray-400 mt-[3px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 6 15 12 9 18" />
-                </svg>
-              </li>
+                <span class="text-gray-400">Tables</span>
+              </span>
             </div>
-
-            <div class="absolute top-full mt-1 w-60 bg-slate-800 rounded-md shadow-lg transition-all z-10 hidden" id="dropdown">
+            <div id="tablesItem" type="button">
+              <svg class="chev text-gray-400 w-4 h-4 transition-transform ml-10" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            </button>
+            <!-- submenu (INDENTED, NOT absolute) -->
+            <ul id="dropdown" class="hidden pl-8 mt-1 space-y-1">
               <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 1");
-                if ($res->num_rows):
-                while ($row = $res->fetch_assoc()):
-              ?>
+                if ($res->num_rows): while ($row = $res->fetch_assoc()): ?>
                 <li>
-                  <a href="#" id="universal" class="block px-4 py-2 text-gray-400">
+                  <a href="#" id="universal" class="block px-4 py-2 text-gray-300 hover:text-white">
                     <?= htmlspecialchars($row['title']) ?>
                   </a>
                 </li>
-              <?php   
-                endwhile;
-                else:
-              ?>
+              <?php endwhile; else: ?>
                 <li class="px-4 py-2 italic text-gray-400">No tables yet.</li>
               <?php endif; ?>
-            </div>
+            </ul>
           </div>
           <!-- CONTACT US -->
           <div class="w-60 py-1 cursor-pointer px-2 flex justify-start ml-4 gap-2 mt-3" id="contact">
@@ -734,13 +733,6 @@ $progress = [
   let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
   let currentId = parseInt(new URLSearchParams(window.location.search).get("table_id")) || 1;
 
-  if (openTable) {
-    openTable.addEventListener('click', () => {
-      const dropdown = document.getElementById("dropdown");
-      if (dropdown) dropdown.style.display = "block";
-    });
-  }
-
   function loadTable(page) {
     fetch(`categories/Universal Table/insert_universal.php?page=${page}&table_id=${currentId}`)
       .then(r => r.text())
@@ -940,6 +932,44 @@ $progress = [
       if (form) form.submit();
     }
   });
+
+  $(function () {
+  const $arrowBtn = $('#tablesItem');
+  const $dd       = $('#dropdown');
+  const $chev     = $('#tablesItem .chev');
+
+  function open() {
+    if ($dd.is(':visible')) return;
+    $dd.stop(true, true).slideDown(160, () => $dd.removeClass('hidden'));
+    $chev.addClass('rotate-90');
+    $arrowBtn.attr('aria-expanded', 'true');
+  }
+  function close() {
+    if (!$dd.is(':visible')) return;
+    $dd.stop(true, true).slideUp(160, () => $dd.addClass('hidden'));
+    $chev.removeClass('rotate-90');
+    $arrowBtn.attr('aria-expanded', 'false');
+  }
+
+  // Toggle via arrow
+  $arrowBtn.on('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $dd.is(':visible') ? close() : open();
+  });
+
+  // Close only if clicking OUTSIDE dropdown and arrow
+  $(document).on('click', function (e) {
+    if ($(e.target).closest('#dropdown, #tablesItem').length === 0) {
+      close();
+    }
+  });
+
+  // Esc to close
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+});
 
 
   const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
