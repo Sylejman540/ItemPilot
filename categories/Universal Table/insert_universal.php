@@ -23,6 +23,52 @@ if ($action === 'create_blank') {
     
 }
 
+$action   = $_GET['action'] ?? null;
+$table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
+
+// Persist/resolve current table_id
+if ($action === 'create_blank') {
+    // always create new blank table   for this user
+    $stmt = $conn->prepare("INSERT INTO tables (user_id, created_at) VALUES (?, NOW())");
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $table_id = (int)$conn->insert_id;
+    $stmt->close();
+
+    $_SESSION['current_table_id'] = $table_id;
+
+} elseif ($table_id > 0) {
+    // if passed in URL
+    $_SESSION['current_table_id'] = $table_id;
+
+} else {
+    // try session
+    $table_id = (int)($_SESSION['current_table_id'] ?? 0);
+
+    // fallback: latest table for this user
+    if ($table_id <= 0) {
+        $q = $conn->prepare("SELECT table_id FROM `tables` WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+        $q->bind_param('i', $uid);
+        $q->execute();
+        $q->bind_result($latestId);
+        $q->fetch();
+        $q->close();
+        $table_id = (int)$latestId;
+    }
+
+    // if still none, create first one
+    if ($table_id <= 0) {
+        $stmt = $conn->prepare("INSERT INTO tables (user_id, created_at) VALUES (?, NOW())");
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $table_id = (int)$conn->insert_id;
+        $stmt->close();
+    }
+
+    $_SESSION['current_table_id'] = $table_id;
+}
+
+
 // Fetch persistent table title
 $tblStmt = $conn->prepare("SELECT title FROM universal WHERE user_id = ? ORDER BY id ASC LIMIT 1");
 $tblStmt->bind_param('i', $uid);
@@ -79,8 +125,8 @@ if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
 // Count total rows
-$countStmt = $conn->prepare("SELECT COUNT(*) FROM universal WHERE user_id = ?");
-$countStmt->bind_param('i', $uid);
+$countStmt = $conn->prepare("SELECT COUNT(*) FROM universal WHERE user_id = ? AND table_id = ?");
+$countStmt->bind_param('ii', $uid, $table_id);
 $countStmt->execute();
 $countStmt->bind_result($totalRows);
 $countStmt->fetch();
@@ -89,8 +135,8 @@ $countStmt->close();
 $totalPages = (int)ceil($totalRows / $limit);
 
 // Fetch current page rows
-$dataStmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary FROM universal WHERE user_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
-$dataStmt->bind_param('iii', $uid, $limit, $offset);
+$dataStmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary  FROM universal  WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
+$dataStmt->bind_param('iiii', $uid, $table_id, $limit, $offset);
 $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $dataStmt->close();

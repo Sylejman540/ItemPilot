@@ -169,16 +169,27 @@ $progress = [
             </button>
             <!-- submenu (INDENTED, NOT absolute) -->
             <ul id="dropdown" class="hidden pl-8 mt-1 space-y-1">
-              <?php $res = $conn->query("SELECT id, title FROM universal WHERE user_id = {$uid} ORDER BY id ASC LIMIT 1");
-                if ($res->num_rows): while ($row = $res->fetch_assoc()): ?>
+              <?php
+              $stmt = $conn->prepare("SELECT table_id, table_title FROM `tables` WHERE user_id = ? ORDER BY table_id ASC");
+              $stmt->bind_param('i', $uid);
+              $stmt->execute();
+              $res = $stmt->get_result();
+              if ($res && $res->num_rows):
+                while ($row = $res->fetch_assoc()):
+              ?>
                 <li>
-                  <a href="#" id="universal" class="block px-4 py-2 text-gray-300 hover:text-white">
-                    <?= htmlspecialchars($row['title']) ?>
-                  </a>
+                 <a href="#"
+   class="js-table-link block px-4 py-2 text-gray-300 hover:text-white"
+   data-table-id="<?= (int)$row['table_id'] ?>">
+  <?= htmlspecialchars($row['table_title']) ?>
+</a>
                 </li>
-              <?php endwhile; else: ?>
-                <li class="px-4 py-2 italic text-gray-400">No tables yet.</li>
-              <?php endif; ?>
+              <?php
+              endwhile;
+              else:
+              ?>
+              <li class="px-4 py-2 italic text-gray-400">No tables yet.</li>
+            <?php endif; ?>
             </ul>
           </div>
           <!-- CONTACT US -->
@@ -726,17 +737,18 @@ $progress = [
   const eventRight   = document.getElementById("event-right");
   const homeRight    = document.getElementById("home-right");
   const contactRight = document.getElementById("contact-right");
-  const blank        = document.getElementById("blank");
-  const universal    = document.getElementById("universal");
-  const openTable    = document.getElementById("openTable");
+  const blank        = document.getElementById("blank");        // "Create New" button
+  const universal    = document.getElementById("universal");    // optional "Open current table" button
+  const dropdown     = document.getElementById("dropdown");     // the tables list (UL)
 
   let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
-  let currentId = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
-  let newId     = parseInt(new URLSearchParams(window.location.search).get("new_table_id")) || null;
+  let currentId   = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
 
-
-  function loadTable(page) {
-    fetch(`categories/Universal Table/insert_universal.php?page=${page}&table_id=${currentId}`)
+  // -------- core loaders --------
+  function loadTable(tableId, page = 1) {
+    if (!tableId) return; // nothing to load yet
+    currentId = tableId;
+    fetch(`categories/Universal%20Table/insert_universal.php?page=${page}&table_id=${tableId}`)
       .then(r => r.text())
       .then(html => {
         eventRight.innerHTML = html;
@@ -746,53 +758,52 @@ $progress = [
         currentPage = page;
       });
   }
-  
-  function newTable(page) {
+
+  function newTable(page = 1) {
     fetch(`categories/Universal%20Table/insert_universal.php?action=create_blank&page=${page}`)
       .then(r => r.text())
       .then(html => {
         eventRight.innerHTML = html;
-        homeRight && (homeRight.style.display = "none");
-        contactRight && (contactRight.style.display = "none");
+        if (homeRight)    homeRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
         eventRight.style.display = "block";
         currentPage = page;
       });
   }
 
+  // -------- actions: create/open tables --------
+  if (blank && eventRight) {
+    blank.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      newTable(1);
+    });
+  }
 
-  [blank].forEach(el => {
-    if (el && eventRight) {
-      el.addEventListener("click", e => {
-        e.preventDefault();
-        const categories = document.getElementById("categories");
-        if (categories) categories.classList.add("hidden");
+  // If you keep a single "universal" button, let it open its data-table-id or the currentId
+  if (universal && eventRight) {
+    universal.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      const idFromBtn = parseInt(universal.dataset.tableId || "", 10);
+      loadTable(!isNaN(idFromBtn) ? idFromBtn : currentId, currentPage || 1);
+    });
+  }
 
-        if (el === blank) {
-          newTable(1);
-        } else {
-          newTable(newId);
-        }
-      });
-    }
-  });
+  // Delegate all clicks inside the dropdown list to items with .js-table-link
+  if (dropdown && eventRight) {
+    dropdown.addEventListener("click", e => {
+      const link = e.target.closest(".js-table-link");
+      if (!link) return;
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      const tableId = parseInt(link.dataset.tableId || "", 10);
+      if (!isNaN(tableId)) loadTable(tableId, 1);
+    });
+  }
 
-  [universal].forEach(el => {
-    if (el && eventRight) {
-      el.addEventListener("click", e => {
-        e.preventDefault();
-        const categories = document.getElementById("categories");
-        if (categories) categories.classList.add("hidden");
-
-        if (el === blank) {
-          loadTable(1);
-        } else {
-          loadTable(currentId);
-        }
-      });
-    }
-  });
-
-    document.querySelectorAll('.template-item').forEach(el => {
+  // -------- template picker (unchanged) --------
+  document.querySelectorAll('.template-item').forEach(el => {
     el.addEventListener('click', () => {
       const id   = el.dataset.id;
       const name = el.dataset.name;
@@ -802,6 +813,7 @@ $progress = [
     });
   });
 
+  // -------- sidebar menu toggle (unchanged) --------
   const menuBtn = document.getElementById('menuBtn');
   if (menuBtn) {
     const sidebar       = document.getElementById('sidebar');
@@ -816,6 +828,7 @@ $progress = [
     });
   }
 
+  // -------- tabs (unchanged) --------
   const homeTab    = document.getElementById("home");
   const contactTab = document.getElementById("contact");
   const eventsTab  = document.getElementById("events");
@@ -824,6 +837,7 @@ $progress = [
   if (contactTab) contactTab.addEventListener('click', () => { homeRight.style.display = "none"; contactRight.style.display = "block"; eventRight.style.display = "none"; });
   if (eventsTab)  eventsTab.addEventListener('click', () => { homeRight.style.display = "none"; contactRight.style.display = "none"; eventRight.style.display = "block"; });
 
+  // -------- modals (unchanged) --------
   document.querySelectorAll('[data-modal-target]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.preventDefault();
@@ -848,13 +862,15 @@ $progress = [
     }
   });
 
+  // -------- page-level delegation (pagination, forms) --------
   document.body.addEventListener('click', e => {
+    // Pagination links inside loaded table
     const pg = e.target.closest('.pagination a');
     if (pg) {
       e.preventDefault();
       const url = new URL(pg.href, window.location.origin);
       const p   = parseInt(url.searchParams.get('page')) || 1;
-      loadTable(p);
+      loadTable(currentId, p);   // <-- IMPORTANT: keep currentId
       return;
     }
 
@@ -900,12 +916,11 @@ $progress = [
     }
   });
 
+  // -------- amCharts (unchanged) --------
   am5.ready(function() {
-    // ---------- root ----------
     var root = am5.Root.new("dealsChart");
     root.setThemes([am5themes_Animated.new(root)]);
 
-    // ---------- chart ----------
     var chart = root.container.children.push(
       am5xy.XYChart.new(root, {
         panX: false, panY: false, wheelX: "none", wheelY: "none",
@@ -913,7 +928,6 @@ $progress = [
       })
     );
 
-    // ---------- axes ----------
     var xAxis = chart.xAxes.push(
       am5xy.DateAxis.new(root, {
         baseInterval: { timeUnit: "day", count: 1 },
@@ -926,7 +940,6 @@ $progress = [
       })
     );
 
-    // ---------- series ----------
     var series = chart.series.push(
       am5xy.LineSeries.new(root, {
         name: "Deals",
@@ -942,13 +955,11 @@ $progress = [
     );
     series.fills.template.setAll({ fillOpacity: 0.15 });
 
-    // ---------- scrollbar ----------
     chart.set("scrollbarX", am5.Scrollbar.new(root, {
       orientation: "horizontal",
       height: 40
     }));
 
-    // ---------- data ----------
     series.data.setAll(
       <?php echo json_encode(array_map(function($d){
         return ['dt'=>strtotime($d['dt'])*1000,'amt'=>$d['amt']];
@@ -956,59 +967,59 @@ $progress = [
     );
   });
 
+  // -------- Enter submits current inline form (unchanged) --------
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
-      e.preventDefault(); // prevent default Enter action
-      const form = e.target.closest('form'); // find the form for the current field
+      e.preventDefault();
+      const form = e.target.closest('form');
       if (form) form.submit();
     }
   });
 
+  // -------- jQuery dropdown open/close (unchanged) --------
   $(function () {
-  const $arrowBtn = $('#tablesItem');
-  const $dd       = $('#dropdown');
-  const $chev     = $('#tablesItem .chev');
+    const $arrowBtn = $('#tablesItem');
+    const $dd       = $('#dropdown');
+    const $chev     = $('#tablesItem .chev');
 
-  function open() {
-    if ($dd.is(':visible')) return;
-    $dd.stop(true, true).slideDown(160, () => $dd.removeClass('hidden'));
-    $chev.addClass('rotate-180');
-    $arrowBtn.attr('aria-expanded', 'true');
-  }
-  function close() {
-    if (!$dd.is(':visible')) return;
-    $dd.stop(true, true).slideUp(160, () => $dd.addClass('hidden'));
-    $chev.removeClass('rotate-180');
-    $arrowBtn.attr('aria-expanded', 'false');
-  }
-
-  // Toggle via arrow
-  $arrowBtn.on('click', function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    $dd.is(':visible') ? close() : open();
-  });
-
-  // Close only if clicking OUTSIDE dropdown and arrow
-  $(document).on('click', function (e) {
-    if ($(e.target).closest('#dropdown, #tablesItem').length === 0) {
-      close();
+    function open() {
+      if ($dd.is(':visible')) return;
+      $dd.stop(true, true).slideDown(160, () => $dd.removeClass('hidden'));
+      $chev.addClass('rotate-180');
+      $arrowBtn.attr('aria-expanded', 'true');
     }
+    function close() {
+      if (!$dd.is(':visible')) return;
+      $dd.stop(true, true).slideUp(160, () => $dd.addClass('hidden'));
+      $chev.removeClass('rotate-180');
+      $arrowBtn.attr('aria-expanded', 'false');
+    }
+
+    $arrowBtn.on('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      $dd.is(':visible') ? close() : open();
+    });
+
+    $(document).on('click', function (e) {
+      if ($(e.target).closest('#dropdown, #tablesItem').length === 0) {
+        close();
+      }
+    });
+
+    $(document).on('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
   });
 
-  // Esc to close
-  $(document).on('keydown', function (e) {
-    if (e.key === 'Escape') close();
-  });
-});
-
-
+  // -------- autoload if requested --------
   const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
   if (shouldAutoload) {
-    loadTable(currentPage);
+    // load whatever table id came via URL (if any)
+    if (currentId) loadTable(currentId, currentPage);
   }
 })();
-
 </script>
+
 </body>
 </html>
