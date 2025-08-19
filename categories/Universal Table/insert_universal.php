@@ -8,7 +8,18 @@ if ($uid <= 0) {
     exit;
 }
 
-if (isset($_GET['new']) && $_GET['new'] === 'true') {
+$action   = $_GET['action'] ?? null;
+$table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
+
+if ($action === 'create_blank') {
+    // Do NOT pass table_id – let DB auto-generate it
+    $stmt = $conn->prepare(
+        "INSERT INTO tables (user_id, created_at) VALUES (?, NOW())"
+    );
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $table_id = (int)$conn->insert_id;   // <- this is your NEW table_id
+    $stmt->close();
     
 }
 
@@ -47,16 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($id)) {
-        $stmt = $conn->prepare(
-            "INSERT INTO universal (name, notes, title, assignee, status, attachment_summary, table_id, user_id)
-             VALUES ( ?, ?, ?, ?, ?, ?, ?, ?)"
-        );
+        $stmt = $conn->prepare("INSERT INTO universal (name, notes, title, assignee, status, attachment_summary, table_id, user_id) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param('ssssssii', $name, $notes, $title, $assignee, $status, $attachment_summary, $table_id, $uid);
     } else {
-        $stmt = $conn->prepare(
-            "UPDATE universal SET name = ?, notes = ?, title = ?, assignee = ?, status = ?, attachment_summary = ?
-             WHERE id = ? AND table_id = ? AND user_id = ?"
-        );
+        $stmt = $conn->prepare("UPDATE universal SET name = ?, notes = ?, title = ?, assignee = ?, status = ?, attachment_summary = ? WHERE id = ? AND table_id = ? AND user_id = ?");
         $stmt->bind_param('ssssssiii', $name, $notes, $title, $assignee, $status, $attachment_summary, $id, $table_id, $uid);
     }
     $stmt->execute();
@@ -108,9 +113,8 @@ $theadStmt->close();
 </head>
 <body>
 <?php
-// after your SELECT
-$rows  = $rows ?? [];               // make sure it's an array
-$first = $rows[0] ?? null;          // safe access
+$rows  = $rows ?? [];         
+$first = $rows[0] ?? null;   
 ?>
 
 <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[90%] ml-5 mr-5">
@@ -119,9 +123,7 @@ $first = $rows[0] ?? null;          // safe access
     <?php if ($first): ?>
       <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php?id=<?= (int)$first['id'] ?>">
         <input type="hidden" name="id" value="<?= (int)$first['id'] ?>">
-        <input type="text" name="title" id="title"
-               value="<?= htmlspecialchars($first['title'] ?? '') ?>"
-               class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <input type="text" name="title" id="title" value="<?= htmlspecialchars($first['title'] ?? '') ?>" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </form>
     <?php else: ?>
       <div class="w-full px-4 py-2 text-gray-400 italic">
@@ -147,19 +149,19 @@ $first = $rows[0] ?? null;          // safe access
       <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
       <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
         <div class="w-1/5 p-2">
-          <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none focus:outline-none"/>
+          <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none focus:outline-none"/>
+          <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none focus:outline-none"/>
+          <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none focus:outline-none"/>
+          <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none focus:outline-none"/>
+          <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
       </div>
     </form>
@@ -174,18 +176,18 @@ $first = $rows[0] ?? null;          // safe access
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
           <div class="w-1/5 p-2">
-            <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full bg-transparent border-none focus:outline-none" />
+            <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
           <div class="w-1/5 p-2">
-            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full bg-transparent border-none focus:outline-none" />
+            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
           <div class="w-1/5 p-2 ml-10">
-            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none focus:outline-none" />
+            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/5 p-2 mr-10">
+          <div class="w-40 p-2 mr-20">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-gray-100 text-gray-800',
@@ -201,9 +203,9 @@ $first = $rows[0] ?? null;          // safe access
             </select>
           </div>
 
-          <div class="w-1/5 p-2  flex items-center gap-3">
+          <div class="w-1/5 p-2 flex items-center gap-3">
             <?php if ($r['attachment_summary']): ?>
-              <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-20 h-10 rounded-md" alt="Attachment">
+              <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
               <span class="italic text-gray-400">None</span>
             <?php endif; ?>

@@ -731,7 +731,9 @@ $progress = [
   const openTable    = document.getElementById("openTable");
 
   let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
-  let currentId = parseInt(new URLSearchParams(window.location.search).get("table_id")) || 1;
+  let currentId = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
+  let newId     = parseInt(new URLSearchParams(window.location.search).get("new_table_id")) || null;
+
 
   function loadTable(page) {
     fetch(`categories/Universal Table/insert_universal.php?page=${page}&table_id=${currentId}`)
@@ -744,8 +746,53 @@ $progress = [
         currentPage = page;
       });
   }
+  
+  function newTable(page) {
+    fetch(`categories/Universal%20Table/insert_universal.php?action=create_blank&page=${page}`)
+      .then(r => r.text())
+      .then(html => {
+        eventRight.innerHTML = html;
+        homeRight && (homeRight.style.display = "none");
+        contactRight && (contactRight.style.display = "none");
+        eventRight.style.display = "block";
+        currentPage = page;
+      });
+  }
 
-  document.querySelectorAll('.template-item').forEach(el => {
+
+  [blank].forEach(el => {
+    if (el && eventRight) {
+      el.addEventListener("click", e => {
+        e.preventDefault();
+        const categories = document.getElementById("categories");
+        if (categories) categories.classList.add("hidden");
+
+        if (el === blank) {
+          newTable(1);
+        } else {
+          newTable(newId);
+        }
+      });
+    }
+  });
+
+  [universal].forEach(el => {
+    if (el && eventRight) {
+      el.addEventListener("click", e => {
+        e.preventDefault();
+        const categories = document.getElementById("categories");
+        if (categories) categories.classList.add("hidden");
+
+        if (el === blank) {
+          loadTable(1);
+        } else {
+          loadTable(currentId);
+        }
+      });
+    }
+  });
+
+    document.querySelectorAll('.template-item').forEach(el => {
     el.addEventListener('click', () => {
       const id   = el.dataset.id;
       const name = el.dataset.name;
@@ -797,22 +844,6 @@ $progress = [
     if (modal) {
       modal.addEventListener('click', e => {
         if (e.target === modal) modal.classList.add('hidden');
-      });
-    }
-  });
-
-  [blank, universal].forEach(el => {
-    if (el && eventRight) {
-      el.addEventListener("click", e => {
-        e.preventDefault();
-        const categories = document.getElementById("categories");
-        if (categories) categories.classList.add("hidden");
-
-        if (el === blank) {
-          loadTable(1);
-        } else {
-          loadTable(currentId);
-        }
       });
     }
   });
@@ -941,13 +972,13 @@ $progress = [
   function open() {
     if ($dd.is(':visible')) return;
     $dd.stop(true, true).slideDown(160, () => $dd.removeClass('hidden'));
-    $chev.addClass('rotate-90');
+    $chev.addClass('rotate-180');
     $arrowBtn.attr('aria-expanded', 'true');
   }
   function close() {
     if (!$dd.is(':visible')) return;
     $dd.stop(true, true).slideUp(160, () => $dd.addClass('hidden'));
-    $chev.removeClass('rotate-90');
+    $chev.removeClass('rotate-180');
     $arrowBtn.attr('aria-expanded', 'false');
   }
 

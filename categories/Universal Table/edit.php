@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt = $conn->prepare($sql);
   $stmt->bind_param('si', $title, $id);
   if (! $stmt->execute()) {
+    
     http_response_code(500);
     echo "Update failed: " . $stmt->error;
   }else {
