@@ -68,6 +68,7 @@ $progress = [
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
   <title>Pilota</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
   <style>
@@ -177,12 +178,9 @@ $progress = [
               if ($res && $res->num_rows):
                 while ($row = $res->fetch_assoc()):
               ?>
-                <li>
-                 <a href="#"
-   class="js-table-link block px-4 py-2 text-gray-300 hover:text-white"
-   data-table-id="<?= (int)$row['table_id'] ?>">
-  <?= htmlspecialchars($row['table_title']) ?>
-</a>
+                <li class="flex justify-between mr-5">
+                  <a href="#" class="js-table-link block px-4 py-2 text-gray-300 hover:text-white" data-table-id="<?= (int)$row['table_id'] ?>"><?= htmlspecialchars($row['table_title'] ?? '') ?></a>
+                  <a href="categories/Universal Table/delete_table.php?table_id=<?= (int)$row['table_id'] ?>" onclick="return confirm('Are you sure you want to delete this entire table?');" class="text-red-500 hover:text-red-700 mt-2"><i class="fas fa-trash-alt"></i></a>
                 </li>
               <?php
               endwhile;

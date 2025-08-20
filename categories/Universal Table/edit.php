@@ -1,37 +1,40 @@
-<?php
-// edit_universal.php
-require_once __DIR__ . '/../../db.php';
+  <?php
+  require_once __DIR__ . '/../../db.php';
+  session_start();
 
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) {
-  die("No valid ID provided");
-}
-
-// 1) If this is a POST, run the UPDATE
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $title     = $_POST['title']     ?? '';
-
-  $sql = "UPDATE universal SET title = ? WHERE id = ?";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param('si', $title, $id);
-  if (! $stmt->execute()) {
-    
-    http_response_code(500);
-    echo "Update failed: " . $stmt->error;
-  }else {
-    header("Location: /ItemPilot/home.php?autoload=1");
-    exit;
+  $table_id = filter_input(INPUT_POST, 'table_id', FILTER_VALIDATE_INT);
+  if (!$table_id) {
+      $table_id = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
   }
-}
+  if (!$table_id) {
+      http_response_code(400);
+      exit('No valid table_id provided');
+  }
 
+  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      $table_title = $_POST['table_title'] ?? '';
 
-$stmt = $conn->prepare("SELECT title FROM universal_title WHERE id = ?");
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$stmt->bind_result($title);
-if (! $stmt->fetch()) {
-  die("Record #{$id} not found");
-}
-$stmt->close();
+      $sql = "UPDATE `tables` SET table_title = ? WHERE table_id = ?";
+      $stmt = $conn->prepare($sql);
+      if (!$stmt) { http_response_code(500); exit('Prepare failed: '.$conn->error); }
 
-?>
+      $stmt->bind_param('si', $table_title, $table_id);
+      if (!$stmt->execute()) {
+          http_response_code(500);
+          exit('Update failed: ' . $stmt->error);
+      }
+      $stmt->close();
+
+      header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+      exit;
+  }
+
+  $stmt = $conn->prepare("SELECT table_title FROM `tables` WHERE table_id = ?");
+  $stmt->bind_param('i', $table_id);
+  $stmt->execute();
+  $stmt->bind_result($table_title);
+  if (!$stmt->fetch()) {
+      $stmt->close();
+      exit("Record #{$table_id} not found");
+  }
+  $stmt->close();

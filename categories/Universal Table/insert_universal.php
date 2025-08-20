@@ -11,21 +11,6 @@ if ($uid <= 0) {
 $action   = $_GET['action'] ?? null;
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
-if ($action === 'create_blank') {
-    // Do NOT pass table_id – let DB auto-generate it
-    $stmt = $conn->prepare(
-        "INSERT INTO tables (user_id, created_at) VALUES (?, NOW())"
-    );
-    $stmt->bind_param('i', $uid);
-    $stmt->execute();
-    $table_id = (int)$conn->insert_id;   // <- this is your NEW table_id
-    $stmt->close();
-    
-}
-
-$action   = $_GET['action'] ?? null;
-$table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
-
 // Persist/resolve current table_id
 if ($action === 'create_blank') {
     // always create new blank table   for this user
@@ -68,20 +53,10 @@ if ($action === 'create_blank') {
     $_SESSION['current_table_id'] = $table_id;
 }
 
-
-// Fetch persistent table title
-$tblStmt = $conn->prepare("SELECT title FROM universal WHERE user_id = ? ORDER BY id ASC LIMIT 1");
-$tblStmt->bind_param('i', $uid);
-$tblStmt->execute();
-$tblStmt->bind_result($tableTitle);
-$tblStmt->fetch();
-$tblStmt->close();
-
 // Handle insert/update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = $_POST['id'] ?? '';
     $name = $_POST['name'] ?? '';
-    $title = $_POST['title'] ?? '';
     $notes = $_POST['notes'] ?? '';
     $assignee = $_POST['assignee'] ?? '';
     $status = $_POST['status'] ?? '';
@@ -104,11 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($id)) {
-        $stmt = $conn->prepare("INSERT INTO universal (name, notes, title, assignee, status, attachment_summary, table_id, user_id) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param('ssssssii', $name, $notes, $title, $assignee, $status, $attachment_summary, $table_id, $uid);
+        $stmt = $conn->prepare("INSERT INTO universal (name, notes, assignee, status, attachment_summary, table_id, user_id) VALUES ( ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('ssssssi', $name, $notes, $assignee, $status, $attachment_summary, $table_id, $uid);
     } else {
-        $stmt = $conn->prepare("UPDATE universal SET name = ?, notes = ?, title = ?, assignee = ?, status = ?, attachment_summary = ? WHERE id = ? AND table_id = ? AND user_id = ?");
-        $stmt->bind_param('ssssssiii', $name, $notes, $title, $assignee, $status, $attachment_summary, $id, $table_id, $uid);
+        $stmt = $conn->prepare("UPDATE universal SET name = ?, notes = ?, assignee = ?, status = ?, attachment_summary = ? WHERE id = ? AND table_id = ? AND user_id = ?");
+        $stmt->bind_param('sssssiii', $name, $notes, $assignee, $status, $attachment_summary, $id, $table_id, $uid);
     }
     $stmt->execute();
     $stmt->close();
@@ -135,7 +110,7 @@ $countStmt->close();
 $totalPages = (int)ceil($totalRows / $limit);
 
 // Fetch current page rows
-$dataStmt = $conn->prepare("SELECT id, name, notes, title, assignee, status, attachment_summary  FROM universal  WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
+$dataStmt = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary FROM universal WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
 $dataStmt->bind_param('iiii', $uid, $table_id, $limit, $offset);
 $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -165,18 +140,25 @@ $first = $rows[0] ?? null;
 
 <header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[90%] ml-5 mr-5">
   <section class="flex mt-5 justify-between ml-3" id="randomHeader">
+    <?php
+    $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
 
-    <?php if ($first): ?>
-      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php?id=<?= (int)$first['id'] ?>">
-        <input type="hidden" name="id" value="<?= (int)$first['id'] ?>">
-        <input type="text" name="title" id="title" value="<?= htmlspecialchars($first['title'] ?? '') ?>" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+    $stmt = $conn->prepare("SELECT table_id, table_title FROM `tables` WHERE user_id = ? AND table_id = ? LIMIT 1");
+    $stmt->bind_param('ii', $uid, $tableId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    if ($res && $res->num_rows) {
+      $row = $res->fetch_assoc(); ?>
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php" class="mb-3">
+        <input type="hidden" name="table_id" value="<?= (int)$row['table_id'] ?>">
+        <input type="text" name="table_title" value="<?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
       </form>
-    <?php else: ?>
-      <div class="w-full px-4 py-2 text-gray-400 italic">
-        No table yet. Create a new one.
-      </div>
-    <?php endif; ?>
-
+    <?php
+    } else {
+    }
+    $stmt->close();
+    ?>
     <button id="addIcon" type="button"
             class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -192,7 +174,7 @@ $first = $rows[0] ?? null;
 
     <!-- THEAD -->
     <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" id="myForm" class="w-full mb-2">
-      <input type="hidden" name="id" value="<?= htmlspecialchars($r['id']) ?>">
+      <input type="hidden" name="table_id" value="<?= (int)($_SESSION['current_table_id'] ?? 0) ?>">
       <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
         <div class="w-1/5 p-2">
           <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
@@ -278,7 +260,6 @@ $first = $rows[0] ?? null;
         <?php if ($page < $totalPages): ?><a href="insert_universal.php?page=<?= $page+1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">Next »</a><?php endif; ?>
       </div>
     <?php endif; ?>
-    
   </div>
   </div>
   </header>
@@ -296,20 +277,7 @@ $first = $rows[0] ?? null;
       </a>
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
-    <?php if ($hasRecord): ?>
-      <div data-id="<?= $first['id'] ?>" class="px-4 py-2 text-center flex justify-center">
-      <div data-field="title" class="text-3xl font-bold text-center mb-6"><?= htmlspecialchars($first['title']) ?></div>
-      </div>
-    <?php endif; ?>
     <form action="/ItemPilot/categories/Universal Table/insert_universal.php" method="POST" enctype="multipart/form-data" class="space-y-6">
-
-      <?php if (! $hasRecord): ?>
-        <div>
-          <label for="title" class="block text-gray-700 font-medium mb-2">Tabel Name</label>
-          <input type="text" name="title" id="title" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-      <?php endif; ?>
-
       <div>
         <label><?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?></label>
         <input type="text" name="name" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
