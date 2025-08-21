@@ -248,7 +248,7 @@ $first = $rows[0] ?? null;
             ];
             $colorClass = $statusColors[$r['status']] ?? 'bg-white text-gray-900';
           ?>
-          <select name="status" class="w-full px-2 py-1 rounded-xl  <?= $colorClass ?>">
+          <select name="status" class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
             <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
             <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
             <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
