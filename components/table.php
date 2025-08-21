@@ -1,8 +1,8 @@
 
-  <!-- Tables Section --->
-  <section class="bg-gray-100 rounded-md hidden w-full" id="event-right">
+<!-- Tables Section --->
+<section class="bg-gray-100 rounded-md hidden w-full" id="event-right">
     <!-- Header -->
-      <header class="md:flex hidden justify-between md:bg-white bg-slate-800 md:px-10 py-[19px] md:py-3 px-3">
+    <header class="md:flex hidden justify-between md:bg-white bg-slate-800 md:px-10 py-[19px] md:py-3 px-3">
         <!-- Left Side Of The Header -->
         <article class="flex items-center gap-4">
           <button aria-label="Search" class="text-white md:text-black">
@@ -18,7 +18,7 @@
 
             <!-- Close (✕), hidden by default -->
             <svg id="closeIcon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">  <path stroke-linecap="round" stroke-linejoin="round"  d="M6 18L18 6M6 6l12 12"/> </svg>
-          </button>
+           </button>
         </article>
 
         <!-- Right Side Of The Header -->
@@ -31,29 +31,29 @@
               <circle cx="21" cy="3" r="3"/>
             </svg>
           </button>
-        <div class="flex items-center gap-8 mr-9" id="mobileNav">  
-          <button aria-label="Notifications" class="relative md:block hidden">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            <!-- badge -->
-          <span class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">5</span>
-          </button>
+          <div class="flex items-center gap-8 mr-9" id="mobileNav">  
+            <button aria-label="Notifications" class="relative md:block hidden">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <!-- badge -->
+            <span class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">5</span>
+            </button>
 
-          <button aria-label="Messages" class="relative hidden md:block">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <!-- badge -->
-            <span class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-emerald-500 rounded-full">3</span>
-          </button>
-            
-          <!-- Profile -->
-          <div class="rounded-full bg-gray-200 w-10 h-10 py-2 px-4 md:block hidden">S</div>
-        </div>
+            <button aria-label="Messages" class="relative hidden md:block">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <!-- badge -->
+                <span class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-emerald-500 rounded-full">3</span>
+            </button>
+                
+            <!-- Profile -->
+            <div class="rounded-full bg-gray-200 w-10 h-10 py-2 px-4 md:block hidden">S</div>
+          </div>
         </article>
-      </header>
+    </header>
 
     <div class="md:flex md:justify-between md:px-50 md:ml-0 md:mr-0 ml-4 mr-4 mt-20 md:mb-15 mb-5">
       <div class="flex gap-5">
@@ -145,4 +145,4 @@
         </tbody>
       </table>
     </div>
-  </section>
+</section>

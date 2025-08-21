@@ -1,5 +1,5 @@
-  <!-- Contact Us -->
-  <section class="bg-gray-100 rounded-md hidden w-full" id="contact-right">
+<!-- Contact Us -->
+<section class="bg-gray-100 rounded-md hidden w-full" id="contact-right">
     <!-- Header -->
     <header class="md:flex hidden justify-between md:bg-white bg-slate-800 md:px-10 py-[19px] md:py-3 px-3">
       <!-- Left Side Of The Header -->
@@ -58,8 +58,8 @@
     </div>
     <div class="h-[1px] bg-gray-200 md:w-240 w-100 mt-2 md:ml-50 md:mr-0 ml-4 mr-4"></div>
 
-      <!-- Contact Form Is Here -->
-      <form action="" class="md:ml-0 md:mr-0 ml-4 mr-4">
+    <!-- Contact Form Is Here -->
+    <form action="" class="md:ml-0 md:mr-0 ml-4 mr-4">
         <div class="md:flex md:text-start text-center md:gap-50 md:px-50">
           <div class="grid mt-6 mb-6">
             <h1 class="text-lg font-medium">Name</h1>
@@ -67,6 +67,7 @@
           </div>
           <input type="text" class="border-1 bg-white border-gray-400 h-8 rounded-lg w-100 md:mt-9 mt-3 px-2 text-sm">
         </div>
+
         <div class="h-[1px] bg-gray-200 md:w-240 w-100 mt-2 md:ml-50"></div>
         <div class="md:flex md:text-start text-center md:gap-64 md:px-50">
           <div class="grid mt-6 mb-6">
@@ -75,6 +76,7 @@
           </div>
           <input type="email" class="border-1 bg-white border-gray-400 h-8 rounded-lg w-100 md:mt-9 mt-3 px-2 text-sm">
         </div>
+
         <div class="h-[1px] md:ml-50 bg-gray-200 md:w-240 w-100 mt-2 md:ml-50"></div>
         <div class="md:flex md:text-start text-center md:gap-54 md:px-50">
           <div class="grid mt-6 mb-6">
@@ -83,6 +85,7 @@
           </div>
           <input type="text" class="border-1 border-gray-400 h-20 bg-white rounded-lg w-100 mt-3 px-2 text-sm">
         </div>
+
         <div class="h-[1px] md:ml-50 bg-gray-200 md:w-240 w-100 mt-2 md:ml-50"></div>
         <div class="md:flex md:text-start text-center md:gap-82 md:px-50">
           <div class="grid mt-6 mb-6">
@@ -94,5 +97,5 @@
         <div class="h-[1px] md:ml-50 bg-gray-200 md:w-240 w-100 mt-2 md:ml-50"></div>
           
         <button class="bg-blue-600 hover:bg-blue-500 mb-5 text-white rounded-lg py-1 px-4 cursor-pointer mt-4 md:ml-50" type="submit">Reach Out</button>
-      </form>
-  </section>
+    </form>
+</section>

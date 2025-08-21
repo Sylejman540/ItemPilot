@@ -1,11 +1,11 @@
-  <!-- amCharts 5 -->
-    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
-    <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
-    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+<!-- amCharts 5 -->
+<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
 
-    <section class="bg-gray-100 rounded-md w-full" id="home-right">
+<section class="bg-gray-100 rounded-md w-full" id="home-right">
       <!-- Header -->
-      <header class="md:flex hidden justify-between md:bg-white bg-slate-800 md:px-10 py-[19px] md:py-3 px-3">
+    <header class="md:flex hidden justify-between md:bg-white bg-slate-800 md:px-10 py-[19px] md:py-3 px-3">
         <!-- Left Side Of The Header -->
         <article class="flex items-center gap-4">
           <button aria-label="Search" class="text-white md:text-black">
@@ -54,7 +54,7 @@
           <!-- Profile -->
           <div class="rounded-full bg-gray-200 w-10 h-10 py-2 px-4 md:block hidden">S</div>
         </article>
-      </header>
+    </header>
 
       <article class="md:ml-15 md:mr-25 ml-5 mr-5 mb-10">
         <div class="flex mt-10 mb-5">
@@ -66,9 +66,9 @@
           <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow">
             <h3 class="text-lg font-semibold mb-6">Deals Analytics</h3>
             <div id="dealsChart" style="height:330px;"></div>
-          </div>
+        </div>
 
-          <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6">
             <?php foreach ($kpis as $k): ?>
               <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center">
                 <div>
@@ -90,9 +90,9 @@
                 </div>
               <?php endforeach; ?>
             </div>
-          </div>
+        </div>
 
-          <div class="mt-8 bg-white p-6 rounded-xl shadow">
+        <div class="mt-8 bg-white p-6 rounded-xl shadow">
             <div class="grid lg:grid-cols-4 gap-8">
               <?php foreach ($progress as $i => $p): ?>
                 <div>
@@ -111,5 +111,5 @@
             <?php endforeach; ?>
           </div>
         </div>
-      </article>
-      </section>  
+    </article>
+</section>  
