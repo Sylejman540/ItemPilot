@@ -127,6 +127,7 @@ $progress = [
           <div class="rounded-full bg-gray-200 w-10 h-10 py-2 px-4 md:block hidden">S</div>
         </article>
       </header>
+      
   <main class="flex">
     <!-- Aside -->
     <aside id="sidebar" class="w-60 md:block hidden bg-[#263544] overflow-x-none min-h-screen bg-slate-800">

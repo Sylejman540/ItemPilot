@@ -159,12 +159,11 @@ $first = $rows[0] ?? null;
     }
     $stmt->close();
     ?>
-    <button id="addIcon" type="button"
-            class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
-      <span class="text-sm">Create New</span>
+      <span class="text-sm">New Record</span>
     </button>
 
   </section>
@@ -172,113 +171,105 @@ $first = $rows[0] ?? null;
   <div class="overflow-x-auto md:overflow-x-hidden">
   <div class="md:mx-8 mt-20 ml-3 bg-white py-15 md:p-8 md:px-10 rounded-xl md:w-full w-240">
 
-  <?php
-  // get the most recent row just to PREFILL inputs (not to update it)
-  $stmt = $conn->prepare("
-    SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
-    FROM universal_thead
-    WHERE user_id = ? AND table_id = ?
-    ORDER BY id DESC
-    LIMIT 1
-  ");
-  $stmt->bind_param('ii', $uid, $tableId);
-  $stmt->execute();
-  $res = $stmt->get_result();
+    <?php
+    // get the most recent row just to PREFILL inputs (not to update it)
+    $stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
+      FROM universal_thead
+      WHERE user_id = ? AND table_id = ?
+      ORDER BY id DESC
+      LIMIT 1");
+    $stmt->bind_param('ii', $uid, $tableId);
+    $stmt->execute();
+    $res = $stmt->get_result();
 
-  if ($res && $res->num_rows) {
-    $row = $res->fetch_assoc();   // use its values to prefill
-    $row['id'] = 0;               // 🔑 force INSERT on submit
-  } else {
-    // no previous row — still allow insert
-    $row = ['id'=>0, 'table_id'=>$tableId];
-  }
-  $stmt->close();
-  ?>
+    if ($res && $res->num_rows) {
+      $row = $res->fetch_assoc();   
+      $row['id'] = 0;      
+    } else {
+      $row = ['id'=>0, 'table_id'=>$tableId];
+    }
+    $stmt->close();
+    ?>
 
-    <div class="universal-table" id="ut-<?= (int)$tableId ?>" data-table-id="<?= (int)$tableId ?>">
-      <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php"
-            method="post"
-            class="w-full mb-2 thead-form"
-            data-table-id="<?= (int)$tableId ?>">
+  <div class="universal-table" id="ut-<?= (int)$tableId ?>" data-table-id="<?= (int)$tableId ?>">
+    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full mb-2 thead-form" data-table-id="<?= (int)$tableId ?>">
 
-        <!-- 🔑 always post id=0 so handler does INSERT -->
-        <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+      <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+      <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
+
+      <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
+        <div class="w-1/5 p-2">
+          <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_notes" value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_assignee" value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_status" value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        </div>
+        <div class="w-1/5 p-2">
+          <input name="thead_attachment" value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- TBODY -->
+  <div class="w-full divide-y divide-gray-200">
+    <?php if ($hasRecord): foreach ($rows as $r): ?>
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="flex items-center border-b border-gray-300 text-sm">
+          
+        <input type="hidden" name="id" value="<?= $r['id'] ?>">
+        <input type="hidden" name="title" value="<?= htmlspecialchars($tableTitle) ?>">
         <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
+        <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
-        <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
-          <div class="w-1/5 p-2">
-            <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
-          </div>
-          <div class="w-1/5 p-2">
-            <input name="thead_notes" value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
-          </div>
-          <div class="w-1/5 p-2">
-            <input name="thead_assignee" value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
-          </div>
-          <div class="w-1/5 p-2">
-            <input name="thead_status" value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
-          </div>
-          <div class="w-1/5 p-2">
-            <input name="thead_attachment" value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        <div class="w-1/5 p-2">
+          <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        </div>
+
+        <div class="w-1/5 p-2">
+          <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        </div>
+
+        <div class="w-1/5 p-2 ml-10">
+          <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        </div>
+
+        <div class="w-40 p-2 mr-20">
+          <?php
+            $statusColors = [
+              'To Do'       => 'bg-gray-100 text-gray-800',
+              'In Progress' => 'bg-yellow-100 text-yellow-800',
+              'Done'        => 'bg-green-100 text-green-800'
+            ];
+            $colorClass = $statusColors[$r['status']] ?? 'bg-white text-gray-900';
+          ?>
+          <select name="status" class="w-full px-2 py-1 rounded-xl  <?= $colorClass ?>">
+            <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
+            <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+            <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
+          </select>
+        </div>
+
+        <div class="w-1/5 p-2 flex items-center gap-3">
+          <?php if ($r['attachment_summary']): ?>
+            <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
+          <?php else: ?>
+            <span class="italic text-gray-400">None</span>
+          <?php endif; ?>
+          <div class="ml-auto flex items-center">
+            <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"  onclick="return confirm('Are you sure?')"  class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
+              </svg>
+            </a>
           </div>
         </div>
       </form>
-    </div>
-
-    <!-- TBODY -->
-    <div class="w-full divide-y divide-gray-200">
-      <?php if ($hasRecord): foreach ($rows as $r): ?>
-        <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="flex items-center border-b border-gray-300 text-sm">
-          
-          <input type="hidden" name="id" value="<?= $r['id'] ?>">
-          <input type="hidden" name="title" value="<?= htmlspecialchars($tableTitle) ?>">
-          <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
-          <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
-
-          <div class="w-1/5 p-2">
-            <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
-
-          <div class="w-1/5 p-2">
-            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
-
-          <div class="w-1/5 p-2 ml-10">
-            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
-
-          <div class="w-40 p-2 mr-20">
-            <?php
-              $statusColors = [
-                'To Do'       => 'bg-gray-100 text-gray-800',
-                'In Progress' => 'bg-yellow-100 text-yellow-800',
-                'Done'        => 'bg-green-100 text-green-800'
-              ];
-              $colorClass = $statusColors[$r['status']] ?? 'bg-white text-gray-900';
-            ?>
-            <select name="status" class="w-full px-2 py-1 rounded-xl  <?= $colorClass ?>">
-              <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
-              <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-              <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
-            </select>
-          </div>
-
-          <div class="w-1/5 p-2 flex items-center gap-3">
-            <?php if ($r['attachment_summary']): ?>
-              <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
-            <?php else: ?>
-              <span class="italic text-gray-400">None</span>
-            <?php endif; ?>
-            <div class="ml-auto flex items-center">
-              <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"  onclick="return confirm('Are you sure?')"  class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-        </form>
       <?php endforeach; else: ?>
         <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
       <?php endif; ?>
