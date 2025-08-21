@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
 
     $returnPage = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-    header("Location: /ItemPilot/home.php?autoload=1");
+    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
     exit;
 }
 
@@ -173,12 +173,6 @@ $first = $rows[0] ?? null;
   <div class="md:mx-8 mt-20 ml-3 bg-white py-15 md:p-8 md:px-10 rounded-xl md:w-full w-240">
 
   <?php
-  if (session_status() !== PHP_SESSION_ACTIVE) session_start();
-  $uid = (int)($_SESSION['user_id'] ?? 0);
-
-  $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
-  if (!$tableId) { return; }
-
   // get the most recent row just to PREFILL inputs (not to update it)
   $stmt = $conn->prepare("
     SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
@@ -213,29 +207,19 @@ $first = $rows[0] ?? null;
 
         <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
           <div class="w-1/5 p-2">
-            <input name="thead_name"
-                  value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+            <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
           </div>
           <div class="w-1/5 p-2">
-            <input name="thead_notes"
-                  value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+            <input name="thead_notes" value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
           </div>
           <div class="w-1/5 p-2">
-            <input name="thead_assignee"
-                  value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+            <input name="thead_assignee" value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
           </div>
           <div class="w-1/5 p-2">
-            <input name="thead_status"
-                  value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+            <input name="thead_status" value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
           </div>
           <div class="w-1/5 p-2">
-            <input name="thead_attachment"
-                  value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+            <input name="thead_attachment" value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
           </div>
         </div>
       </form>
@@ -248,6 +232,7 @@ $first = $rows[0] ?? null;
           
           <input type="hidden" name="id" value="<?= $r['id'] ?>">
           <input type="hidden" name="title" value="<?= htmlspecialchars($tableTitle) ?>">
+          <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
           <div class="w-1/5 p-2">
@@ -285,7 +270,7 @@ $first = $rows[0] ?? null;
               <span class="italic text-gray-400">None</span>
             <?php endif; ?>
             <div class="ml-auto flex items-center">
-              <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>"  onclick="return confirm('Are you sure?')"  class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
+              <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"  onclick="return confirm('Are you sure?')"  class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
@@ -325,23 +310,24 @@ $first = $rows[0] ?? null;
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
     <form action="/ItemPilot/categories/Universal Table/insert_universal.php" method="POST" enctype="multipart/form-data" class="space-y-6">
-      <div>
-        <label><?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?></label>
+      <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
+      <div class="mt-5">
+        <label><?= htmlspecialchars($row['thead_name'] ?? 'Name') ?></label>
         <input type="text" name="name" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
       
       <div>
-        <label><?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?></label>
+        <label><?= htmlspecialchars($row['thead_notes'] ?? 'Notes') ?></label>
         <input type="text" name="notes" id="notes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
-        <label><?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?></label>
+        <label><?= htmlspecialchars($row['thead_assignee'] ?? 'Assignee') ?></label>
         <input type="text" name="assignee" id="assignee" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
-        <label><?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?></label>
+        <label><?= htmlspecialchars($row['thead_status'] ?? 'Status') ?></label>
         <select type="text" name="status" id="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
           <option name="do" id="do">To Do</option>
           <option name="progress" id="progress">In Progress</option>
@@ -350,7 +336,7 @@ $first = $rows[0] ?? null;
       </div>
       
       <div>
-        <label><?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?></label>
+        <label><?= htmlspecialchars($row['thead_attachment'] ?? 'Attachment') ?></label>
         <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full border border-gray-300 rounded-lg p-2 text-smfile:bg-pink-100 file:border-0 file:rounded-md file:px-4 file:py-2 file:text-[#B5707D]">
       </div>
 

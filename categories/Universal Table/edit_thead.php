@@ -36,5 +36,5 @@ if (!$stmt->execute()) {
 }
 $stmt->close();
 
-header("Location: /ItemPilot/home.php?autoload=1");
+header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
 exit;
