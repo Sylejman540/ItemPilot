@@ -66,6 +66,30 @@
     <p class="text-center text-sm text-gray-500 mt-6 cursor-pointer" id="login-button">Don't have an account?<span class="text-blue-600 hover:underline">Sign In</span></p>
   </div>
 
-  <script src="main.js"></script>
+  <script>
+    const signup = document.getElementById("signup");
+    const login = document.getElementById("login");
+    const signButton = document.getElementById("signup-button");
+    const loginButton = document.getElementById("login-button");
+
+    // your existing click‑handlers
+    signButton.addEventListener('click', function(){
+      signup.style.display = "none";
+      login.style.display  = "block";
+    });
+    loginButton.addEventListener('click', function(){
+      signup.style.display = "block";
+      login.style.display  = "none";
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const wantLogin = window.location.hash === '#login' || new URLSearchParams(window.location.search).get('status') === 'invalid_data';
+
+      if (wantLogin) {
+        signup.style.display = "none";
+        login.style.display  = "block";
+      }
+    });
+  </script>
 </body>
 </html>

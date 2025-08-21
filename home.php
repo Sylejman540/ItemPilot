@@ -111,6 +111,7 @@ $progress = [
         currentPage = page;
       });
   }
+  
 
   function newTable(page = 1) {
     fetch(`categories/Universal%20Table/insert_universal.php?action=create_blank&page=${page}`)
