@@ -15,7 +15,7 @@ $thead_notes      = trim($_POST['thead_notes'] ?? '');
 $thead_assignee   = trim($_POST['thead_assignee'] ?? '');
 $thead_status     = trim($_POST['thead_status'] ?? '');
 $thead_attachment = trim($_POST['thead_attachment'] ?? '');
-$table_id         = (int)($_POST['table_id'] ?? 0);   // <-- CAST TO INT
+$table_id         = trim($_POST['table_id'] ?? ''); 
 
 // require a table_id
 if ($table_id <= 0) {
@@ -23,14 +23,11 @@ if ($table_id <= 0) {
   exit('Missing or invalid table_id');
 }
 
-$sql = "INSERT INTO universal_thead
-        (thead_name, thead_notes, thead_assignee, thead_status, thead_attachment, user_id, table_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)";
+$sql = "INSERT INTO universal_thead (thead_name, thead_notes, thead_assignee, thead_status, thead_attachment, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
 if (!$stmt) { http_response_code(500); exit('Prepare failed: ' . $conn->error); }
 
-$stmt->bind_param('sssssii',
-  $thead_name, $thead_notes, $thead_assignee, $thead_status, $thead_attachment, $uid, $table_id
+$stmt->bind_param('sssssii', $thead_name, $thead_notes, $thead_assignee, $thead_status, $thead_attachment, $uid, $table_id
 );
 
 if (!$stmt->execute()) {

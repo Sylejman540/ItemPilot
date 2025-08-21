@@ -1010,12 +1010,13 @@ $progress = [
     });
   });
 
-  // -------- autoload if requested --------
+        // -------- autoload if requested --------
   const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
-  if (shouldAutoload) {
-    // load whatever table id came via URL (if any)
-    if (currentId) loadTable(currentId, currentPage);
-  }
+if (shouldAutoload) {
+  // load whatever table id came via URL (if any)
+  if (currentId) loadTable(currentId, currentPage);
+}
+
 })();
 </script>
 

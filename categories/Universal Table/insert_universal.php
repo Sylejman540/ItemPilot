@@ -172,27 +172,74 @@ $first = $rows[0] ?? null;
   <div class="overflow-x-auto md:overflow-x-hidden">
   <div class="md:mx-8 mt-20 ml-3 bg-white py-15 md:p-8 md:px-10 rounded-xl md:w-full w-240">
 
-    <!-- THEAD -->
-    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" id="myForm" class="w-full mb-2">
-      <input type="hidden" name="table_id" value="<?= (int)($_SESSION['current_table_id'] ?? 0) ?>">
-      <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
-        <div class="w-1/5 p-2">
-          <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+  <?php
+  if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+  $uid = (int)($_SESSION['user_id'] ?? 0);
+
+  $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
+  if (!$tableId) { return; }
+
+  // get the most recent row just to PREFILL inputs (not to update it)
+  $stmt = $conn->prepare("
+    SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
+    FROM universal_thead
+    WHERE user_id = ? AND table_id = ?
+    ORDER BY id DESC
+    LIMIT 1
+  ");
+  $stmt->bind_param('ii', $uid, $tableId);
+  $stmt->execute();
+  $res = $stmt->get_result();
+
+  if ($res && $res->num_rows) {
+    $row = $res->fetch_assoc();   // use its values to prefill
+    $row['id'] = 0;               // 🔑 force INSERT on submit
+  } else {
+    // no previous row — still allow insert
+    $row = ['id'=>0, 'table_id'=>$tableId];
+  }
+  $stmt->close();
+  ?>
+
+    <div class="universal-table" id="ut-<?= (int)$tableId ?>" data-table-id="<?= (int)$tableId ?>">
+      <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php"
+            method="post"
+            class="w-full mb-2 thead-form"
+            data-table-id="<?= (int)$tableId ?>">
+
+        <!-- 🔑 always post id=0 so handler does INSERT -->
+        <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+        <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
+
+        <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
+          <div class="w-1/5 p-2">
+            <input name="thead_name"
+                  value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          </div>
+          <div class="w-1/5 p-2">
+            <input name="thead_notes"
+                  value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          </div>
+          <div class="w-1/5 p-2">
+            <input name="thead_assignee"
+                  value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          </div>
+          <div class="w-1/5 p-2">
+            <input name="thead_status"
+                  value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          </div>
+          <div class="w-1/5 p-2">
+            <input name="thead_attachment"
+                  value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          </div>
         </div>
-        <div class="w-1/5 p-2">
-          <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-        <div class="w-1/5 p-2">
-          <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-        <div class="w-1/5 p-2">
-          <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-        <div class="w-1/5 p-2">
-          <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-      </div>
-    </form>
+      </form>
+    </div>
 
     <!-- TBODY -->
     <div class="w-full divide-y divide-gray-200">
