@@ -187,9 +187,58 @@ $progress = [
   const contactTab = document.getElementById("contact");
   const eventsTab  = document.getElementById("events");
 
-  if (homeTab)    homeTab.addEventListener('click', () => { homeRight.style.display = "block"; contactRight.style.display = "none"; eventRight.style.display = "none"; });
-  if (contactTab) contactTab.addEventListener('click', () => { homeRight.style.display = "none"; contactRight.style.display = "block"; eventRight.style.display = "none"; });
-  if (eventsTab)  eventsTab.addEventListener('click', () => { homeRight.style.display = "none"; contactRight.style.display = "none"; eventRight.style.display = "block"; });
+  function show(el) {
+    el.style.display = "block";
+  }
+  function hide(el) {
+    el.style.display = "none";
+  }
+
+  // Scroll to top on all likely scroll roots
+  function resetScroll() {
+    // Window roots
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    // Common app containers; add yours if different
+    const maybeScrollers = [
+      document.querySelector('#main'),
+      document.querySelector('.main'),
+      document.querySelector('.content'),
+      homeRight, contactRight, eventRight
+    ].filter(Boolean);
+
+    for (const el of maybeScrollers) el.scrollTop = 0;
+  }
+
+  if (homeTab) {
+    homeTab.addEventListener('click', (e) => {
+      // If your tab is an <a href="#...">, prevent anchor jump
+      e.preventDefault?.();
+
+      show(homeRight); hide(contactRight); hide(eventRight);
+
+      // Wait a tick so layout settles, then reset scroll
+      requestAnimationFrame(resetScroll);
+    });
+  }
+
+  if (contactTab) {
+    contactTab.addEventListener('click', (e) => {
+      e.preventDefault?.();
+      show(contactRight); hide(homeRight); hide(eventRight);
+      requestAnimationFrame(resetScroll);
+    });
+  }
+
+  if (eventsTab) {
+    eventsTab.addEventListener('click', (e) => {
+      e.preventDefault?.();
+      show(eventRight); hide(homeRight); hide(contactRight);
+      requestAnimationFrame(resetScroll);
+    });
+  }
 
   // -------- modals (unchanged) --------
   document.querySelectorAll('[data-modal-target]').forEach(btn => {

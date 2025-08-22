@@ -302,24 +302,45 @@ $first = $rows[0] ?? null;
     </div>
     <form action="/ItemPilot/categories/Universal Table/insert_universal.php" method="POST" enctype="multipart/form-data" class="space-y-6">
       <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
+
+      <?php
+        $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
+
+        $stmt = $conn->prepare("SELECT table_id, table_title FROM `tables` WHERE user_id = ? AND table_id = ? LIMIT 1");
+        $stmt->bind_param('ii', $uid, $tableId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+
+        if ($res && $res->num_rows) {
+          $row = $res->fetch_assoc(); ?>
+        
+            <input type="hidden" name="table_id" value="<?= (int)$row['table_id'] ?>">
+            <h1 class="w-full px-4 py-2 text-center text-2xl"><?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?></h1>
+            <input type="hidden" name="table_id" value="<?= (int)$row['table_id'] ?>">
+        <?php
+        } else {
+        }
+        $stmt->close();
+      ?>
+      
       <div class="mt-5">
         <label><?= htmlspecialchars($row['thead_name'] ?? 'Name') ?></label>
-        <input type="text" name="name" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <input type="text" name="name" id="name" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
       
       <div>
         <label><?= htmlspecialchars($row['thead_notes'] ?? 'Notes') ?></label>
-        <input type="text" name="notes" id="notes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <input type="text" name="notes" id="notes" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
         <label><?= htmlspecialchars($row['thead_assignee'] ?? 'Assignee') ?></label>
-        <input type="text" name="assignee" id="assignee" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <input type="text" name="assignee" id="assignee" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
         <label><?= htmlspecialchars($row['thead_status'] ?? 'Status') ?></label>
-        <select type="text" name="status" id="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+        <select type="text" name="status" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
           <option name="do" id="do">To Do</option>
           <option name="progress" id="progress">In Progress</option>
           <option name="done" id="done">Done</option>
@@ -328,7 +349,7 @@ $first = $rows[0] ?? null;
       
       <div>
         <label><?= htmlspecialchars($row['thead_attachment'] ?? 'Attachment') ?></label>
-        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full border border-gray-300 rounded-lg p-2 text-smfile:bg-pink-100 file:border-0 file:rounded-md file:px-4 file:py-2 file:text-[#B5707D]">
+        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-smfile:bg-pink-100 file:border-0 file:rounded-md file:px-4 file:py-2 file:text-[#B5707D]">
       </div>
 
       <div>
