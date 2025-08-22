@@ -380,7 +380,10 @@ $progress = [
   });
 
   document.addEventListener('change', (e) => {
-    if (e.target.matches('select[name="status"]') && e.target.value === 'Done', 'To Do', 'In Progress') {
+    if (
+      e.target.matches('select.status--autosave') &&
+      ['To Do', 'In Progress', 'Done'].includes(e.target.value)
+    ) {
       e.target.form?.submit();
     }
   });

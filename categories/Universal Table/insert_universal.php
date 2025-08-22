@@ -248,7 +248,7 @@ $first = $rows[0] ?? null;
             ];
             $colorClass = $statusColors[$r['status']] ?? 'bg-white text-gray-900';
           ?>
-          <select name="status" class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
+          <select name="status" class="w-full px-2 py-1 rounded-xl status--autosave <?= $colorClass ?>">
             <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
             <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
             <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
@@ -275,7 +275,6 @@ $first = $rows[0] ?? null;
       <?php endif; ?>
     </div>
 
-    <!-- Pagination (unchanged) -->
     <?php if ($totalPages > 1): ?>
       <div class="pagination my-4 flex justify-center space-x-2">
         <?php if ($page > 1): ?><a href="insert_universal.php?page=<?= $page-1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">« Prev</a><?php endif; ?>
@@ -340,10 +339,10 @@ $first = $rows[0] ?? null;
 
       <div>
         <label><?= htmlspecialchars($row['thead_status'] ?? 'Status') ?></label>
-        <select type="text" name="status" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
-          <option name="do" id="do">To Do</option>
-          <option name="progress" id="progress">In Progress</option>
-          <option name="done" id="done">Done</option>
+        <select name="status" class="w-full mt-1 px-4 py-2 border rounded-lg">
+          <option value="To Do">To Do</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Done">Done</option>
         </select>
       </div>
       
