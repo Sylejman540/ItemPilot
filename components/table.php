@@ -1,59 +1,6 @@
 
 <!-- Tables Section --->
-<section class="bg-gray-100 rounded-md hidden w-full" id="event-right">
-    <!-- Header -->
-    <header class="md:flex hidden justify-between md:bg-white bg-slate-800 md:px-10 py-[19px] md:py-3 px-3">
-        <!-- Left Side Of The Header -->
-        <article class="flex items-center gap-4">
-          <button aria-label="Search" class="text-white md:text-black">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </button>
-
-          <button id="menuBtn" class="top-1 left-2 z-50 md:hidden text-white md:text-black">
-            <!-- Hamburger (☰) -->
-            <svg id="hamburgerIcon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">  <path stroke-linecap="round" stroke-linejoin="round"  d="M4 6h16M4 12h16M4 18h16"/>  </svg>
-
-            <!-- Close (✕), hidden by default -->
-            <svg id="closeIcon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">  <path stroke-linecap="round" stroke-linejoin="round"  d="M6 18L18 6M6 6l12 12"/> </svg>
-           </button>
-        </article>
-
-        <!-- Right Side Of The Header -->
-        <article class="flex items-center gap-8 mr-9">
-          <!-- three-dot menu (horizontal) -->
-          <button class="p-2 text-gray-200 hover:text-white" id="threeDots">
-            <svg class="md:hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 6" width="18" height="6" fill="currentColor" aria-label="More options" role="img">
-              <circle cx="3"  cy="3" r="3"/>
-              <circle cx="12" cy="3" r="3"/>
-              <circle cx="21" cy="3" r="3"/>
-            </svg>
-          </button>
-          <div class="flex items-center gap-8 mr-9" id="mobileNav">  
-            <button aria-label="Notifications" class="relative md:block hidden">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-                <!-- badge -->
-            <span class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">5</span>
-            </button>
-
-            <button aria-label="Messages" class="relative hidden md:block">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <!-- badge -->
-                <span class="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-emerald-500 rounded-full">3</span>
-            </button>
-                
-            <!-- Profile -->
-            <div class="rounded-full bg-gray-200 w-10 h-10 py-2 px-4 md:block hidden">S</div>
-          </div>
-        </article>
-    </header>
+<section class="bg-gray-100 rounded-md hidden w-full h-screen" id="event-right">
 
     <div class="md:flex md:justify-between md:px-50 md:ml-0 md:mr-0 ml-4 mr-4 mt-20 md:mb-15 mb-5">
       <div class="flex gap-5">
@@ -70,79 +17,47 @@
       </div>
     </div>
 
-    <div class="h-[1px] bg-gray-200 md:w-240 w-100 mt-2 md:ml-50 md:mr-0 ml-4 mr-4"></div>
     
-    <div class="bg-white rounded-lg md:ml-10 md:mr-15 py-10 md:mt-0 mt-5 overflow-x-auto mb-5">
-      <div class="flex gap-1 ml-5 mb-3">
-        <img src="images/table.png" alt="Contact" class="w-10 h-10 rounded-full">
-        <h4 class="md:text-sm text-md font-medium mt-3 text-gray-600">All Tables</h4>
+    <div class="bg-white rounded-md shadow-sm ring-1 ring-gray-100 max-w-4xl mx-auto overflow-hidden p-4 px-10">
+      <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+          <i class="fa-solid fa-table text-sm"></i>
+        </span>
+        <h2 class="text-gray-700 font-semibold text-base">All Tables</h2>
       </div>
 
-      <table class="w-300 text-sm ml-5 mr-5">
-        <!-- invisible header just to lock column widths -->
-        <thead class="sr-only">
-          <tr>
-            <th>Name</th><th>Notes</th><th>Assignee</th><th>Status</th><th>Attachment</th>
-          </tr>
-        </thead>
-
-        <tbody>
+      <ul class="divide-y divide-gray-100">
         <?php
-          $res = $conn->query("SELECT id, name, notes, assignee, status, attachment_summary FROM universal WHERE user_id = {$uid} ORDER BY id ASC");
-          if ($res->num_rows):
-          while ($row = $res->fetch_assoc()):
+          $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM tables WHERE user_id = ? ORDER BY table_id ASC");
+          $stmt->bind_param('i', $uid);
+          $stmt->execute();
+          $res = $stmt->get_result();
+          if ($res && $res->num_rows):
+            while ($row = $res->fetch_assoc()):
+              $tid   = (int)$row['table_id'];
+              $title = htmlspecialchars($row['table_title'] ?? 'Untitled');
+              $href  = "home.php?table_id={$tid}&page=1&autoload=1";
+              $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
         ?>
-          <tr class="border-b border-gray-200 hover:bg-gray-100 cursor-pointer">
-            <!-- Name -->
-            <td class="px-4 py-2 text-gray-900 whitespace-nowrap">
-              <?= htmlspecialchars($row['name']) ?>
-            </td>
-
-            <!-- Notes -->
-            <td class="px-4 py-2 text-gray-700">
-              <?= htmlspecialchars($row['notes']) ?>
-            </td>
-
-            <!-- Assignee -->
-            <td class="px-4 py-2 text-gray-900 whitespace-nowrap">
-              <?= htmlspecialchars($row['assignee']) ?>
-            </td>
-
-            <!-- Status badge -->
-            <td class="px-4 py-2">
-              <?php
-                $badge = match ($row['status']) {
-                  'Done'        => 'bg-green-100 text-green-800',
-                  'In Progress' => 'bg-yellow-100 text-yellow-800',
-                  default       => 'bg-gray-100 text-gray-800',
-                };
-              ?>
-              <span class="inline-block px-2 py-1 rounded-full <?= $badge ?>">
-                <?= htmlspecialchars($row['status']) ?>
-              </span>
-            </td>
-
-            <!-- Attachment preview -->
-            <td class="px-4 py-2 text-gray-500">
-              <?php if ($row['attachment_summary']): ?>
-                <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($row['attachment_summary']) ?>"
-                    class="w-20 h-10 rounded-md object-cover" alt="Attachment">
-              <?php else: ?>
-                <span class="italic text-gray-400">None</span>
-              <?php endif; ?>
-            </td>
-          </tr>
-        <?php
-            endwhile;
-          else:
-        ?>
-          <tr>
-            <td colspan="5" class="px-4 py-4 text-center italic text-gray-400">
-              No tables yet.
-            </td>
-          </tr>
+        <li class="group hover:bg-slate-50 cursor-pointer" data-href="<?= $href ?>">
+          <a href="<?= $href ?>" class="flex items-center gap-3 px-4 py-3">
+            <span class="h-8 w-8 inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600">
+              <i class="fa-regular fa-square-check"></i>
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-4">
+                <span class="truncate text-slate-800 group-hover:text-slate-900"><?= $title ?></span>
+                <span class="shrink-0 text-xs text-slate-500 group-hover:text-slate-700"><?= $createdFmt ?></span>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-slate-400"></i>
+          </a>
+        </li>
+        <?php endwhile; else: ?>
+        <li class="px-6 py-10 text-center text-slate-500">
+          No tables yet. <a href="#" id="createFirst" class="text-blue-600 hover:underline">Create one</a>
+        </li>
         <?php endif; ?>
-        </tbody>
-      </table>
+      </ul>
     </div>
 </section>

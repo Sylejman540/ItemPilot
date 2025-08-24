@@ -138,7 +138,7 @@ $rows  = $rows ?? [];
 $first = $rows[0] ?? null;   
 ?>
 
-<header class="absolute md:w-[75%] md:ml-16 md:mr-16 w-[90%] ml-5 mr-5">
+<header id="appHeader"  class="absolute mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
   <section class="flex mt-5 justify-between ml-3" id="randomHeader">
     <?php
     $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
@@ -288,8 +288,8 @@ $first = $rows[0] ?? null;
 
 
   <!-- Add a new record -->
-  <div id="addForm" class="min-h-screen flex items-center justify-center p-4 hidden relative">
-   <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-lg" id="signup">
+  <div id="addForm" class="min-h-screen flex items-center justify-center p-2 hidden relative mt-13">
+   <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-lg" id="signup">
     <div class="flex justify-between">
       <a href="#" data-close-add>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -357,6 +357,8 @@ $first = $rows[0] ?? null;
     </form>
    </div>
   </div>
+</div>
+
 </body>
 </html>
 
