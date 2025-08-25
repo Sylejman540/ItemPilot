@@ -334,8 +334,8 @@ if ($hasNamed) {
 
 
   
-<div id="account" class="hidden w-full absolute ml-146 bottom-0 h-screen overflow-none">
-  <div class="w-full max-w-lg bg-white px-8 py-5 rounded-2xl shadow-md border border-gray-200">
+<div id="account" class="hidden w-full pl-[var(--sbw)] md:fixed mt-14 md:ml-100 h-screen overflow-none md:ml-0 md:mr-0 ml-3 mr-3">
+  <div class="w-full max-w-md bg-white px-8 py-5 rounded-2xl shadow-md border border-gray-200">
   <h1 class="text-3xl font-extrabold text-center text-[#263544] mb-4 mt-20">Manage Your Account</h1>
 
     <form action="/ItemPilot/account/manage-account.php" method="POST" class="space-y-6">
@@ -781,6 +781,62 @@ if ($hasNamed) {
     if (currentId) loadTable(currentId, currentPage);
     if (currentSalesId) loadStrategy(currentSalesId, currentPage);
   }
+})();
+
+(() => {
+  // Helper: safely render a chart if the target exists
+  function renderChart(selector, options) {
+    const el = document.querySelector(selector);
+    if (!el) return; // silently skip if the container isn't on the page
+    try {
+      new ApexCharts(el, options).render();
+    } catch (err) {
+      console.error(`ApexCharts render failed for ${selector}:`, err);
+    }
+  }
+
+  // ---- Deals (area) ----
+  const dealsSeries = [{
+    name: 'Deals',
+    data: <?= json_encode(
+      array_map(fn($r) => [(new DateTime($r['dt']))->format('Y-m-d'), (int)$r['amt']], $deals),
+      JSON_UNESCAPED_SLASHES
+    ) ?>.map(([d, v]) => ({ x: d, y: v }))
+  }];
+
+  renderChart('#dealsChart', {
+    chart:  { type: 'area', height: 330, toolbar: { show: false } },
+    series: dealsSeries,
+    xaxis:  { type: 'datetime' },
+    stroke: { curve: 'smooth', width: 2 },
+    colors: ['#3b82f6']
+  });
+
+  // ---- Status (donut) ----
+  renderChart('#statusChart', {
+    chart:  { type: 'donut', height: 330 },
+    series: <?= json_encode(array_column($statusData, 'cnt')) ?>,
+    labels: <?= json_encode(array_column($statusData, 'status')) ?>,
+    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']
+  });
+
+  // ---- Assignee (bar) ----
+  renderChart('#assigneeChart', {
+    chart:  { type: 'bar', height: 330 },
+    series: [{ name: 'Records', data: <?= json_encode(array_column($assigneeData, 'cnt')) ?> }],
+    xaxis:  { categories: <?= json_encode(array_column($assigneeData, 'assignee')) ?> },
+    plotOptions: { bar: { distributed: true } },
+    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1']
+  });
+
+  // ---- Completion (radial) ----
+  renderChart('#completionChart', {
+    chart:  { type: 'radialBar', height: 330 },
+    series: [<?= $successPct ?>],
+    labels: ['Completion %'],
+    colors: ['#10b981'],
+    plotOptions: { radialBar: { hollow: { size: '60%' } } }
+  });
 })();
 </script>
 
