@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // Scope by user_id as well
-  $sql = "UPDATE sales_table SET table_title = ? WHERE table_id = ? AND user_id = ?";
+  $sql = "UPDATE tables SET table_title = ? WHERE table_id = ? AND user_id = ?";
   $stmt = $conn->prepare($sql);
   if (!$stmt) {
     http_response_code(500);

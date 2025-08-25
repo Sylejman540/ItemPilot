@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt = $conn->prepare($sql);
   $stmt->bind_param('sssisii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $id, $table_id);
   if ($stmt->execute()) {
-    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+    header("Location: /ItemPilot/home.php");
 exit;
   }else {
     die("Update failed: " . $stmt->error);

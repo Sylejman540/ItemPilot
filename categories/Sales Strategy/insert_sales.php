@@ -179,6 +179,18 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 <div id="sales-right"></div>
 
 <header id="appHeader" class="absolute mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
+  <section class="flex mt-5 justify-between ml-3">
+    <!-- Rename action to the title handler and encode the space -->
+    <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="mb-3 flex gap-2">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <input
+        type="text"
+        name="table_title"
+        value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>"
+        class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+        placeholder="Untitled sales table"
+      />
+    </form>
 
     <button id="addIcon" type="button"
             class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
