@@ -282,7 +282,7 @@ if ($hasNamed) {
                 </div>
 
                 <div class="mt-3 space-y-1">
-                  <a href="./dropdown/manage-account.php" class="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
+                  <button id="manageTab" class="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
                     Manage account
                     <svg xmlns="http://www.w3.org/2000/svg"
                         class="w-4 h-4 ml-auto text-gray-400"
@@ -292,7 +292,7 @@ if ($hasNamed) {
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15 12h.01"/>
                     </svg>
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -316,22 +316,80 @@ if ($hasNamed) {
         </article>
   </header>
 
-  <script>
-    const profileDropdown = document.getElementById('profile-dropdown');
-    const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
+<div id="success-message"
+     class="absolute top-15 left-1/2 transform -translate-x-1/2
+            px-6 py-3 rounded-lg shadow-lg text-sm font-medium
+            transition-opacity duration-500
+            <?php if (empty($_SESSION['flash'])): ?> hidden <?php endif; ?>
+            <?php if (!empty($_SESSION['flash']) && str_starts_with($_SESSION['flash'], '✅')): ?>
+              text-green-800 bg-green-100 border border-green-300
+            <?php else: ?>
+              text-red-800 bg-red-100 border border-red-300
+            <?php endif; ?>">
+  <?php if (!empty($_SESSION['flash'])): ?>
+    <?= htmlspecialchars($_SESSION['flash']) ?>
+    <?php unset($_SESSION['flash']); ?>
+  <?php endif; ?>
+</div>
 
-    // Toggle dropdown when clicking the profile button
-    profileDropdown.addEventListener('click', (event) => {
-      event.stopPropagation(); // Prevent the click from reaching the body
-      profileDropdownMenu.style.display = 
-        profileDropdownMenu.style.display === "block" ? "none" : "block";
-    });
 
-    // Hide dropdown when clicking anywhere else
-    document.body.addEventListener('click', () => {
-      profileDropdownMenu.style.display = "none";
-    });
-  </script>
+  
+<div id="account" class="hidden w-full absolute ml-146 bottom-0 h-screen overflow-none">
+  <div class="w-full max-w-lg bg-white px-8 py-5 rounded-2xl shadow-md border border-gray-200">
+  <h1 class="text-3xl font-extrabold text-center text-[#263544] mb-4 mt-20">Manage Your Account</h1>
+
+    <form action="/ItemPilot/account/manage-account.php" method="POST" class="space-y-6">
+      <!-- Name -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+        <input type="text" name="name" required
+               class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+               value="<?= htmlspecialchars($user['name'] ?? '') ?>">
+      </div>
+
+      <!-- Password change (verify old first) -->
+      <fieldset class="space-y-4">
+        <legend class="text-sm font-semibold text-gray-700">Change Password (optional)</legend>
+
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Current Password</label>
+          <input type="password" name="current_password"
+                 class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                 placeholder="Enter your current password">
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">New Password</label>
+          <input type="password" name="new_password"
+                 class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                 placeholder="At least 8 characters">
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">Confirm New Password</label>
+          <input type="password" name="new_password_confirm"
+                 class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                 placeholder="Re-enter new password">
+        </div>
+      </fieldset>
+
+      <!-- Actions -->
+      <div class="flex justify-between items-center">
+        <button type="submit"
+                  class="bg-[#263544] cursor-pointer hover:bg-slate-800 text-white px-6 py-3 rounded-full font-semibold shadow-md transition">
+          Save Changes
+        </button>
+
+        <!-- Make delete actually post -->
+        <button type="submit" name="delete_account" value="1"
+                class="text-red-600 hover:underline text-sm font-medium"
+                onclick="return confirm('Are you sure you want to delete your account? This cannot be undone.');">
+          Delete Account
+        </button>
+      </div>
+    </form>
+  </div>
+  </div>
    
   <?php require_once __DIR__ . '/components/header.php'; ?>
 
@@ -424,6 +482,33 @@ if ($hasNamed) {
       if (sel) sel.textContent = name;
       window.location.href = `home.php?table_id=${id}&page=${currentPage}`;
     });
+  });
+
+  
+
+      const profileDropdown = document.getElementById('profile-dropdown');
+    const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
+
+    // Toggle dropdown when clicking the profile button
+    profileDropdown.addEventListener('click', (event) => {
+      event.stopPropagation(); // Prevent the click from reaching the body
+      profileDropdownMenu.style.display = 
+        profileDropdownMenu.style.display === "block" ? "none" : "block";
+    });
+
+    // Hide dropdown when clicking anywhere else
+    document.body.addEventListener('click', () => {
+      profileDropdownMenu.style.display = "none";
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+    const msg = document.getElementById("success-message");
+    if (msg && !msg.classList.contains("hidden")) {
+      setTimeout(() => {
+        msg.style.opacity = "0";
+        setTimeout(() => msg.remove(), 500); // remove after fade-out
+      }, 3000); // show for 3 seconds
+    }
   });
 
 // -------- sidebar menu toggle --------
@@ -539,62 +624,69 @@ if (menuBtn && sidebar) {
 
 
   // -------- tabs (unchanged) --------
-  const homeTab    = document.getElementById("home");
-  const contactTab = document.getElementById("contact");
-  const eventsTab  = document.getElementById("events");
+const homeTab    = document.getElementById("home");
+const contactTab = document.getElementById("contact");
+const eventsTab  = document.getElementById("events");
+const manageTab  = document.getElementById("manageTab"); // <-- button
 
-  function show(el) {
-    el.style.display = "block";
-  }
-  function hide(el) {
-    el.style.display = "none";
-  }
- 
-  // Scroll to top on all likely scroll roots
-  function resetScroll() {
-    // Window roots
-    window.scrollTo({ top: 0, bottom: 0, behavior: "smooth" });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+function show(el) {
+  el.style.display = "block";
+}
+function hide(el) {
+  el.style.display = "none";
+}
 
-    // Common app containers; add yours if different
-    const maybeScrollers = [
-      document.querySelector('#main'),
-      document.querySelector('.main'),
-      document.querySelector('.content'),
-      homeRight, contactRight, eventRight
-    ].filter(Boolean);
+// Scroll to top on all likely scroll roots
+function resetScroll() {
+  // Window roots
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 
-    for (const el of maybeScrollers) el.scrollTop = 0;
-  }
+  // Common app containers; add yours if different
+  const maybeScrollers = [
+    document.querySelector('#main'),
+    document.querySelector('.main'),
+    document.querySelector('.content'),
+    document.getElementById("account"), // <-- panel
 
-  if (homeTab) {
-    homeTab.addEventListener('click', (e) => {
-      // If your tab is an <a href="#...">, prevent anchor jump
-      e.preventDefault?.();
+    homeRight, contactRight, eventRight
+  ].filter(Boolean);
 
-      show(homeRight); hide(contactRight); hide(eventRight);
+  for (const el of maybeScrollers) el.scrollTop = 0;
+}
 
-      // Wait a tick so layout settles, then reset scroll
-      requestAnimationFrame(resetScroll);
-    });
-  }
+if (homeTab) {
+  homeTab.addEventListener('click', (e) => {
+    e.preventDefault?.();
+    show(homeRight); hide(contactRight); hide(eventRight); hide(document.getElementById("account"));
+    requestAnimationFrame(resetScroll);
+  });
+}
 
-  if (contactTab) {
-    contactTab.addEventListener('click', (e) => {
-      e.preventDefault?.();
-      show(contactRight); hide(homeRight); hide(eventRight);
-      requestAnimationFrame(resetScroll);
-    });
-  }
+if (contactTab) {
+  contactTab.addEventListener('click', (e) => {
+    e.preventDefault?.();
+    show(contactRight); hide(homeRight); hide(eventRight); hide(document.getElementById("account"));
+    requestAnimationFrame(resetScroll);
+  });
+}
 
-  if (eventsTab) {
-    document.querySelector("#events").closest("button").addEventListener("click", (e) => {
-      e.preventDefault?.();
-      show(eventRight); hide(homeRight); hide(contactRight);
-      requestAnimationFrame(resetScroll);
-    });
-  }
+if (eventsTab) {
+  document.querySelector("#events").closest("button").addEventListener("click", (e) => {
+    e.preventDefault?.();
+    show(eventRight); hide(homeRight); hide(contactRight); hide(document.getElementById("account"));
+    requestAnimationFrame(resetScroll);
+  });
+}
+
+if (manageTab) {
+  document.querySelector("#manageTab").addEventListener("click", (e) => {
+    e.preventDefault?.();
+    show(document.getElementById("account")); hide(eventRight); hide(homeRight); hide(contactRight);
+    requestAnimationFrame(resetScroll);
+  });
+}
 
   // -------- modals (unchanged) --------
   document.querySelectorAll('[data-modal-target]').forEach(btn => {
@@ -692,6 +784,7 @@ if (menuBtn && sidebar) {
       e.target.form?.submit();
     }
   });
+  
 
   // -------- jQuery dropdown open/close (unchanged) --------
   $(function () {
@@ -778,6 +871,175 @@ if (menuBtn && sidebar) {
     plotOptions: { radialBar:{ hollow:{ size:'60%' } } }
   }).render();
 })();
+
+(function () {
+  // =========================
+  // Core loaders (functions first)
+  // =========================
+  function showPanel(panelEl) {
+    if (homeRight)    homeRight.style.display = "none";
+    if (contactRight) contactRight.style.display = "none";
+    if (salesRight)   salesRight.style.display = "none";
+    if (panelEl)      panelEl.style.display = "block";
+  }
+
+  function loadStrategy(strategyId, page = 1) {
+    if (!salesRight) return;
+    currentId = strategyId || currentId;
+
+    // Build URL
+    const base = "/ItemPilot/categories/Sales%20Strategy/insert_sales.php";
+    const url  = new URL(base, window.location.origin);
+    if (page) url.searchParams.set("page", String(page));
+    if (strategyId) url.searchParams.set("strategy_id", String(strategyId));
+
+    fetch(url.toString())
+      .then(r => r.text())
+      .then(html => {
+        salesRight.innerHTML = html;
+        showPanel(salesRight);
+        currentPage = page || 1;
+
+        // Optional: keep URL in sync (if you use ?strategy_id=&page=)
+        const qs = new URLSearchParams(location.search);
+        strategyId ? qs.set("strategy_id", String(strategyId)) : qs.delete("strategy_id");
+        qs.set("page", String(currentPage));
+        history.replaceState(null, "", `${location.pathname}?${qs.toString()}`);
+      })
+      .catch(err => console.error("Failed to load Sales Strategy:", err));
+  }
+
+  function newStrategy(page = 1) {
+    if (!salesRight) return;
+
+    const base = "/ItemPilot/categories/Sales%20Strategy/insert_sales.php";
+    const url  = new URL(base, window.location.origin);
+    url.searchParams.set("action", "create_blank");
+    url.searchParams.set("page", String(page));
+
+    fetch(url.toString())
+      .then(r => r.text())
+      .then(html => {
+        salesRight.innerHTML = html;
+        showPanel(salesRight);
+        currentPage = page;
+
+        const qs = new URLSearchParams(location.search);
+        qs.delete("strategy_id");
+        qs.set("page", String(currentPage));
+        history.replaceState(null, "", `${location.pathname}?${qs.toString()}`);
+      })
+      .catch(err => console.error("Failed to create Sales Strategy:", err));
+  }
+
+  // =========================
+  // State (then)
+  // =========================
+  let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
+  let currentId   = parseInt(new URLSearchParams(window.location.search).get("strategy_id")) || null;
+
+  // =========================
+  // DOM (then)
+  // =========================
+  const salesRight     = document.getElementById("sales-right");     // target container
+  const homeRight      = document.getElementById("home-right");
+  const contactRight   = document.getElementById("contact-right");
+
+  // Single trigger you said you “only have”:
+  const salesTrigger   = document.getElementById("sales-strategy");   // <article id="sales-strategy">
+
+  // Optional hooks if you add them later (harmless if null):
+  const salesBlank     = document.getElementById("sales-blank");      // "Create New Strategy" button
+  const salesOpen      = document.getElementById("sales-open");       // "Open" button with data-strategy-id
+  const salesDropdown  = document.getElementById("sales-dropdown");   // <ul> with items having .js-sales-link
+
+  // =========================
+  // Listeners (last)
+  // =========================
+  // 1) The single clickable <article id="sales-strategy">
+  if (salesTrigger && salesRight) {
+    salesTrigger.addEventListener("click", (e) => {
+      e.preventDefault?.();
+      // If you already have an id in URL, load it; otherwise load the base page (no id)
+      currentId ? loadStrategy(currentId, currentPage) : loadStrategy(null, 1);
+    });
+  }
+
+  // 2) Optional: Create New
+  if (salesBlank && salesRight) {
+    salesBlank.addEventListener("click", (e) => {
+      e.preventDefault?.();
+      document.getElementById("categories")?.classList.add("hidden");
+      newStrategy(1);
+    });
+  }
+
+  // 3) Optional: Open current/selected
+  if (salesOpen && salesRight) {
+    salesOpen.addEventListener("click", (e) => {
+      e.preventDefault?.();
+      document.getElementById("categories")?.classList.add("hidden");
+      const idFromBtn = parseInt(salesOpen.dataset.strategyId || "", 10);
+      const id = !isNaN(idFromBtn) ? idFromBtn : currentId;
+      if (id) loadStrategy(id, currentPage || 1);
+    });
+  }
+
+  // 4) Optional: Dropdown list delegation
+  if (salesDropdown && salesRight) {
+    salesDropdown.addEventListener("click", (e) => {
+      const link = e.target.closest(".js-sales-link");
+      if (!link) return;
+      e.preventDefault?.();
+      document.getElementById("categories")?.classList.add("hidden");
+      const id = parseInt(link.dataset.strategyId || "", 10);
+      if (!isNaN(id)) loadStrategy(id, 1);
+    });
+  }
+})();
+
+(function () {
+  const eventRight   = document.getElementById("event-right");
+  const homeRight    = document.getElementById("home-right");
+  const contactRight = document.getElementById("contact-right");
+  const sales        = document.getElementById("sales-strategy"); // the article you click
+
+  let currentPage = parseInt(new URLSearchParams(location.search).get("page")) || 1;
+  let salesId     = parseInt(new URLSearchParams(location.search).get("table_id")) || null;
+
+  // ---- core loader (uses args properly + encoded path) ----
+  function loadSales(page = 1, tableId = salesId) {
+    if (!eventRight) return;
+
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    if (tableId) params.set("table_id", String(tableId));
+
+    fetch(`/ItemPilot/categories/Sales%20Strategy/insert_sales.php?${params.toString()}`)
+      .then(r => r.text())
+      .then(html => {
+        eventRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        eventRight.style.display = "block";
+        currentPage = page;
+      })
+      .catch(err => console.error("Failed to load Sales Strategy:", err));
+  }
+
+  // ---- click on the sales card loads the table ----
+  if (sales && eventRight) {
+    sales.addEventListener("click", (e) => {
+      e.preventDefault?.();
+      document.getElementById("categories")?.classList.add("hidden");
+      loadSales(1, salesId); // if salesId is null, backend should handle default
+    });
+  }
+
+  // (Removed the 'universal' block because that element wasn't defined here)
+})();
+
+
 </script>
 
 </body>
