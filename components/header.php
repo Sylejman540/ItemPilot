@@ -68,40 +68,58 @@
             </div>
           </button>
 
-          <!-- submenu (INDENTED, NOT absolute) -->
           <ul id="dropdown" class="hidden pl-8 space-y-1">
-            <?php
-              $stmt = $conn->prepare("SELECT table_id, table_title FROM tables WHERE user_id = ? ORDER BY table_id ASC");
-              $stmt->bind_param('i', $uid);
-              $stmt->execute();
-              $res = $stmt->get_result();
-              if ($res && $res->num_rows):
-                while ($row = $res->fetch_assoc()):
-            ?>
-              <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">
-                <a
-                  href="#"
-                  class="js-table-link block px-4 py-2"
-                  data-table-id="<?= (int)$row['table_id'] ?>"
-                >
-                  <?= htmlspecialchars($row['table_title'] ?? '') ?>
-                </a>
+  <?php
+    // Combine both tables into one result set
+    $sql = "
+      SELECT table_id, table_title, 'tables' AS src
+      FROM tables
+      WHERE user_id = ?
+      UNION ALL
+      SELECT table_id, table_title, 'sales_table' AS src
+      FROM sales_table
+      WHERE user_id = ?
+      ORDER BY table_id ASC
+    ";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('ii', $uid, $uid);
+    $stmt->execute();
+    $res = $stmt->get_result();
 
-                <a
-                  href="categories/Universal Table/delete_table.php?table_id=<?= (int)$row['table_id'] ?>"
-                  onclick="return confirm('Are you sure you want to delete this entire table?');"
-                  class="text-red-500 hover:text-red-700 mt-2"
-                >
-                  <i class="fas fa-trash-alt"></i>
-                </a>
-              </li>
-            <?php
-                endwhile;
-              else:
-            ?>
-              <li class="px-4 py-2 italic">No tables yet.</li>
-            <?php endif; ?>
-          </ul>
+    if ($res && $res->num_rows):
+      while ($row = $res->fetch_assoc()):
+        $src  = $row['src']; // which table it came from
+        $tid  = (int)$row['table_id'];
+        $name = htmlspecialchars($row['table_title'] ?? '');
+  ?>
+    <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">
+      <a
+        href="#"
+        class="js-table-link block px-4 py-2 <?= $src === 'sales_table' ? 'js-strategy-link' : '' ?>"
+        data-table-id="<?= $tid ?>"
+        data-src="<?= $src ?>"
+      >
+        <?= $name ?>
+      </a>
+
+      <a
+        href="categories/<?= $src === 'sales_table' ? 'Sales Strategy' : 'Universal Table' ?>/delete_table.php?table_id=<?= $tid ?>"
+        onclick="return confirm('Are you sure you want to delete this entire table?');"
+        class="text-red-500 hover:text-red-700 mt-2"
+      >
+        <i class="fas fa-trash-alt"></i>
+      </a>
+    </li>
+  <?php
+      endwhile;
+    else:
+  ?>
+    <li class="px-4 py-2 italic">No tables yet.</li>
+  <?php endif;
+    $stmt->close();
+  ?>
+</ul>
+
 
           <!-- DATA TOOLS -->
           <div class="w-70 py-3 cursor-pointer px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white" id="data-tools">

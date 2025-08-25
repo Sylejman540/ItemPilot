@@ -27,37 +27,72 @@
       </div>
 
       <ul class="divide-y divide-gray-100">
-        <?php
-          $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM tables WHERE user_id = ? ORDER BY table_id ASC");
-          $stmt->bind_param('i', $uid);
-          $stmt->execute();
-          $res = $stmt->get_result();
-          if ($res && $res->num_rows):
-            while ($row = $res->fetch_assoc()):
-              $tid   = (int)$row['table_id'];
-              $title = htmlspecialchars($row['table_title'] ?? 'Untitled');
-              $href  = "home.php?table_id={$tid}&page=1&autoload=1";
-              $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
-        ?>
-        <li class="group hover:bg-slate-50 cursor-pointer" data-href="<?= $href ?>">
-          <a href="<?= $href ?>" class="flex items-center gap-3 px-4 py-3">
-            <span class="h-8 w-8 inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600">
-              <i class="fa-regular fa-square-check"></i>
-            </span>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between gap-4">
-                <span class="truncate text-slate-800 group-hover:text-slate-900"><?= $title ?></span>
-                <span class="shrink-0 text-xs text-slate-500 group-hover:text-slate-700"><?= $createdFmt ?></span>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-slate-400"></i>
-          </a>
-        </li>
-        <?php endwhile; else: ?>
-        <li class="px-6 py-10 text-center text-slate-500">
-          No tables yet. <a href="#" id="createFirst" class="text-blue-600 hover:underline">Create one</a>
-        </li>
-        <?php endif; ?>
-      </ul>
+  <?php
+    // ---- UNIVERSAL TABLES ----
+    $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM tables WHERE user_id = ? ORDER BY table_id ASC");
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    if ($res && $res->num_rows):
+      while ($row = $res->fetch_assoc()):
+        $tid   = (int)$row['table_id'];
+        $title = htmlspecialchars($row['table_title'] ?? 'Untitled');
+        $href  = "home.php?table_id={$tid}&page=1&autoload=1&type=universal";
+        $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+  ?>
+    <li class="group hover:bg-slate-50 cursor-pointer" data-href="<?= $href ?>">
+      <a href="<?= $href ?>" class="flex items-center gap-3 px-4 py-3 js-table-link" data-table-id="<?= $tid ?>">
+        <span class="h-8 w-8 inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600">
+          <i class="fa-regular fa-square-check"></i>
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-4">
+            <span class="truncate text-slate-800 group-hover:text-slate-900"><?= $title ?></span>
+            <span class="shrink-0 text-xs text-slate-500 group-hover:text-slate-700"><?= $createdFmt ?></span>
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-slate-400"></i>
+      </a>
+    </li>
+  <?php endwhile; endif; $stmt->close(); ?>
+
+  <?php
+    // ---- SALES STRATEGY TABLES ----
+    $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM sales_table WHERE user_id = ? ORDER BY table_id ASC");
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    if ($res && $res->num_rows):
+      while ($row = $res->fetch_assoc()):
+        $sid   = (int)$row['table_id'];
+        $title = htmlspecialchars($row['table_title'] ?? 'Untitled Sales');
+        $href  = "home.php?table_id={$sid}&page=1&autoload=1&type=sales";
+        $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+  ?>
+    <li class="group hover:bg-slate-50 cursor-pointer" data-href="<?= $href ?>">
+      <a href="<?= $href ?>" 
+         class="flex items-center gap-3 px-4 py-3 js-strategy-link" 
+         data-table-id="<?= $sid ?>">
+        <span class="h-8 w-8 inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-600 group-hover:bg-blue-50 group-hover:text-blue-800">
+          <i class="fa-solid fa-bullseye"></i>
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between gap-4">
+            <span class="truncate text-slate-800 group-hover:text-slate-900"><?= $title ?></span>
+            <span class="shrink-0 text-xs text-slate-500 group-hover:text-slate-700"><?= $createdFmt ?></span>
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-slate-400"></i>
+      </a>
+    </li>
+  <?php endwhile; else: ?>
+    <li class="px-6 py-10 text-center text-slate-500">
+      No sales strategies yet.
+    </li>
+  <?php endif; $stmt->close(); ?>
+</ul>
+
     </div>
 </section>

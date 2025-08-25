@@ -411,13 +411,16 @@ if ($hasNamed) {
   const blank        = document.getElementById("blank");        // "Create New" button
   const universal    = document.getElementById("universal");    // optional "Open current table" button
   const dropdown     = document.getElementById("dropdown");     // the tables list (UL)
+  const sales        = document.getElementById("sales-strategy"); // sales template card
+  const strategy     = document.getElementById("strategy");       // optional open strategy button
 
-  let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
-  let currentId   = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
+  let currentPage    = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
+  let currentId      = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
+  let currentSalesId = null;
 
-  // -------- core loaders --------
+  // -------- core loaders (Universal) --------
   function loadTable(tableId, page = 1) {
-    if (!tableId) return; // nothing to load yet
+    if (!tableId) return;
     currentId = tableId;
     fetch(`categories/Universal%20Table/insert_universal.php?page=${page}&table_id=${tableId}`)
       .then(r => r.text())
@@ -442,7 +445,7 @@ if ($hasNamed) {
       });
   }
 
-  // -------- actions: create/open tables --------
+  // -------- actions: create/open universal --------
   if (blank && eventRight) {
     blank.addEventListener("click", e => {
       e.preventDefault();
@@ -451,7 +454,6 @@ if ($hasNamed) {
     });
   }
 
-  // If you keep a single "universal" button, let it open its data-table-id or the currentId
   if (universal && eventRight) {
     universal.addEventListener("click", e => {
       e.preventDefault();
@@ -461,19 +463,72 @@ if ($hasNamed) {
     });
   }
 
-  // Delegate all clicks inside the dropdown list to items with .js-table-link
-  if (dropdown && eventRight) {
-    dropdown.addEventListener("click", e => {
-      const link = e.target.closest(".js-table-link");
-      if (!link) return;
+  // -------- SALES STRATEGY loaders --------
+  function loadStrategy(salesId, page = 1) {
+    if (!salesId) return;
+    currentSalesId = salesId;
+    fetch(`categories/Sales%20Strategy/insert_sales.php?page=${page}&table_id=${salesId}`)
+      .then(r => r.text())
+      .then(html => {
+        eventRight.innerHTML = html;
+        if (homeRight) homeRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        eventRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  function newStrategy(page = 1) {
+    fetch(`categories/Sales%20Strategy/insert_sales.php?action=create_blank&page=${page}`)
+      .then(r => r.text())
+      .then(html => {
+        eventRight.innerHTML = html;
+        if (homeRight) homeRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        eventRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  if (sales && eventRight) {
+    sales.addEventListener("click", e => {
       e.preventDefault();
       document.getElementById("categories")?.classList.add("hidden");
-      const tableId = parseInt(link.dataset.tableId || "", 10);
-      if (!isNaN(tableId)) loadTable(tableId, 1);
+      newStrategy(1);
     });
   }
 
-  // -------- template picker (unchanged) --------
+  if (strategy && eventRight) {
+    strategy.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      const idFromBtn = parseInt(strategy.dataset.tableId || "", 10);
+      loadStrategy(!isNaN(idFromBtn) ? idFromBtn : currentSalesId, currentPage || 1);
+    });
+  }
+
+  // -------- Dropdown delegation (detect src) --------
+  if (dropdown && eventRight) {
+    dropdown.addEventListener("click", e => {
+      const link = e.target.closest(".js-table-link, .js-strategy-link");
+      if (!link) return;
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+
+      const tableId = parseInt(link.dataset.tableId || "", 10);
+      const src     = link.dataset.src;
+
+      if (!isNaN(tableId)) {
+        if (src === "sales_table") {
+          loadStrategy(tableId, 1);
+        } else {
+          loadTable(tableId, 1);
+        }
+      }
+    });
+  }
+
+  // -------- template picker --------
   document.querySelectorAll('.template-item').forEach(el => {
     el.addEventListener('click', () => {
       const id   = el.dataset.id;
@@ -484,211 +539,166 @@ if ($hasNamed) {
     });
   });
 
-  
-
-      const profileDropdown = document.getElementById('profile-dropdown');
-    const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
-
-    // Toggle dropdown when clicking the profile button
+  // -------- profile dropdown --------
+  const profileDropdown = document.getElementById('profile-dropdown');
+  const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
+  if (profileDropdown && profileDropdownMenu) {
     profileDropdown.addEventListener('click', (event) => {
-      event.stopPropagation(); // Prevent the click from reaching the body
-      profileDropdownMenu.style.display = 
+      event.stopPropagation();
+      profileDropdownMenu.style.display =
         profileDropdownMenu.style.display === "block" ? "none" : "block";
     });
-
-    // Hide dropdown when clicking anywhere else
     document.body.addEventListener('click', () => {
       profileDropdownMenu.style.display = "none";
     });
+  }
 
-    document.addEventListener("DOMContentLoaded", () => {
+  // -------- success message fadeout --------
+  document.addEventListener("DOMContentLoaded", () => {
     const msg = document.getElementById("success-message");
     if (msg && !msg.classList.contains("hidden")) {
       setTimeout(() => {
         msg.style.opacity = "0";
-        setTimeout(() => msg.remove(), 500); // remove after fade-out
-      }, 3000); // show for 3 seconds
+        setTimeout(() => msg.remove(), 500);
+      }, 3000);
     }
   });
 
-// -------- sidebar menu toggle --------
-const menuBtn       = document.getElementById('menuBtn');
-const sidebar       = document.getElementById('sidebar');
-const hamburgerIcon = document.getElementById('hamburgerIcon');
-const closeIcon     = document.getElementById('closeIcon');
-const root          = document.documentElement;
-const appHeader     = document.getElementById('appHeader');
-const page          = document.getElementById('page'); // if you have it
+  // -------- sidebar toggle --------
+  const menuBtn       = document.getElementById('menuBtn');
+  const sidebar       = document.getElementById('sidebar');
+  const hamburgerIcon = document.getElementById('hamburgerIcon');
+  const closeIcon     = document.getElementById('closeIcon');
+  const root          = document.documentElement;
+  const appHeader     = document.getElementById('appHeader');
 
-if (menuBtn && sidebar) {
-  const OFFSET_PX = 1;
-  const PEEK_PX   = 20;
+  if (menuBtn && sidebar) {
+    const OFFSET_PX = 1;
+    const PEEK_PX   = 20;
 
-  const isHidden = () => sidebar.classList.contains('hidden');
-  const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+    const isHidden = () => sidebar.classList.contains('hidden');
+    const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
 
-  function sidebarWidth() {
-    let wasHidden = isHidden();
-    if (wasHidden) sidebar.classList.remove('hidden');
-    const w = Math.ceil(sidebar.getBoundingClientRect().width);
-    if (wasHidden) sidebar.classList.add('hidden');
-    return w;
-  }
-
-  // --- NEW: overlay helpers (mobile only) ---
-  function addBackdrop() {
-    if (document.getElementById('sb-backdrop')) return;
-    const el = document.createElement('div');
-    el.id = 'sb-backdrop';
-    el.addEventListener('click', () => closeSidebar()); // tap overlay closes
-    document.body.appendChild(el);
-    document.body.classList.add('no-scroll');           // lock scroll
-    root.classList.add('mobile-dim');                   // enable blur
-  }
-  function removeBackdrop() {
-    const el = document.getElementById('sb-backdrop');
-    if (el) el.remove();
-    document.body.classList.remove('no-scroll');
-    root.classList.remove('mobile-dim');
-  }
-
-  function openSidebar() {
-    const w = sidebarWidth();
-    root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
-    sidebar.classList.remove('hidden');
-    sidebar.style.marginLeft = '0px';
-    menuBtn.setAttribute('aria-expanded', 'true');
-
-    if (isMobile()) addBackdrop();  // <-- ONLY ON MOBILE
-
-    // optional header width classes you added
-    if (appHeader) {
-      appHeader.classList.remove('w-[400px]');
-      appHeader.classList.add('max-w-lg');
+    function sidebarWidth() {
+      let wasHidden = isHidden();
+      if (wasHidden) sidebar.classList.remove('hidden');
+      const w = Math.ceil(sidebar.getBoundingClientRect().width);
+      if (wasHidden) sidebar.classList.add('hidden');
+      return w;
     }
-  }
 
-  function closeSidebar() {
-    const w = sidebarWidth();
-    sidebar.style.marginLeft = `-${Math.max(0, w - PEEK_PX)}px`;
-    sidebar.classList.add('hidden');
-    root.style.setProperty('--sbw', '0px');
-    menuBtn.setAttribute('aria-expanded', 'false');
-
-    if (isMobile()) removeBackdrop(); // <-- ONLY ON MOBILE
-
-    if (appHeader) {
-      appHeader.classList.remove('max-w-lg');
-      appHeader.classList.add('w-[400px]');
+    function addBackdrop() {
+      if (document.getElementById('sb-backdrop')) return;
+      const el = document.createElement('div');
+      el.id = 'sb-backdrop';
+      el.addEventListener('click', () => closeSidebar());
+      document.body.appendChild(el);
+      document.body.classList.add('no-scroll');
+      root.classList.add('mobile-dim');
     }
-  }
+    function removeBackdrop() {
+      const el = document.getElementById('sb-backdrop');
+      if (el) el.remove();
+      document.body.classList.remove('no-scroll');
+      root.classList.remove('mobile-dim');
+    }
 
-  // Toggle via the menu button
-  menuBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    isHidden() ? openSidebar() : closeSidebar();
-  });
-
-  // Don't treat clicks inside the sidebar as "outside"
-  sidebar.addEventListener('click', (e) => e.stopPropagation());
-
-  // MOBILE-ONLY: click on page (outside sidebar) closes it
-  function outsideCloseHandler(e) {
-    if (!isMobile()) return;
-    if (isHidden()) return;
-    const clickedInsideSidebar = sidebar.contains(e.target);
-    const clickedMenuBtn       = menuBtn.contains(e.target);
-    if (!clickedInsideSidebar && !clickedMenuBtn) closeSidebar();
-  }
-  document.addEventListener('click', outsideCloseHandler, true);
-  document.addEventListener('touchstart', outsideCloseHandler, { passive: true, capture: true });
-
-  // keep offsets in sync on desktop resize
-  window.addEventListener('resize', () => {
-    if (!isMobile() && !isHidden()) {
+    function openSidebar() {
       const w = sidebarWidth();
       root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
+      sidebar.classList.remove('hidden');
+      sidebar.style.marginLeft = '0px';
+      menuBtn.setAttribute('aria-expanded', 'true');
+      if (isMobile()) addBackdrop();
+      if (appHeader) {
+        appHeader.classList.remove('w-[400px]');
+        appHeader.classList.add('max-w-lg');
+      }
     }
-    // If you cross to desktop while open, make sure overlay/locks are gone
-    if (!isMobile()) removeBackdrop();
-  });
+    function closeSidebar() {
+      const w = sidebarWidth();
+      sidebar.style.marginLeft = `-${Math.max(0, w - PEEK_PX)}px`;
+      sidebar.classList.add('hidden');
+      root.style.setProperty('--sbw', '0px');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      if (isMobile()) removeBackdrop();
+      if (appHeader) {
+        appHeader.classList.remove('max-w-lg');
+        appHeader.classList.add('w-[400px]');
+      }
+    }
 
-  // initial state
-  if (!isHidden()) {
-    const w = sidebarWidth();
-    root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
-  } else {
-    root.style.setProperty('--sbw', '0px');
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isHidden() ? openSidebar() : closeSidebar();
+    });
+    sidebar.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', (e) => {
+      if (!isMobile()) return;
+      if (isHidden()) return;
+      const clickedInside = sidebar.contains(e.target);
+      const clickedBtn = menuBtn.contains(e.target);
+      if (!clickedInside && !clickedBtn) closeSidebar();
+    }, true);
+    window.addEventListener('resize', () => {
+      if (!isMobile() && !isHidden()) {
+        const w = sidebarWidth();
+        root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
+      }
+      if (!isMobile()) removeBackdrop();
+    });
+    if (!isHidden()) {
+      const w = sidebarWidth();
+      root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
+    } else {
+      root.style.setProperty('--sbw', '0px');
+    }
   }
-}
 
+  // -------- tabs --------
+  const homeTab    = document.getElementById("home");
+  const contactTab = document.getElementById("contact");
+  const eventsTab  = document.getElementById("events");
+  const manageTab  = document.getElementById("manageTab");
 
-  // -------- tabs (unchanged) --------
-const homeTab    = document.getElementById("home");
-const contactTab = document.getElementById("contact");
-const eventsTab  = document.getElementById("events");
-const manageTab  = document.getElementById("manageTab"); // <-- button
+  function show(el) { if (el) el.style.display = "block"; }
+  function hide(el) { if (el) el.style.display = "none"; }
 
-function show(el) {
-  el.style.display = "block";
-}
-function hide(el) {
-  el.style.display = "none";
-}
+  function resetScroll() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    [document.querySelector('#main'), document.querySelector('.main'),
+     document.querySelector('.content'), document.getElementById("account"),
+     homeRight, contactRight, eventRight].filter(Boolean)
+     .forEach(el => el.scrollTop = 0);
+  }
 
-// Scroll to top on all likely scroll roots
-function resetScroll() {
-  // Window roots
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-
-  // Common app containers; add yours if different
-  const maybeScrollers = [
-    document.querySelector('#main'),
-    document.querySelector('.main'),
-    document.querySelector('.content'),
-    document.getElementById("account"), // <-- panel
-
-    homeRight, contactRight, eventRight
-  ].filter(Boolean);
-
-  for (const el of maybeScrollers) el.scrollTop = 0;
-}
-
-if (homeTab) {
-  homeTab.addEventListener('click', (e) => {
+  if (homeTab) homeTab.addEventListener('click', (e) => {
     e.preventDefault?.();
     show(homeRight); hide(contactRight); hide(eventRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
-}
 
-if (contactTab) {
-  contactTab.addEventListener('click', (e) => {
+  if (contactTab) contactTab.addEventListener('click', (e) => {
     e.preventDefault?.();
     show(contactRight); hide(homeRight); hide(eventRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
-}
 
-if (eventsTab) {
-  document.querySelector("#events").closest("button").addEventListener("click", (e) => {
+  if (eventsTab) eventsTab.addEventListener("click", (e) => {
     e.preventDefault?.();
     show(eventRight); hide(homeRight); hide(contactRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
-}
 
-if (manageTab) {
-  document.querySelector("#manageTab").addEventListener("click", (e) => {
+  if (manageTab) manageTab.addEventListener("click", (e) => {
     e.preventDefault?.();
     show(document.getElementById("account")); hide(eventRight); hide(homeRight); hide(contactRight);
     requestAnimationFrame(resetScroll);
   });
-}
 
-  // -------- modals (unchanged) --------
+  // -------- modals --------
   document.querySelectorAll('[data-modal-target]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.preventDefault();
@@ -696,7 +706,6 @@ if (manageTab) {
       if (tgt) tgt.classList.remove('hidden');
     });
   });
-
   document.querySelectorAll('.modal-close').forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = btn.closest('.fixed');
@@ -704,70 +713,30 @@ if (manageTab) {
     });
   });
 
-  ['register-modal','login-modal'].forEach(id => {
-    const modal = document.getElementById(id);
-    if (modal) {
-      modal.addEventListener('click', e => {
-        if (e.target === modal) modal.classList.add('hidden');
-      });
-    }
-  });
-
-  // -------- page-level delegation (pagination, forms) --------
+  // -------- page-level delegation --------
   document.body.addEventListener('click', e => {
-    // Pagination links inside loaded table
     const pg = e.target.closest('.pagination a');
     if (pg) {
       e.preventDefault();
       const url = new URL(pg.href, window.location.origin);
       const p   = parseInt(url.searchParams.get('page')) || 1;
-      loadTable(currentId, p);   // <-- IMPORTANT: keep currentId
+      if (pg.closest('.strategy-section')) {
+        loadStrategy(currentSalesId, p);
+      } else {
+        loadTable(currentId, p);
+      }
       return;
     }
-
     const addBtn = e.target.closest('#addIcon');
     if (addBtn) {
       e.preventDefault();
-      const addForm = document.getElementById('addForm');
-      if (addForm) addForm.classList.remove('hidden');
+      document.getElementById('addForm')?.classList.remove('hidden');
     }
-
     const closeAdd = e.target.closest('[data-close-add]');
-    if (closeAdd) {
-      const addForm = document.getElementById('addForm');
-      if (addForm) addForm.classList.add('hidden');
-    }
-
-    const editBtn = e.target.closest('#openForm');
-    if (editBtn) {
-      e.preventDefault();
-      const wrap = document.getElementById('editFormWrapper');
-      if (wrap) wrap.classList.remove('hidden');
-    }
-
-    const closeModal = e.target.closest('[data-close-modal]');
-    if (closeModal) {
-      const wrap = document.getElementById('editFormWrapper');
-      if (wrap) wrap.classList.add('hidden');
-    }
-
-    const openThead = e.target.closest('#openTbodyForm');
-    if (openThead) {
-      e.preventDefault();
-      const theadF = document.getElementById('theadForm');
-      if (theadF) theadF.classList.remove('hidden');
-    }
-
-    const closeTheadBtn = e.target.closest('[data-close-thead]');
-    if (closeTheadBtn) {
-      const theadF = document.getElementById('theadForm');
-      if (theadF) theadF.classList.add('hidden');
-      const tbodyF = document.getElementById('tbodyForm');
-      if (tbodyF) tbodyF.classList.add('hidden');
-    }
+    if (closeAdd) document.getElementById('addForm')?.classList.add('hidden');
   });
 
-  // -------- Enter submits current inline form (unchanged) --------
+  // -------- Enter submits form --------
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -776,271 +745,45 @@ if (manageTab) {
     }
   });
 
+  // -------- autosave status --------
   document.addEventListener('change', (e) => {
-    if (
-      e.target.matches('select.status--autosave') &&
-      ['To Do', 'In Progress', 'Done'].includes(e.target.value)
-    ) {
+    if (e.target.matches('select.status--autosave') &&
+        ['To Do', 'In Progress', 'Done'].includes(e.target.value)) {
       e.target.form?.submit();
     }
   });
-  
 
-  // -------- jQuery dropdown open/close (unchanged) --------
+  // -------- dropdown open/close --------
   $(function () {
     const $arrowBtn = $('#tablesItem');
     const $dd       = $('#dropdown');
     const $chev     = $('#tablesItem .chev');
-
     function open() {
       if ($dd.is(':visible')) return;
-      $dd.stop(true, true).slideDown(160, () => $dd.removeClass('hidden'));
+      $dd.stop(true,true).slideDown(160,()=> $dd.removeClass('hidden'));
       $chev.addClass('rotate-90');
-      $arrowBtn.attr('aria-expanded', 'true');
+      $arrowBtn.attr('aria-expanded','true');
     }
     function close() {
       if (!$dd.is(':visible')) return;
-      $dd.stop(true, true).slideUp(160, () => $dd.addClass('hidden'));
+      $dd.stop(true,true).slideUp(160,()=> $dd.addClass('hidden'));
       $chev.removeClass('rotate-90');
-      $arrowBtn.attr('aria-expanded', 'false');
+      $arrowBtn.attr('aria-expanded','false');
     }
-
-    $arrowBtn.on('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      $dd.is(':visible') ? close() : open();
-    });
-
-    $(document).on('click', function (e) {
-      if ($(e.target).closest('#dropdown, #tablesItem').length === 0) {
-        close();
-      }
-    });
-
-    $(document).on('keydown', function (e) {
-      if (e.key === 'Escape') close();
-    });
+    $arrowBtn.on('click', e=>{ e.preventDefault(); e.stopPropagation(); $dd.is(':visible')?close():open(); });
+    $(document).on('click', e=>{ if(!$(e.target).closest('#dropdown,#tablesItem').length) close(); });
+    $(document).on('keydown', e=>{ if(e.key==='Escape') close(); });
   });
 
-  // -------- autoload if requested --------
+  // -------- autoload --------
   const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
   if (shouldAutoload) {
-    // load whatever table id came via URL (if any)
     if (currentId) loadTable(currentId, currentPage);
+    if (currentSalesId) loadStrategy(currentSalesId, currentPage);
   }
 })();
-
-(function() {
-  // Deals (line chart)
-  const dealsSeries = [{
-    name: 'Deals',
-    data: <?= json_encode(array_map(fn($r)=>[(new DateTime($r['dt']))->format('Y-m-d'), (int)$r['amt']], $deals), JSON_UNESCAPED_SLASHES) ?>
-      .map(([d,v]) => ({ x:d, y:v }))
-  }];
-  new ApexCharts(document.querySelector('#dealsChart'), {
-    chart: { type: 'area', height: 330, toolbar:{show:false} },
-    series: dealsSeries,
-    xaxis: { type:'datetime' },
-    stroke: { curve:'smooth', width:2 },
-    colors: ['#3b82f6']
-  }).render();
-
-  // Status (donut)
-  new ApexCharts(document.querySelector('#statusChart'), {
-    chart: { type:'donut', height:330 },
-    series: <?= json_encode(array_column($statusData,'cnt')) ?>,
-    labels: <?= json_encode(array_column($statusData,'status')) ?>,
-    colors: ['#3b82f6','#10b981','#f59e0b','#ef4444','#6b7280']
-  }).render();
-
-  // Assignee (bar)
-  new ApexCharts(document.querySelector('#assigneeChart'), {
-    chart: { type:'bar', height:330 },
-    series: [{ name:'Records', data: <?= json_encode(array_column($assigneeData,'cnt')) ?> }],
-    xaxis: { categories: <?= json_encode(array_column($assigneeData,'assignee')) ?> },
-    plotOptions: { bar:{ distributed:true } },
-    colors: ['#3b82f6','#10b981','#f59e0b','#ef4444','#6366f1']
-  }).render();
-
-  // Completion (radial)
-  new ApexCharts(document.querySelector('#completionChart'), {
-    chart: { type:'radialBar', height:330 },
-    series: [<?= $successPct ?>],
-    labels: ['Completion %'],
-    colors: ['#10b981'],
-    plotOptions: { radialBar:{ hollow:{ size:'60%' } } }
-  }).render();
-})();
-
-(function () {
-  // =========================
-  // Core loaders (functions first)
-  // =========================
-  function showPanel(panelEl) {
-    if (homeRight)    homeRight.style.display = "none";
-    if (contactRight) contactRight.style.display = "none";
-    if (salesRight)   salesRight.style.display = "none";
-    if (panelEl)      panelEl.style.display = "block";
-  }
-
-  function loadStrategy(strategyId, page = 1) {
-    if (!salesRight) return;
-    currentId = strategyId || currentId;
-
-    // Build URL
-    const base = "/ItemPilot/categories/Sales%20Strategy/insert_sales.php";
-    const url  = new URL(base, window.location.origin);
-    if (page) url.searchParams.set("page", String(page));
-    if (strategyId) url.searchParams.set("strategy_id", String(strategyId));
-
-    fetch(url.toString())
-      .then(r => r.text())
-      .then(html => {
-        salesRight.innerHTML = html;
-        showPanel(salesRight);
-        currentPage = page || 1;
-
-        // Optional: keep URL in sync (if you use ?strategy_id=&page=)
-        const qs = new URLSearchParams(location.search);
-        strategyId ? qs.set("strategy_id", String(strategyId)) : qs.delete("strategy_id");
-        qs.set("page", String(currentPage));
-        history.replaceState(null, "", `${location.pathname}?${qs.toString()}`);
-      })
-      .catch(err => console.error("Failed to load Sales Strategy:", err));
-  }
-
-  function newStrategy(page = 1) {
-    if (!salesRight) return;
-
-    const base = "/ItemPilot/categories/Sales%20Strategy/insert_sales.php";
-    const url  = new URL(base, window.location.origin);
-    url.searchParams.set("action", "create_blank");
-    url.searchParams.set("page", String(page));
-
-    fetch(url.toString())
-      .then(r => r.text())
-      .then(html => {
-        salesRight.innerHTML = html;
-        showPanel(salesRight);
-        currentPage = page;
-
-        const qs = new URLSearchParams(location.search);
-        qs.delete("strategy_id");
-        qs.set("page", String(currentPage));
-        history.replaceState(null, "", `${location.pathname}?${qs.toString()}`);
-      })
-      .catch(err => console.error("Failed to create Sales Strategy:", err));
-  }
-
-  // =========================
-  // State (then)
-  // =========================
-  let currentPage = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
-  let currentId   = parseInt(new URLSearchParams(window.location.search).get("strategy_id")) || null;
-
-  // =========================
-  // DOM (then)
-  // =========================
-  const salesRight     = document.getElementById("sales-right");     // target container
-  const homeRight      = document.getElementById("home-right");
-  const contactRight   = document.getElementById("contact-right");
-
-  // Single trigger you said you “only have”:
-  const salesTrigger   = document.getElementById("sales-strategy");   // <article id="sales-strategy">
-
-  // Optional hooks if you add them later (harmless if null):
-  const salesBlank     = document.getElementById("sales-blank");      // "Create New Strategy" button
-  const salesOpen      = document.getElementById("sales-open");       // "Open" button with data-strategy-id
-  const salesDropdown  = document.getElementById("sales-dropdown");   // <ul> with items having .js-sales-link
-
-  // =========================
-  // Listeners (last)
-  // =========================
-  // 1) The single clickable <article id="sales-strategy">
-  if (salesTrigger && salesRight) {
-    salesTrigger.addEventListener("click", (e) => {
-      e.preventDefault?.();
-      // If you already have an id in URL, load it; otherwise load the base page (no id)
-      currentId ? loadStrategy(currentId, currentPage) : loadStrategy(null, 1);
-    });
-  }
-
-  // 2) Optional: Create New
-  if (salesBlank && salesRight) {
-    salesBlank.addEventListener("click", (e) => {
-      e.preventDefault?.();
-      document.getElementById("categories")?.classList.add("hidden");
-      newStrategy(1);
-    });
-  }
-
-  // 3) Optional: Open current/selected
-  if (salesOpen && salesRight) {
-    salesOpen.addEventListener("click", (e) => {
-      e.preventDefault?.();
-      document.getElementById("categories")?.classList.add("hidden");
-      const idFromBtn = parseInt(salesOpen.dataset.strategyId || "", 10);
-      const id = !isNaN(idFromBtn) ? idFromBtn : currentId;
-      if (id) loadStrategy(id, currentPage || 1);
-    });
-  }
-
-  // 4) Optional: Dropdown list delegation
-  if (salesDropdown && salesRight) {
-    salesDropdown.addEventListener("click", (e) => {
-      const link = e.target.closest(".js-sales-link");
-      if (!link) return;
-      e.preventDefault?.();
-      document.getElementById("categories")?.classList.add("hidden");
-      const id = parseInt(link.dataset.strategyId || "", 10);
-      if (!isNaN(id)) loadStrategy(id, 1);
-    });
-  }
-})();
-
-(function () {
-  const eventRight   = document.getElementById("event-right");
-  const homeRight    = document.getElementById("home-right");
-  const contactRight = document.getElementById("contact-right");
-  const sales        = document.getElementById("sales-strategy"); // the article you click
-
-  let currentPage = parseInt(new URLSearchParams(location.search).get("page")) || 1;
-  let salesId     = parseInt(new URLSearchParams(location.search).get("table_id")) || null;
-
-  // ---- core loader (uses args properly + encoded path) ----
-  function loadSales(page = 1, tableId = salesId) {
-    if (!eventRight) return;
-
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    if (tableId) params.set("table_id", String(tableId));
-
-    fetch(`/ItemPilot/categories/Sales%20Strategy/insert_sales.php?${params.toString()}`)
-      .then(r => r.text())
-      .then(html => {
-        eventRight.innerHTML = html;
-        if (homeRight)    homeRight.style.display = "none";
-        if (contactRight) contactRight.style.display = "none";
-        eventRight.style.display = "block";
-        currentPage = page;
-      })
-      .catch(err => console.error("Failed to load Sales Strategy:", err));
-  }
-
-  // ---- click on the sales card loads the table ----
-  if (sales && eventRight) {
-    sales.addEventListener("click", (e) => {
-      e.preventDefault?.();
-      document.getElementById("categories")?.classList.add("hidden");
-      loadSales(1, salesId); // if salesId is null, backend should handle default
-    });
-  }
-
-  // (Removed the 'universal' block because that element wasn't defined here)
-})();
-
-
 </script>
+
 
 </body>
 </html>

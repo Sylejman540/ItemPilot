@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute();
     $stmt->close();
 
-    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+    header("Location: /ItemPilot/home.php");
     exit;
 }
 
@@ -158,6 +158,15 @@ $theadStmt->execute();
 $thead = $theadStmt->get_result()->fetch_assoc();
 $theadStmt->close();
 
+/* For title */
+/* For title */
+$titleStmt = $conn->prepare("SELECT table_id, table_title FROM sales_table WHERE user_id = ? AND table_id = ? LIMIT 1");
+$titleStmt->bind_param('ii', $uid, $table_id);
+$titleStmt->execute();
+$titleRes = $titleStmt->get_result();
+$tableTitleRow = $titleRes->fetch_assoc();
+$titleStmt->close();
+$tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -170,36 +179,17 @@ $theadStmt->close();
 <div id="sales-right"></div>
 
 <header id="appHeader" class="absolute mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
-  <section class="flex mt-5 justify-between ml-3">
-    <?php
-    $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
 
-    $stmt = $conn->prepare("SELECT table_id, table_title FROM `sales_table` WHERE user_id = ? AND table_id = ? LIMIT 1");
-    $stmt->bind_param('ii', $uid, $tableId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-
-    if ($res && $res->num_rows) {
-      $row = $res->fetch_assoc(); ?>
-      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php" class="mb-3">
-        <input type="hidden" name="table_id" value="<?= (int)$row['table_id'] ?>">
-        <input type="text" name="table_title" value="<?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-      </form>
-    <?php
-    } else {
-    }
-    $stmt->close();
-    ?>
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+    <button id="addIcon" type="button"
+            class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
       <span class="text-sm">New Record</span>
     </button>
-
   </section>
 
-  <div class="overflow-x-auto md:overflow-x-hidden">
+  <div class="overflow-x-auto md:overflow-x-hidden" id="strategy">
     <div class="md:mx-8 mt-20 ml-3 bg-white py-15 md:p-8 md:px-10 rounded-xl md:w-full w-240">
 
       <?php
