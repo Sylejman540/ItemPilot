@@ -149,7 +149,7 @@ if ($hasNamed) {
     body { font-family: 'Poppins', sans-serif; }
   </style>
 </head>
-<body class="overflow-x-hidden">
+<body class="overflow-x-hidden bg-gray-100">
 <style>
   :root { --sbw: 0px; }                  /* updated by your JS when sidebar opens */
 

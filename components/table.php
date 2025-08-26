@@ -1,32 +1,27 @@
+<!-- Tables Section -->
+<section class="bg-gray-100 rounded-md hidden w-full mb-5" id="event-right">
 
-<!-- Tables Section --->
-<section class="bg-gray-100 rounded-md hidden w-full h-screen" id="event-right">
-
-    <div class="md:flex md:justify-between md:px-50 md:ml-0 md:mr-0 ml-4 mr-4 mt-20 md:mb-15 mb-5">
-      <div class="flex gap-5">
-        <input type="search" placeholder="Search tables..." class="rounded-lg px-2 border-1 bg-white border-gray-300 h-10 w-80">
-        <select name="" id="" class="border-1 border-gray-300 bg-white rounded-lg px-2">
-          <option value="name">Sort by name</option>
-          <option value="date">Sort by date</option>
-          <option value="status">Sort by status</option>
-        </select>
-      </div>
-
-      <div class="flex justify-center md:block">
-        <button class="bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-2 px-4 cursor-pointer md:mt-0 mt-5 modal-open" type="submit" data-modal-target="categories">Choose a template</button>
-      </div>
+  <!-- Header -->
+  <div class="md:flex md:justify-between md:px-8 ml-4 mr-4 mt-20 md:mb-10 mb-5">
+    <div class="flex gap-4">
+      <input type="search" placeholder="Search tables..."
+        class="rounded-lg px-3 border bg-white border-gray-300 h-10 w-80 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+      <select class="border border-gray-300 bg-white rounded-lg px-3 h-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <option value="name">Sort by name</option>
+        <option value="date">Sort by date</option>
+        <option value="status">Sort by status</option>
+      </select>
     </div>
 
-    
-    <div class="bg-white rounded-md shadow-sm ring-1 ring-gray-100 max-w-4xl mx-auto overflow-hidden p-4 px-10">
-      <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-        <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-          <i class="fa-solid fa-table text-sm"></i>
-        </span>
-        <h2 class="text-gray-700 font-semibold text-base">All Tables</h2>
-      </div>
+    <div class="flex justify-center md:block mt-5 md:mt-0">
+      <button class="bg-blue-600 cursor-pointer hover:bg-blue-500 text-white rounded-lg py-2 px-5 shadow-sm transition modal-open" type="button" data-modal-target="categories">Choose a template</button>
+    </div>
+  </div>
 
-      <ul class="divide-y divide-gray-100">
+  <!-- Tables Card -->
+  <div class="md:ml-10 md:mr-10 ml-4 mr-4">
+    <!-- Table List -->
+  <ul class="bg-white divide-y divide-gray-200">
   <?php
     // ---- UNIVERSAL TABLES ----
     $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM tables WHERE user_id = ? ORDER BY table_id ASC");
@@ -34,28 +29,30 @@
     $stmt->execute();
     $res = $stmt->get_result();
 
-    if ($res && $res->num_rows):
-      while ($row = $res->fetch_assoc()):
-        $tid   = (int)$row['table_id'];
-        $title = htmlspecialchars($row['table_title'] ?? 'Untitled');
-        $href  = "home.php?table_id={$tid}&page=1&autoload=1&type=universal";
-        $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+    while ($row = $res->fetch_assoc()):
+      $tid   = (int)$row['table_id'];
+      $title = htmlspecialchars($row['table_title'] ?? 'Untitled Table');
+      $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+      $href  = "home.php?table_id={$tid}&page=1&type=universal";
   ?>
-    <li class="group hover:bg-slate-50 cursor-pointer" data-href="<?= $href ?>">
-      <a href="<?= $href ?>" class="flex items-center gap-3 px-4 py-3 js-table-link" data-table-id="<?= $tid ?>">
-        <span class="h-8 w-8 inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600">
-          <i class="fa-regular fa-square-check"></i>
-        </span>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-4">
-            <span class="truncate text-slate-800 group-hover:text-slate-900"><?= $title ?></span>
-            <span class="shrink-0 text-xs text-slate-500 group-hover:text-slate-700"><?= $createdFmt ?></span>
-          </div>
+    <li class="flex items-center justify-between gap-4 px-4 py-5 hover:bg-gray-50 transition cursor-pointer">
+      <div class="flex items-center gap-4">
+        <img src="images/categories/db.svg" alt="" class="w-12 h-12">
+        <div>
+          <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
+          <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
+          <p class="text-xs text-gray-400">Placeholder for records count</p>
         </div>
-        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-slate-400"></i>
-      </a>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">Universal</span>
+        <a href="<?= $href ?>" class="text-gray-400 hover:text-gray-600">
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </a>
+      </div>
     </li>
-  <?php endwhile; endif; $stmt->close(); ?>
+  <?php endwhile; $stmt->close(); ?>
+
 
   <?php
     // ---- SALES STRATEGY TABLES ----
@@ -64,35 +61,30 @@
     $stmt->execute();
     $res = $stmt->get_result();
 
-    if ($res && $res->num_rows):
-      while ($row = $res->fetch_assoc()):
-        $sid   = (int)$row['table_id'];
-        $title = htmlspecialchars($row['table_title'] ?? 'Untitled Sales');
-        $href  = "home.php?table_id={$sid}&page=1&autoload=1&type=sales";
-        $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+    while ($row = $res->fetch_assoc()):
+      $sid   = (int)$row['table_id'];
+      $title = htmlspecialchars($row['table_title'] ?? 'Untitled Sales');
+      $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+      $href  = "home.php?table_id={$sid}&page=1&type=sales";
   ?>
-    <li class="group hover:bg-slate-50 cursor-pointer" data-href="<?= $href ?>">
-      <a href="<?= $href ?>" 
-         class="flex items-center gap-3 px-4 py-3 js-strategy-link" 
-         data-table-id="<?= $sid ?>">
-        <span class="h-8 w-8 inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-600 group-hover:bg-blue-50 group-hover:text-blue-800">
-          <i class="fa-solid fa-bullseye"></i>
-        </span>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-4">
-            <span class="truncate text-slate-800 group-hover:text-slate-900"><?= $title ?></span>
-            <span class="shrink-0 text-xs text-slate-500 group-hover:text-slate-700"><?= $createdFmt ?></span>
-          </div>
+    <li class="flex items-center justify-between gap-4 px-4 py-5 hover:bg-gray-50 transition cursor-pointer">
+      <div class="flex items-center gap-4">
+        <img src="images/categories/db.svg" alt="" class="w-12 h-12">
+        <div>
+          <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
+          <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
+          <p class="text-xs text-gray-400">Placeholder for sales data</p>
         </div>
-        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-slate-400"></i>
-      </a>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Sales Strategy</span>
+        <a href="<?= $href ?>" class="text-gray-400 hover:text-gray-600">
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </a>
+      </div>
     </li>
-  <?php endwhile; else: ?>
-    <li class="px-6 py-10 text-center text-slate-500">
-      No sales strategies yet.
-    </li>
-  <?php endif; $stmt->close(); ?>
-</ul>
+  <?php endwhile; $stmt->close(); ?>
 
-    </div>
+</ul>
+  </div>
 </section>

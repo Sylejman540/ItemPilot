@@ -1,5 +1,6 @@
 <!-- CATEGORIES MODAL -->
-<main id="categories" class="fixed inset-0 z-50 hidden max-w-md mx-auto md:p-10 p-8 overflow-auto shadow-md rounded-lg md:mt-5 mt-20 mb-5 bg-white/100 sm:ml-2">
+<main id="categories" 
+  class="fixed inset-0 z-50 hidden max-w-md w-full mx-auto my-10 bg-white rounded-lg shadow-md p-8 overflow-auto">
   <!-- Header -->
   <header class="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
   <div class="flex items-center gap-2">
@@ -14,13 +15,13 @@
       <p class="text-xs text-gray-500">Start from scratch or pick a base</p>
     </div>
   </div>
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 cursor-pointer text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 cursor-pointer text-gray-500 modal-close hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
     </svg>
   </header>
 
   <!-- Some Templates Will Be Shown/Add Here -->
-  <section class="mt-6 space-y-5">
+  <section class="mt-6 space-y-10">
     <!-- Universal Table -->
     <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-pointer rounded-md" id="blank">
         <div class="rounded-sm px-3 py-2 flex items-center justify-center bg-gray-100">
@@ -97,7 +98,7 @@
     </article>
 
     <!-- Home Remodel -->
-    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-pointer rounded-md">
+    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
         <div class="bg-green-300 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/home.svg" alt="" class="w-6 h-6">
         </div>
@@ -109,7 +110,7 @@
     </article>
 
     <!-- Car Buying -->
-    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-pointer rounded-md">
+    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
         <div class="bg-gray-600 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/car.svg" alt="" class="w-6 h-6">
         </div>
@@ -121,7 +122,7 @@
     </article>
 
     <!-- Pet Medical History -->
-    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-pointer rounded-md">
+    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
         <div class="bg-pink-400 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/pet.svg" alt="" class="w-6 h-6">
         </div>
@@ -133,7 +134,7 @@
     </article>
 
     <!-- Expense Tracking -->
-    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-pointer rounded-md">
+    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
         <div class="bg-pink-100 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/expense.svg" alt="" class="w-6 h-6">
         </div>
@@ -144,4 +145,5 @@
         <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
     </article>
   </section>
+</div>
 </main>
