@@ -93,12 +93,7 @@
                   $name = htmlspecialchars($row['table_title'] ?? '');
             ?>
               <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">
-                <a
-                  href="#"
-                  class="js-table-link block px-4 py-2 <?= $src === 'sales_table' ? 'js-strategy-link' : '' ?>"
-                  data-table-id="<?= $tid ?>"
-                  data-src="<?= $src ?>"
-                >
+                <a href="#" class="js-table-link block px-4 py-2 <?= $src === 'sales_table' ? 'js-strategy-link' : '' ?>"  data-table-id="<?= $tid ?>" data-src="<?= $src ?>">
                   <?= $name ?>
                 </a>
 
@@ -147,6 +142,13 @@
     </aside>
 
 <style>
+  #sidebar {
+    transition: margin-left 0.3s ease-in-out;
+  }
+  #sidebar.hidden {
+    margin-left: -250px; /* adjust to your sidebar width */
+  }
+
   .sidebar{
       transition: background-color 0.3s ease;
   }

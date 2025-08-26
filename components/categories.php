@@ -1,6 +1,5 @@
 <!-- CATEGORIES MODAL -->
-<main id="categories" 
-  class="fixed inset-0 z-50 hidden max-w-md w-full mx-auto my-10 bg-white rounded-lg shadow-md p-8 overflow-auto">
+<main id="categories" class="fixed inset-0 z-50 hidden max-w-md mt-20 md:w-[100%] w-[90%] mx-auto my-10 bg-white rounded-lg shadow-md p-12 overflow-auto">
   <!-- Header -->
   <header class="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
   <div class="flex items-center gap-2">
@@ -31,7 +30,7 @@
           <h1 class="text-lg text-start">Start with a blank base</h1>
           <p class="text-sm text-gray-500 text-start">Create custom tables, fields, views</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Sales Strategy Table -->
@@ -43,12 +42,13 @@
           <h1 class="text-lg">Sales Strategy</h1>
           <p class="text-sm text-gray-500">Unify sales, marketing, products...</p>
         </div>
-             <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
       
-    <div class="mt-4 mb-6 p-3 rounded-md bg-amber-100 border border-amber-300 text-amber-800 text-sm font-medium">
-      🚧 Templates Comming Soon
+    <div class="mt-4 mb-6 p-3 rounded-md bg-amber-100 border border-amber-300 text-amber-800 text-sm font-medium" id="showTemplates">
+      🚧 More Templates Comming Soon
     </div>
+    <div id="templates">
     <!-- Groceries Table -->
     <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
         <div class="bg-yellow-400 rounded-sm px-3 py-2 flex items-center justify-center">
@@ -58,7 +58,7 @@
           <h1 class="text-lg">Grocery List</h1>
           <p class="text-sm text-gray-500">Organize shopping list,for market</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Blog Editorial Calendar -->
@@ -70,7 +70,7 @@
           <h1 class="text-lg">Blog Editorial Calendar</h1>
           <p class="text-sm text-gray-500">Organize article ideas and flexibly</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Study Guides -->
@@ -82,7 +82,7 @@
           <h1 class="text-lg">Study Guides</h1>
           <p class="text-sm text-gray-500">Create structured notes for sub...</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Job Hunting -->
@@ -94,7 +94,7 @@
           <h1 class="text-lg">Job Hunting</h1>
           <p class="text-sm text-gray-500">Stay organized during ur job sea...</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Home Remodel -->
@@ -106,7 +106,7 @@
           <h1 class="text-lg">Home Remodel</h1>
           <p class="text-sm text-gray-500">Manage all aspect of the remodel...</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Car Buying -->
@@ -118,7 +118,7 @@
           <h1 class="text-lg">Car Buying</h1>
           <p class="text-sm text-gray-500">Monitor antique dealers, pricing....</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Pet Medical History -->
@@ -130,11 +130,11 @@
             <h1 class="text-lg">Pet Medical History</h1>
             <p class="text-sm text-gray-500">Track pet medications and appoi...</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
     <!-- Expense Tracking -->
-    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
+    <article class="flex justify-between items-center hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
         <div class="bg-pink-100 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/expense.svg" alt="" class="w-6 h-6">
         </div>
@@ -142,8 +142,9 @@
             <h1 class="text-lg">Expense Tracking</h1>
             <p class="text-sm text-gray-500">Capture and organize all reciepts..</p>
         </div>
-        <img src="images/categories/arrow.svg" alt="" class="w-4 h-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
   </section>
+  </div>
 </div>
 </main>

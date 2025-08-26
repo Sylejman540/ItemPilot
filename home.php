@@ -563,6 +563,14 @@ if ($hasNamed) {
       }, 3000);
     }
   });
+  
+  // const showTemplates = document.getElementById('showTemplates');
+
+  //   showTemplates.addEventListener('click', () =>{
+  //   const templates = document.getElementById('templates');
+
+  //   templates.style.display = 'block';
+  // })
 
   // -------- sidebar toggle --------
   const menuBtn       = document.getElementById('menuBtn');

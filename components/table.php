@@ -45,7 +45,7 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <span class="px-3 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">Universal</span>
+        <span class="px-3 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">Blank Base</span>
         <a href="<?= $href ?>" class="text-gray-400 hover:text-gray-600">
           <i class="fa-solid fa-ellipsis-vertical"></i>
         </a>

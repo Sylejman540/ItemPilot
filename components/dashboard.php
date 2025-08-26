@@ -82,8 +82,17 @@
       <?php endforeach; ?>
     </div>
   </div>
+
+<div id="dealsChart"></div>
+<div id="statusChart"></div>
+<div id="assigneeChart"></div>
+<div id="completionChart"></div>
+<div id="dealsBurnupChart"></div>
+<div id="dealsMAChart"></div>
+<div id="weekdayChart"></div>
+<div id="monthlyChart"></div>
+<div id="dealsSparkline"></div>
+
 </article>
-
-
-</section>  
+</section>
 
