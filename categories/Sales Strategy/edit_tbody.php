@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $sql = "UPDATE sales_strategy SET linked_initiatives = ?, executive_sponsor = ?, status = ?, complete = ?, notes = ? WHERE id = ? AND table_id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param('sssisii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $id, $table_id);
+  $stmt->bind_param('sssssii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $id, $table_id);
   if ($stmt->execute()) {
     header("Location: /ItemPilot/home.php");
 exit;

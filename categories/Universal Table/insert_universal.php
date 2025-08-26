@@ -138,8 +138,8 @@ $rows  = $rows ?? [];
 $first = $rows[0] ?? null;   
 ?>
 
-<header id="appHeader"  class="absolute mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
-  <section class="flex mt-5 justify-between ml-3" id="randomHeader">
+<header id="appHeader"  class="absolute mt-25 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
+  <section class="flex mt-2 justify-between ml-3" id="randomHeader">
     <?php
     $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
 
@@ -150,9 +150,9 @@ $first = $rows[0] ?? null;
 
     if ($res && $res->num_rows) {
       $row = $res->fetch_assoc(); ?>
-      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php" class="mb-3">
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php" class="mt-2">
         <input type="hidden" name="table_id" value="<?= (int)$row['table_id'] ?>">
-        <input type="text" name="table_title" value="<?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        <input type="text" name="table_title" value="<?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-semibold text-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
       </form>
     <?php
     } else {
@@ -165,11 +165,10 @@ $first = $rows[0] ?? null;
       </svg>
       <span class="text-sm">New Record</span>
     </button>
-
   </section>
 
-  <div class="overflow-x-auto md:overflow-x-hidden">
-  <div class="md:mx-8 mt-20 ml-3 bg-white py-15 md:p-8 md:px-10 rounded-xl md:w-full w-240">
+<main class="md:mt-10 mt-40 overflow-x-auto md:overflow-x-hidden">
+  <div class="mx-3 md:mx-8 mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
     <?php
     // get the most recent row just to PREFILL inputs (not to update it)
@@ -192,26 +191,26 @@ $first = $rows[0] ?? null;
     ?>
 
   <div class="universal-table" id="ut-<?= (int)$tableId ?>" data-table-id="<?= (int)$tableId ?>">
-    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full mb-2 thead-form" data-table-id="<?= (int)$tableId ?>">
+    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full mb-2 thead-form border-b border-gray-200" data-table-id="<?= (int)$tableId ?>">
 
       <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
       <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
 
-      <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
+      <div class="flex text-xs md:text-sm font-semibold text-gray-700 uppercase tracking-wider">
         <div class="w-1/5 p-2">
-          <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_notes" value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          <input name="thead_notes" value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_assignee" value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+          <input name="thead_assignee" value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
-        <div class="w-1/5 p-2">
-          <input name="thead_status" value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        <div class="w-40 p-2">
+          <input name="thead_status" value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
-        <div class="w-1/5 p-2">
-          <input name="thead_attachment" value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+        <div class="w-1/5 p-2 ml-8">
+          <input name="thead_attachment" value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
       </div>
     </form>
@@ -220,26 +219,26 @@ $first = $rows[0] ?? null;
   <!-- TBODY -->
   <div class="w-full divide-y divide-gray-200">
     <?php if ($hasRecord): foreach ($rows as $r): ?>
-      <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="flex items-center border-b border-gray-300 text-sm">
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm">
           
         <input type="hidden" name="id" value="<?= $r['id'] ?>">
         <input type="hidden" name="title" value="<?= htmlspecialchars($tableTitle) ?>">
         <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
         <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
-        <div class="w-1/5 p-2">
+        <div class="w-1/5 p-2 text-gray-600">
           <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
         </div>
 
-        <div class="w-1/5 p-2">
+        <div class="w-1/5 p-2 text-gray-600">
           <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
         </div>
 
-        <div class="w-1/5 p-2 ml-10">
+        <div class="w-1/5 text-gray-600">
           <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
         </div>
 
-        <div class="w-40 p-2 mr-20">
+        <div class="w-40 px-3 py-1 text-xs font-semibold">
           <?php
             $statusColors = [
               'To Do'       => 'bg-gray-100 text-gray-800',
@@ -254,21 +253,30 @@ $first = $rows[0] ?? null;
             <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
           </select>
         </div>
-
-        <div class="w-1/5 p-2 flex items-center gap-3">
+        <div class="w-1/5 p-2 flex items-center gap-3 ml-8">
           <?php if ($r['attachment_summary']): ?>
-            <img src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
+            <!-- Show uploaded attachment -->
+            <img 
+              src="/ItemPilot/categories/Universal Table/uploads/<?= htmlspecialchars($r['attachment_summary']) ?>" 
+              class="w-16 h-10 rounded-md" 
+              alt="Attachment"
+            >
           <?php else: ?>
-            <span class="italic text-gray-400">None</span>
+            <!-- Show 'None' when no attachment -->
+            <span class="italic text-gray-400 ml-4">None</span>
           <?php endif; ?>
+
+          <!-- Delete action -->
           <div class="ml-auto flex items-center">
-            <a href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"  onclick="return confirm('Are you sure?')"  class="inline-block py-1 px-2 text-red-500 border border-red-500 rounded hover:bg-red-50 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/>
-              </svg>
+            <a 
+              href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"
+              onclick="return confirm('Are you sure?')"
+              class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
+                <i class="fa-solid fa-trash"></i>
             </a>
           </div>
-        </div>
+
+          </div>
       </form>
       <?php endforeach; else: ?>
         <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
@@ -276,10 +284,30 @@ $first = $rows[0] ?? null;
     </div>
 
     <?php if ($totalPages > 1): ?>
-      <div class="pagination my-4 flex justify-center space-x-2">
-        <?php if ($page > 1): ?><a href="insert_universal.php?page=<?= $page-1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">« Prev</a><?php endif; ?>
-        <?php for ($i=1; $i<=$totalPages; $i++): ?><a href="insert_universal.php?page=<?= $i ?>" class="px-3 py-1 border rounded <?= $i===$page?'bg-gray-200 font-semibold':'hover:bg-gray-100' ?>"><?= $i ?></a><?php endfor; ?>
-        <?php if ($page < $totalPages): ?><a href="insert_universal.php?page=<?= $page+1 ?>" class="px-3 py-1 border rounded hover:bg-gray-100">Next »</a><?php endif; ?>
+      <div class="pagination my-4 flex justify-start md:justify-center space-x-2">
+        <?php if ($page > 1): ?>
+          <a href="insert_universal.php?page=<?= $page-1 ?>"
+            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
+            « Prev
+          </a>
+        <?php endif; ?>
+
+        <?php for ($i=1; $i<=$totalPages; $i++): ?>
+          <a href="insert_universal.php?page=<?= $i ?>"
+            class="px-3 py-1 border rounded transition
+                    <?= $i===$page
+                      ? 'bg-blue-600 text-white border-blue-600 font-semibold'
+                      : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>">
+            <?= $i ?>
+          </a>
+        <?php endfor; ?>
+
+        <?php if ($page < $totalPages): ?>
+          <a href="insert_universal.php?page=<?= $page+1 ?>"
+            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
+            Next »
+          </a>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
   </div>
@@ -348,7 +376,7 @@ $first = $rows[0] ?? null;
       
       <div>
         <label><?= htmlspecialchars($row['thead_attachment'] ?? 'Attachment') ?></label>
-        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-smfile:bg-pink-100 file:border-0 file:rounded-md file:px-4 file:py-2 file:text-[#B5707D]">
+        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
       <div>
@@ -357,10 +385,7 @@ $first = $rows[0] ?? null;
     </form>
    </div>
   </div>
-</div>
+
 
 </body>
 </html>
-
-
-

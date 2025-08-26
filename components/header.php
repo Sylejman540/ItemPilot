@@ -102,7 +102,7 @@
                   onclick="return confirm('Are you sure you want to delete this entire table?');"
                   class="text-red-500 hover:text-red-700 mt-2"
                 >
-                  <i class="fas fa-trash-alt"></i>
+                  <button class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
                 </a>
               </li>
             <?php

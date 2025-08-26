@@ -15,6 +15,7 @@ $executive_sponsor  = trim($_POST['executive_sponsor'] ?? '');
 $status             = trim($_POST['status'] ?? '');
 $complete          = trim($_POST['complete'] ?? '');
 $notes             = trim($_POST['notes'] ?? '');
+$attachment      = trim($_POST['attachment'] ?? '');
 $table_id         = trim($_POST['table_id'] ?? '');
 
 // require a table_id
@@ -23,11 +24,11 @@ if ($table_id <= 0) {
   exit('Missing or invalid table_id');
 }
 
-$sql = "INSERT INTO sales_strategy_thead (linked_initiatives, executive_sponsor, status, complete, notes, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+$sql = "INSERT INTO sales_strategy_thead (linked_initiatives, executive_sponsor, status, complete, notes, attachment, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
 if (!$stmt) { http_response_code(500); exit('Prepare failed: ' . $conn->error); }
 
-$stmt->bind_param('sssisii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $uid, $table_id);
+$stmt->bind_param('ssssssii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $attachment, $uid, $table_id);
 
 if (!$stmt->execute()) {
   http_response_code(500);

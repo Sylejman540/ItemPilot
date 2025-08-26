@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notes              = $_POST['notes'] ?? '';
     $executive_sponsor  = $_POST['executive_sponsor'] ?? '';
     $status             = $_POST['status'] ?? '';
-    $complete           = isset($_POST['complete']) ? 1 : 0;
+    $complete           = $_POST['complete'] ?? '';
 
     // keep existing attachment if none uploaded
     $attachment = $_POST['existing_attachment'] ?? '';
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (linked_initiatives, notes, executive_sponsor, status, complete, attachment, table_id, user_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param('ssssisis',
+        $stmt->bind_param('ssssssis',
           $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $attachment, $table_id, $uid
         );
     } else {
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  attachment         = ?
            WHERE id = ? AND table_id = ? AND user_id = ?
         ");
-        $stmt->bind_param('ssssisiii',
+        $stmt->bind_param('ssssssiii',
           $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $attachment, $id, $table_id, $uid
         );
     }
@@ -178,22 +178,22 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
 <div id="sales-right"></div>
 
-<header id="appHeader" class="absolute mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
-  <section class="flex mt-5 justify-between ml-3">
+<header id="appHeader" class="absolute mt-25 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
+  <section class="flex mt-2 justify-between ml-3">
     <!-- Rename action to the title handler and encode the space -->
-    <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="mb-3 flex gap-2">
+    <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="flex gap-2 mt-2">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <input
         type="text"
         name="table_title"
         value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>"
-        class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+        class="w-full px-4 py-2 text-lg font-semibold text-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
         placeholder="Untitled sales table"
       />
     </form>
 
     <button id="addIcon" type="button"
-            class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+            class="flex items-center gap-1 bg-[#4CAF50] hover:bg-green-600 py-[10px] cursor-pointer px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
@@ -201,8 +201,10 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
     </button>
   </section>
 
-  <div class="overflow-x-auto md:overflow-x-hidden" id="strategy">
-    <div class="md:mx-8 mt-20 ml-3 bg-white py-15 md:p-8 md:px-10 rounded-xl md:w-full w-240">
+
+
+<main class="md:mt-10 mt-40 overflow-x-auto md:overflow-x-hidden" id="strategy">
+    <div class="mx-3 md:mx-8 mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
       <?php
       // Prefill THEAD form
@@ -223,31 +225,35 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       <!-- THEAD -->
       <div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
         <form action="/ItemPilot/categories/Sales Strategy/edit_thead.php" method="post"
-              class="w-full mb-2 thead-form" data-table-id="<?= (int)$table_id ?>">
+              class="w-full mb-2 thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
 
           <input type="hidden" name="id" value="<?= (int)($headRow['id'] ?? 0) ?>">
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
 
-          <div class="flex text-black text-xs uppercase font-semibold border-b border-gray-300">
-            <div class="w-1/5 p-2">
+          <div class="flex text-xs md:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+            <div class="w-1/6 p-2">
               <input name="linked_initiatives" value="<?= htmlspecialchars($headRow['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Linked initiatives" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+                     placeholder="Linked initiatives" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/5 p-2">
+            <div class="w-1/6 p-2">
               <input name="notes" value="<?= htmlspecialchars($headRow['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+                     placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/5 p-2">
+            <div class="w-1/6 p-2">
               <input name="executive_sponsor" value="<?= htmlspecialchars($headRow['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Executive sponsor" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+                     placeholder="Executive sponsor" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/5 p-2">
+            <div class="w-1/6 p-2">
               <input name="status" value="<?= htmlspecialchars($headRow['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+                     placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/5 p-2">
+            <div class="w-1/6 p-2">
+              <input name="complete" value="<?= htmlspecialchars($headRow['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                     placeholder="Complete" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            </div>
+            <div class="w-1/6 p-2">
               <input name="attachment" value="<?= htmlspecialchars($headRow['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg"/>
+                     placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
           </div>
         </form>
@@ -259,28 +265,28 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
           <form method="POST"
                 action="/ItemPilot/categories/Sales Strategy/edit_tbody.php?id=<?= (int)$r['id'] ?>"
                 enctype="multipart/form-data"
-                class="flex items-center border-b border-gray-300 text-sm">
+                class="flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm">
 
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
             <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
             <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-            <div class="w-1/5 p-2">
+            <div class="w-1/6 p-2 text-gray-600">
               <input type="text" name="linked_initiatives" value="<?= htmlspecialchars($r['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
-            <div class="w-1/5 p-2">
+            <div class="w-1/6 p-2 text-gray-600">
               <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
-            <div class="w-1/5 p-2 ml-10">
+            <div class="w-1/6 p-2 text-gray-600">
               <input type="text" name="executive_sponsor" value="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
-            <div class="w-40 p-2 mr-20">
+            <div class="w-1/6 p-2 text-gray-600">
               <?php
                 $statusColors = [
                   'To Do'       => 'bg-gray-100 text-gray-800',
@@ -296,11 +302,11 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
               </select>
             </div>
 
-            <div class="w-1/5 p-2 flex items-center gap-3">
-              <label class="inline-flex items-center gap-2">
-                <input type="checkbox" name="complete" value="1" <?= !empty($r['complete']) ? 'checked' : '' ?>>
-                <span>Complete</span>
-              </label>
+            <div class="w-1/6 p-2 text-gray-600">
+              <input type="text" name="complete" value="<?= htmlspecialchars($r['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
+            <div class="w-1/6 p-2 flex items-center gap-3">
               <?php if (!empty($r['attachment'])): ?>
                 <img src="/ItemPilot/categories/Sales Strategy/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
                      class="w-16 h-10 rounded-md" alt="Attachment">
@@ -326,22 +332,33 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
         <?php endif; ?>
       </div>
 
-      <?php if ($totalPages > 1): ?>
-        <div class="pagination my-4 flex justify-center space-x-2">
-          <?php if ($page > 1): ?>
-            <a href="insert_sales.php?page=<?= $page-1 ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded hover:bg-gray-100">« Prev</a>
-          <?php endif; ?>
-          <?php for ($i=1; $i<=$totalPages; $i++): ?>
-            <a href="insert_sales.php?page=<?= $i ?>&table_id=<?= (int)$table_id ?>"
-               class="px-3 py-1 border rounded <?= $i===$page?'bg-gray-200 font-semibold':'hover:bg-gray-100' ?>">
-              <?= $i ?>
-            </a>
-          <?php endfor; ?>
-          <?php if ($page < $totalPages): ?>
-            <a href="insert_sales.php?page=<?= $page+1 ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded hover:bg-gray-100">Next »</a>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
+       <?php if ($totalPages > 1): ?>
+      <div class="pagination my-4 flex justify-start md:justify-center space-x-2">
+        <?php if ($page > 1): ?>
+          <a href="insert_sales.php?page=<?= $page-1 ?>"
+            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
+            « Prev
+          </a>
+        <?php endif; ?>
+
+        <?php for ($i=1; $i<=$totalPages; $i++): ?>
+          <a href="insert_sales.php?page=<?= $i ?>"
+            class="px-3 py-1 border rounded transition
+                    <?= $i===$page
+                      ? 'bg-blue-600 text-white border-blue-600 font-semibold'
+                      : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>">
+            <?= $i ?>
+          </a>
+        <?php endfor; ?>
+
+        <?php if ($page < $totalPages): ?>
+          <a href="insert_sales.php?page=<?= $page+1 ?>"
+            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
+            Next »
+          </a>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
     </div>
   </div>
 </header>
@@ -390,9 +407,9 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
         </select>
       </div>
 
-      <div class="flex items-center gap-2">
-        <input id="complete" type="checkbox" name="complete" value="1">
-        <label for="complete">Complete</label>
+      <div>
+        <label><?= htmlspecialchars($thead['complete'] ?? 'Complete') ?></label>
+        <input type="text" name="complete" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
@@ -402,7 +419,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
 
       <div>
-        <button type="submit" class="w-full py-3 bg-blue-800 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
+          <button type="submit" class="w-full py-3 bg-[#4CAF50] hover:bg-green-600 text-white font-semibold rounded-lg transition">
           Create New Record
         </button>
       </div>

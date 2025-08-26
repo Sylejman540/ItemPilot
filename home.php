@@ -168,7 +168,6 @@ if ($hasNamed) {
 }
 
 #appHeader{
-  position: fixed;
   top: 0;
   left: var(--sbw);                    /* start after the sidebar */
   right: 0;                            /* stretch to right edge */
