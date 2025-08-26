@@ -69,68 +69,56 @@
           </button>
 
           <ul id="dropdown" class="hidden pl-8 space-y-1">
-  <?php
-    // Combine both tables into one result set
-    $sql = "
-      SELECT table_id, table_title, 'tables' AS src
-      FROM tables
-      WHERE user_id = ?
-      UNION ALL
-      SELECT table_id, table_title, 'sales_table' AS src
-      FROM sales_table
-      WHERE user_id = ?
-      ORDER BY table_id ASC
-    ";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('ii', $uid, $uid);
-    $stmt->execute();
-    $res = $stmt->get_result();
+            <?php
+              // Combine both tables into one result set
+              $sql = "
+                SELECT table_id, table_title, 'tables' AS src
+                FROM tables
+                WHERE user_id = ?
+                UNION ALL
+                SELECT table_id, table_title, 'sales_table' AS src
+                FROM sales_table
+                WHERE user_id = ?
+                ORDER BY table_id ASC
+              ";
+              $stmt = $conn->prepare($sql);
+              $stmt->bind_param('ii', $uid, $uid);
+              $stmt->execute();
+              $res = $stmt->get_result();
 
-    if ($res && $res->num_rows):
-      while ($row = $res->fetch_assoc()):
-        $src  = $row['src']; // which table it came from
-        $tid  = (int)$row['table_id'];
-        $name = htmlspecialchars($row['table_title'] ?? '');
-  ?>
-    <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">
-      <a
-        href="#"
-        class="js-table-link block px-4 py-2 <?= $src === 'sales_table' ? 'js-strategy-link' : '' ?>"
-        data-table-id="<?= $tid ?>"
-        data-src="<?= $src ?>"
-      >
-        <?= $name ?>
-      </a>
+              if ($res && $res->num_rows):
+                while ($row = $res->fetch_assoc()):
+                  $src  = $row['src']; // which table it came from
+                  $tid  = (int)$row['table_id'];
+                  $name = htmlspecialchars($row['table_title'] ?? '');
+            ?>
+              <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">
+                <a
+                  href="#"
+                  class="js-table-link block px-4 py-2 <?= $src === 'sales_table' ? 'js-strategy-link' : '' ?>"
+                  data-table-id="<?= $tid ?>"
+                  data-src="<?= $src ?>"
+                >
+                  <?= $name ?>
+                </a>
 
-      <a
-        href="categories/<?= $src === 'sales_table' ? 'Sales Strategy' : 'Universal Table' ?>/delete_table.php?table_id=<?= $tid ?>"
-        onclick="return confirm('Are you sure you want to delete this entire table?');"
-        class="text-red-500 hover:text-red-700 mt-2"
-      >
-        <i class="fas fa-trash-alt"></i>
-      </a>
-    </li>
-  <?php
-      endwhile;
-    else:
-  ?>
-    <li class="px-4 py-2 italic">No tables yet.</li>
-  <?php endif;
-    $stmt->close();
-  ?>
-</ul>
-
-
-          <!-- DATA TOOLS -->
-          <div class="w-70 py-3 cursor-pointer px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white" id="data-tools">
-            <svg class="w-4 h-4 mt-[3px]" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <line x1="12" y1="20" x2="12" y2="10"/>
-              <line x1="18" y1="20" x2="18" y2="4"/>
-              <line x1="6" y1="20" x2="6" y2="16"/>
-            </svg>
-            <li><a href="#data-tools">Data Tools</a></li>
-          </div>
+                <a
+                  href="categories/<?= $src === 'sales_table' ? 'Sales Strategy' : 'Universal Table' ?>/delete_table.php?table_id=<?= $tid ?>"
+                  onclick="return confirm('Are you sure you want to delete this entire table?');"
+                  class="text-red-500 hover:text-red-700 mt-2"
+                >
+                  <i class="fas fa-trash-alt"></i>
+                </a>
+              </li>
+            <?php
+                endwhile;
+              else:
+            ?>
+              <li class="px-4 py-2 italic text-[#A7B6CC]">No tables yet.</li>
+            <?php endif;
+              $stmt->close();
+            ?>
+          </ul>
 
           <!-- INSIGHTS -->
           <div class="w-70 py-3 cursor-pointer px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white" id="insights">
@@ -153,36 +141,6 @@
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
             <li><a href="#contact">Contact</a></li>
-          </div>
-          <!-- USER TOOLS -->
-          <div class="w-70 py-3 cursor-pointer px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white" id="user-tools">
-            <svg class="w-4 h-4 mt-[3px]" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <circle cx="12" cy="7" r="4"/>
-              <path d="M6 21v-2a6 6 0 0 1 12 0v2"/>
-            </svg>
-            <li><a href="#user-tools">User Tools</a></li>
-          </div>
-
-          <!-- ===== SETTINGS ===== -->
-          <li class="px-6 mt-6 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
-            Settings
-          </li>
-          <div class="w-70 py-3 cursor-pointer px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white" id="settings">
-            <svg class="w-4 h-4 mt-[3px]" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33
-                      1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51
-                      1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06
-                      a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09
-                      a1.65 1.65 0 0 0 1.51-1c.1-.33.1-.67 0-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06
-                      a2 2 0 1 1 2.83-2.83l.06.06c.5.5 1.18.67 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3
-                      a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09c.64.34 1.32.17 1.82-.33l.06-.06
-                      a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9
-                      a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            <li><a href="#settings">Settings</a></li>
           </div>
         </ul>
       </nav>  

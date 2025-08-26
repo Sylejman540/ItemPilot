@@ -317,7 +317,7 @@ if ($hasNamed) {
   </header>
 
 <div id="success-message"
-     class="absolute top-15 left-1/2 transform -translate-x-1/2
+     class="absolute top-20 left-1/2 transform -translate-x-1/2
             px-6 py-3 rounded-lg shadow-lg text-sm font-medium
             transition-opacity duration-500
             <?php if (empty($_SESSION['flash'])): ?> hidden <?php endif; ?>
@@ -334,7 +334,7 @@ if ($hasNamed) {
 
 
   
-<div id="account" class="hidden w-full pl-[var(--sbw)] md:fixed mt-14 md:ml-100 h-screen overflow-none md:ml-0 md:mr-0 ml-3 mr-3">
+<div id="account" class="hidden inset-0 md:fixed absolute mt-14 md:ml-150 h-screen overflow-none md:ml-0 md:mr-0 ml-3 mr-3">
   <div class="w-full max-w-md bg-white px-8 py-5 rounded-2xl shadow-md border border-gray-200">
   <h1 class="text-3xl font-extrabold text-center text-[#263544] mb-4 mt-20">Manage Your Account</h1>
 
