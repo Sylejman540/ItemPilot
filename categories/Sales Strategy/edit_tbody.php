@@ -13,11 +13,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $status = $_POST['status'] ?? '';
   $complete = $_POST['complete'] ?? '';
   $notes = $_POST['notes'] ?? '';
+  $priority = $_POST['priority'] ?? '';
+  $owner = $_POST['owner'] ?? '';
+  $deadline = $_POST['deadline'] ?? '';
   $table_id = $_POST['table_id'] ?? 0;
 
-  $sql = "UPDATE sales_strategy SET linked_initiatives = ?, executive_sponsor = ?, status = ?, complete = ?, notes = ? WHERE id = ? AND table_id = ?";
+  $sql = "UPDATE sales_strategy SET linked_initiatives = ?, executive_sponsor = ?, status = ?, complete = ?, notes = ?, priority = ?, owner = ?, deadline = ? WHERE id = ? AND table_id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param('sssssii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $id, $table_id);
+  $stmt->bind_param('ssssssssii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $priority, $owner, $deadline, $id, $table_id);
   if ($stmt->execute()) {
     header("Location: /ItemPilot/home.php");
 exit;
@@ -27,10 +30,10 @@ exit;
 }
 
 
-$stmt = $conn->prepare("SELECT linked_initiatives, executive_sponsor, status, complete, notes FROM sales_strategy WHERE id = ? AND table_id = ?");
+$stmt = $conn->prepare("SELECT linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline FROM sales_strategy WHERE id = ? AND table_id = ?");
 $stmt->bind_param('ii', $id, $table_id);
 $stmt->execute();
-$stmt->bind_result($linked_initiatives, $executive_sponsor, $status, $complete, $notes);
+$stmt->bind_result($linked_initiatives, $executive_sponsor, $status, $complete, $notes, $priority, $owner, $deadline);
 if (! $stmt->fetch()) {
   die("Record #{$id} not found");
 }

@@ -59,7 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $executive_sponsor  = $_POST['executive_sponsor'] ?? '';
     $status             = $_POST['status'] ?? '';
     $complete           = $_POST['complete'] ?? '';
-
+    $priority           = $_POST['priority'] ?? '';
+    $owner              = $_POST['owner'] ?? '';
+    $deadline           = $_POST['deadline'] ?? '';
+ 
     // keep existing attachment if none uploaded
     $attachment = $_POST['existing_attachment'] ?? '';
 
@@ -81,11 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($id)) {
         $stmt = $conn->prepare("
           INSERT INTO sales_strategy
-            (linked_initiatives, notes, executive_sponsor, status, complete, attachment, table_id, user_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (linked_initiatives, notes, executive_sponsor, status, complete, priority, owner, deadline, attachment, table_id, user_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param('ssssssis',
-          $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $attachment, $table_id, $uid
+        $stmt->bind_param('sssssssssis',
+          $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $priority, $owner, $deadline, $attachment, $table_id, $uid
         );
     } else {
         $stmt = $conn->prepare("
@@ -95,11 +98,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  executive_sponsor  = ?,
                  status             = ?,
                  complete           = ?,
+                 priority           = ?,
+                 owner              = ?,
+                 deadline           = ?,
                  attachment         = ?
            WHERE id = ? AND table_id = ? AND user_id = ?
         ");
-        $stmt->bind_param('ssssssiii',
-          $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $attachment, $id, $table_id, $uid
+        $stmt->bind_param('sssssssssiii',
+          $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $priority, $owner, $deadline, $attachment, $id, $table_id, $uid
         );
     }
 
@@ -130,7 +136,7 @@ $countStmt->close();
 $totalPages = (int)ceil($totalRows / $limit);
 
 $dataStmt = $conn->prepare("
-  SELECT id, linked_initiatives, notes, executive_sponsor, status, complete, attachment
+  SELECT id, linked_initiatives, notes, executive_sponsor, status, complete, priority, owner, deadline, attachment
     FROM sales_strategy
    WHERE user_id = ? AND table_id = ?
 ORDER BY id ASC
@@ -147,7 +153,7 @@ $hasRecord = count($rows) > 0;
    Table head labels
 ----------------------------*/
 $theadStmt = $conn->prepare("
-  SELECT linked_initiatives, executive_sponsor, status, complete, notes, attachment
+  SELECT linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment
     FROM sales_strategy_thead
    WHERE user_id = ? AND table_id = ?
 ORDER BY id DESC
@@ -209,7 +215,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       <?php
       // Prefill THEAD form
       $theadFetch = $conn->prepare("
-        SELECT id, table_id, linked_initiatives, executive_sponsor, status, complete, notes, attachment
+        SELECT id, table_id, linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment
           FROM sales_strategy_thead
          WHERE user_id = ? AND table_id = ?
       ORDER BY id DESC
@@ -231,27 +237,39 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
 
           <div class="flex text-xs md:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-            <div class="w-1/6 p-2">
+            <div class="w-1/9 p-2">
               <input name="linked_initiatives" value="<?= htmlspecialchars($headRow['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      placeholder="Linked initiatives" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/6 p-2">
+            <div class="w-1/9 p-2">
               <input name="notes" value="<?= htmlspecialchars($headRow['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/6 p-2">
+            <div class="w-1/9 p-2">
               <input name="executive_sponsor" value="<?= htmlspecialchars($headRow['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      placeholder="Executive sponsor" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/6 p-2">
+            <div class="w-1/9 p-2">
               <input name="status" value="<?= htmlspecialchars($headRow['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/6 p-2">
+            <div class="w-1/9 p-2">
               <input name="complete" value="<?= htmlspecialchars($headRow['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      placeholder="Complete" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/6 p-2">
+            <div class="w-1/9 p-2">
+              <input name="priority" value="<?= htmlspecialchars($headRow['priority'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                     placeholder="Priority" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            </div>
+            <div class="w-1/9 p-2">
+              <input name="owner" value="<?= htmlspecialchars($headRow['owner'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                     placeholder="Owner" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            </div>
+            <div class="w-1/9 p-2">
+              <input name="deadline" value="<?= htmlspecialchars($headRow['deadline'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                     placeholder="Deadline" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            </div>
+            <div class="w-1/9 p-2">
               <input name="attachment" value="<?= htmlspecialchars($headRow['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
@@ -271,22 +289,22 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
             <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
             <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-            <div class="w-1/6 p-2 text-gray-600">
+            <div class="w-1/9 p-2 text-gray-600">
               <input type="text" name="linked_initiatives" value="<?= htmlspecialchars($r['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
-            <div class="w-1/6 p-2 text-gray-600">
+            <div class="w-1/9 p-2 text-gray-600">
               <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
-            <div class="w-1/6 p-2 text-gray-600">
+            <div class="w-1/9 p-2 text-gray-600">
               <input type="text" name="executive_sponsor" value="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
-            <div class="w-1/6 p-2 text-gray-600">
+            <div class="w-1/9 p-2 text-gray-600">
               <?php
                 $statusColors = [
                   'To Do'       => 'bg-gray-100 text-gray-800',
@@ -302,11 +320,27 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
               </select>
             </div>
 
-            <div class="w-1/6 p-2 text-gray-600">
+            <div class="w-1/9 p-2 text-gray-600">
               <input type="text" name="complete" value="<?= htmlspecialchars($r['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
-            <div class="w-1/6 p-2 flex items-center gap-3">
+
+                        <div class="w-1/9 p-2 text-gray-600">
+              <input type="text" name="priority" value="<?= htmlspecialchars($r['priority'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
+
+            <div class="w-1/9 p-2 text-gray-600">
+              <input type="text" name="owner" value="<?= htmlspecialchars($r['owner'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
+
+            <div class="w-1/9 p-2 text-gray-600">
+              <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
+
+            <div class="w-1/9 p-2 flex items-center gap-3">
               <?php if (!empty($r['attachment'])): ?>
                 <img src="/ItemPilot/categories/Sales Strategy/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
                      class="w-16 h-10 rounded-md" alt="Attachment">
@@ -410,6 +444,21 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       <div>
         <label><?= htmlspecialchars($thead['complete'] ?? 'Complete') ?></label>
         <input type="text" name="complete" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label><?= htmlspecialchars($thead['priority'] ?? 'Priority') ?></label>
+        <input type="text" name="priority" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label><?= htmlspecialchars($thead['owner'] ?? 'Owner') ?></label>
+        <input type="text" name="owner" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div>
+        <label><?= htmlspecialchars($thead['deadline'] ?? 'Deadline') ?></label>
+        <input type="text" name="deadline" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div>
