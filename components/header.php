@@ -128,7 +128,7 @@
               <path d="M3 3h18v18H3z"/>
               <path d="M8 9h8M8 13h5M8 17h8"/>
             </svg>
-            <li><a href="#insights">Insights</a></li>
+            <li><a href="#insights" class="cursor-not-allowed">Insights</a></li>
           </div>
 
           <!-- ===== USER ===== -->

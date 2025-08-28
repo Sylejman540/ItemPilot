@@ -21,70 +21,77 @@
   <!-- Tables Card -->
   <div class="md:ml-10 md:mr-10 ml-4 mr-4">
     <!-- Table List -->
-  <ul class="bg-white divide-y divide-gray-200">
-  <?php
-    // ---- UNIVERSAL TABLES ----
-    $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM tables WHERE user_id = ? ORDER BY table_id ASC");
-    $stmt->bind_param('i', $uid);
-    $stmt->execute();
-    $res = $stmt->get_result();
+    <ul class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <?php
+        // ---- UNIVERSAL TABLES ----
+        $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM tables WHERE user_id = ? ORDER BY table_id ASC");
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $res = $stmt->get_result();
 
-    while ($row = $res->fetch_assoc()):
-      $tid   = (int)$row['table_id'];
-      $title = htmlspecialchars($row['table_title'] ?? 'Untitled Table');
-      $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
-      $href  = "home.php?table_id={$tid}&page=1&type=universal";
-  ?>
-    <li class="flex items-center justify-between gap-4 px-4 py-5 hover:bg-gray-50 transition cursor-pointer">
-      <div class="flex items-center gap-4">
-        <img src="images/categories/db.svg" alt="" class="w-12 h-12">
-        <div>
-          <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
-          <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
-          <p class="text-xs text-gray-400">Placeholder for records count</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="px-3 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">Blank Base</span>
-        <a href="<?= $href ?>" class="text-gray-400 hover:text-gray-600">
-          <i class="fa-solid fa-ellipsis-vertical"></i>
+        while ($row = $res->fetch_assoc()):
+          $tid   = (int)$row['table_id'];
+          $title = htmlspecialchars($row['table_title'] ?? 'Untitled Table');
+          $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+          $href  = "home.php?table_id={$tid}&page=1&type=universal";
+      ?>
+      <!-- Universal Card -->
+      <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200">
+        <a href="<?= $href ?>" class="block p-5 space-y-3">
+          <div class="flex items-center gap-3">
+            <img src="images/categories/blank.svg" alt="" class="w-10 h-10">
+            <div>
+              <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
+              <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
+              <p class="text-xs text-gray-400">Placeholder for records count</p>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-3 border-t">
+            <span class="px-3 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">Blank Base</span>
+            <button class="text-gray-400 hover:text-gray-600 transition">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
         </a>
-      </div>
-    </li>
-  <?php endwhile; $stmt->close(); ?>
+      </li>
+      <?php endwhile; $stmt->close(); ?>
 
 
-  <?php
-    // ---- SALES STRATEGY TABLES ----
-    $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM sales_table WHERE user_id = ? ORDER BY table_id ASC");
-    $stmt->bind_param('i', $uid);
-    $stmt->execute();
-    $res = $stmt->get_result();
+      <?php
+        // ---- SALES STRATEGY TABLES ----
+        $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM sales_table WHERE user_id = ? ORDER BY table_id ASC");
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $res = $stmt->get_result();
 
-    while ($row = $res->fetch_assoc()):
-      $sid   = (int)$row['table_id'];
-      $title = htmlspecialchars($row['table_title'] ?? 'Untitled Sales');
-      $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
-      $href  = "home.php?table_id={$sid}&page=1&type=sales";
-  ?>
-    <li class="flex items-center justify-between gap-4 px-4 py-5 hover:bg-gray-50 transition cursor-pointer">
-      <div class="flex items-center gap-4">
-        <img src="images/categories/db.svg" alt="" class="w-12 h-12">
-        <div>
-          <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
-          <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
-          <p class="text-xs text-gray-400">Placeholder for sales data</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Sales Strategy</span>
-        <a href="<?= $href ?>" class="text-gray-400 hover:text-gray-600">
-          <i class="fa-solid fa-ellipsis-vertical"></i>
+        while ($row = $res->fetch_assoc()):
+          $sid   = (int)$row['table_id'];
+          $title = htmlspecialchars($row['table_title'] ?? 'Untitled Sales');
+          $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+          $href  = "home.php?table_id={$sid}&page=1&type=sales";
+      ?>
+      <!-- Sales Card -->
+      <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200">
+        <a href="<?= $href ?>" class="block p-5 space-y-3">
+          <div class="flex items-center gap-3">
+            <img src="images/categories/sales.svg" alt="" class="w-10 h-10">
+            <div>
+              <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
+              <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
+              <p class="text-xs text-gray-400">Placeholder for sales data</p>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-3 border-t">
+            <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Sales Strategy</span>
+            <button class="text-gray-400 hover:text-gray-600 transition">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
         </a>
-      </div>
-    </li>
-  <?php endwhile; $stmt->close(); ?>
-
-</ul>
+      </li>
+      <?php endwhile; $stmt->close(); ?>
+    </ul>
   </div>
 </section>
