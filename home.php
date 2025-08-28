@@ -774,13 +774,12 @@ if (menuBtn && sidebar) {
   });
 
   // -------- Enter submits form --------
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const form = e.target.closest('form');
-      if (form) form.submit();
-    }
+  document.addEventListener('change', (e) => {
+  if (e.target.closest('form')) {
+    e.target.closest('form').submit();
+  }
   });
+
 
   // -------- autosave status --------
   document.addEventListener('change', (e) => {
@@ -883,7 +882,5 @@ if (menuBtn && sidebar) {
   });
 })();
 </script>
-
-
 </body>
 </html>
