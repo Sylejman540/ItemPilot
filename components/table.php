@@ -33,7 +33,7 @@
           $tid   = (int)$row['table_id'];
           $title = htmlspecialchars($row['table_title'] ?? 'Untitled Table');
           $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
-          $href  = "home.php?table_id={$tid}&page=1&type=universal";
+          $href  = "/ItemPilot/home.php?autoload=1&table_id={$tid}";
       ?>
       <!-- Universal Card -->
       <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200">
@@ -69,7 +69,7 @@
           $sid   = (int)$row['table_id'];
           $title = htmlspecialchars($row['table_title'] ?? 'Untitled Sales');
           $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
-          $href  = "home.php?table_id={$sid}&page=1&type=sales";
+          $href  = "/ItemPilot/home.php?autoload=1&type=sales&table_id={$sid}";
       ?>
       <!-- Sales Card -->
       <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200">

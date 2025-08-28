@@ -29,10 +29,10 @@
           <li class="px-6 mt-6 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
             Data
           </li>
-          <!-- TABLES --> 
-          <button class="w-70 px-6 mt-3 py-3 flex items-center justify-start sidebar text-[#A7B6CC] hover:text-white" id="events">
+          <!-- TABLES -->
+          <button class="w-70 px-6 mt-3 py-3 flex items-center justify-start sidebar text-[#A7B6CC] hover:text-white">
             <div>
-              <span class="select-none flex justify-center items-center gap-5">
+              <span class="select-none flex justify-center items-center gap-5" id="events">
                 <!-- icon -->
                 <svg
                   class="w-4 h-4"
@@ -149,7 +149,8 @@
 
 <style>
   #sidebar {
-    transition: margin-left 0.3s ease-in-out;
+    transition: transform 0.3s ease-in-out;
+    display: none;
   }
   #sidebar.hidden {
     margin-left: -250px; /* adjust to your sidebar width */
@@ -168,5 +169,14 @@
   .navitem:hover {
     transition: background-color 0.3s ease;
     border-left: 2px solid #3b82f6; /* Tailwind blue-500 */
+  }
+
+    #sidebar {
+    transition: transform 0.3s ease-in-out;
+    display: none;
+  }
+  #sidebar.show {
+    transform: translateX(0);  
+    display: block;     /* slides in */
   }
 </style>

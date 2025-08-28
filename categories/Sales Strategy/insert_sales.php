@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute();
     $stmt->close();
 
-    header("Location: /ItemPilot/home.php");
+    header("Location: /ItemPilot/home.php?autoload=1&type=sales&table_id={$table_id}");
     exit;
 }
 
@@ -304,7 +304,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
-            <div class="w-30 p-2 text-gray-600 text-xs font-semibold">
+            <div class="w-1/10 p-2 text-gray-600 text-xs font-semibold">
               <?php
                 $statusColors = [
                   'To Do'       => 'bg-red-100 text-red-800',
@@ -347,7 +347,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
               <?php else: ?>
                 <span class="italic text-gray-400">📎 None</span>
               <?php endif; ?>
-              <div class="ml-auto flex justify-end items-center">
+              <div class="w-1/10 flex items-center">
                 <a href="/ItemPilot/categories/Sales Strategy/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
                    onclick="return confirm('Are you sure?')"
                   class="inline-block py-1 px-6 text-red-500 hover:bg-red-50 transition">
@@ -467,8 +467,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Attachment') ?></label>
-        <input id="attachment" type="file" name="attachment" accept="image/*,application/pdf"
-               class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
+        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm  file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
       <div>

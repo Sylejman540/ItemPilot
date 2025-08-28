@@ -16,7 +16,7 @@ $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
 /* ─────────── HELPERS ─────────── */
 function fetch_all_assoc(mysqli $conn, string $sql, string $types = '', array $params = []): array {
   $stmt = $conn->prepare($sql);
-  if ($types) $stmt->bind_param($types, ...$params);
+  if ($types && $params) $stmt->bind_param($types, ...$params);
   $stmt->execute();
   $res = $stmt->get_result();
   $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
@@ -25,33 +25,49 @@ function fetch_all_assoc(mysqli $conn, string $sql, string $types = '', array $p
 }
 function scalar(mysqli $conn, string $sql, string $types = '', array $params = []): int|float {
   $stmt = $conn->prepare($sql);
-  if ($types) $stmt->bind_param($types, ...$params);
+  if ($types && $params) $stmt->bind_param($types, ...$params);
   $stmt->execute();
   $res = $stmt->get_result()->fetch_row();
   $stmt->close();
   return (int)($res[0] ?? 0);
 }
 
-/* Common WHERE + params */
-$where = "WHERE user_id = ?".($tableId ? " AND table_id = ?" : "");
-$wTypes = $tableId ? "ii" : "i";
-$wArgs  = $tableId ? [$uid, $tableId] : [$uid];
+/* ─────────── COMMON WHERE for UNION ─────────── */
+if ($tableId) {
+  $whereUni  = "WHERE user_id = ? AND table_id = ?";
+  $whereSales = "WHERE user_id = ? AND table_id = ?";
+  $wTypes = "iiii";
+  $wArgs  = [$uid, $tableId, $uid, $tableId];
+} else {
+  $whereUni  = "WHERE user_id = ?";
+  $whereSales = "WHERE user_id = ?";
+  $wTypes = "ii";
+  $wArgs  = [$uid, $uid];
+}
 
-/* ─────────── DAILY LINE: records by day (last 90 days, zero-filled) ─────────── */
+/* ─────────── DAILY LINE: records by day (last 90 days) ─────────── */
 $rows = fetch_all_assoc(
   $conn,
-  "SELECT DATE(created_at) AS dt, COUNT(*) AS amt
+  "(SELECT DATE(created_at) AS dt, COUNT(*) AS amt
      FROM universal
-     $where AND created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
- GROUP BY DATE(created_at)
- ORDER BY dt ASC",
+     $whereUni AND created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+     GROUP BY DATE(created_at))
+   UNION ALL
+   (SELECT DATE(created_at) AS dt, COUNT(*) AS amt
+     FROM sales_strategy
+     $whereSales AND created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+     GROUP BY DATE(created_at))
+   ORDER BY dt ASC",
   $wTypes, $wArgs
 );
+
 /* zero-fill in PHP */
 $dealsMap = [];
-foreach ($rows as $r) $dealsMap[$r['dt']] = (int)$r['amt'];
+foreach ($rows as $r) {
+  $dealsMap[$r['dt']] = ($dealsMap[$r['dt']] ?? 0) + (int)$r['amt'];
+}
 $start = new DateTime(date('Y-m-d', strtotime('-89 days')));
-$end   = new DateTime(date('Y-m-d')); // inclusive
+$end   = new DateTime(date('Y-m-d')); 
 $deals = [];
 for ($d = clone $start; $d <= $end; $d->modify('+1 day')) {
   $key = $d->format('Y-m-d');
@@ -61,31 +77,66 @@ for ($d = clone $start; $d <= $end; $d->modify('+1 day')) {
 /* ─────────── DONUT: by status ─────────── */
 $statusData = fetch_all_assoc(
   $conn,
-  "SELECT COALESCE(NULLIF(TRIM(status),''),'(none)') AS status, COUNT(*) AS cnt
+  "(SELECT COALESCE(NULLIF(TRIM(status),''),'(none)') AS status, COUNT(*) AS cnt
      FROM universal
-     $where
- GROUP BY status
- ORDER BY cnt DESC",
+     $whereUni
+     GROUP BY status)
+   UNION ALL
+   (SELECT COALESCE(NULLIF(TRIM(status),''),'(none)') AS status, COUNT(*) AS cnt
+     FROM sales_strategy
+     $whereSales
+     GROUP BY status)",
   $wTypes, $wArgs
 );
 
-/* ─────────── BAR: by assignee (top 5) ─────────── */
+/* ─────────── BAR: by assignee (top 5, only in universal) ─────────── */
 $assigneeData = fetch_all_assoc(
   $conn,
-  "SELECT COALESCE(NULLIF(TRIM(assignee),''),'(unassigned)') AS assignee, COUNT(*) AS cnt
+  "SELECT assignee, SUM(cnt) AS cnt
+   FROM (
+     SELECT COALESCE(NULLIF(TRIM(assignee),''),'(unassigned)') AS assignee, COUNT(*) AS cnt
      FROM universal
-     $where
- GROUP BY assignee
- ORDER BY cnt DESC
-    LIMIT 5",
+     $whereUni
+     GROUP BY assignee
+
+     UNION ALL
+
+     SELECT '(unassigned)' AS assignee, COUNT(*) AS cnt
+     FROM sales_strategy
+     $whereSales
+   ) AS combined
+   GROUP BY assignee
+   ORDER BY cnt DESC
+   LIMIT 5",
   $wTypes, $wArgs
 );
 
 /* ─────────── KPIs ─────────── */
-$totalRecords = scalar($conn, "SELECT COUNT(*) FROM universal $where", $wTypes, $wArgs);
-$completed    = scalar($conn, "SELECT COUNT(*) FROM universal $where AND status = 'completed'", $wTypes, $wArgs);
-$newLast7     = scalar($conn, "SELECT COUNT(*) FROM universal $where AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)", $wTypes, $wArgs);
-$successPct   = $totalRecords ? round($completed / $totalRecords * 100, 1) : 0;
+$totalRecords = scalar(
+  $conn,
+  "(SELECT COUNT(*) AS c FROM universal $whereUni)
+   UNION ALL
+   (SELECT COUNT(*) AS c FROM sales_strategy $whereSales)",
+  $wTypes, $wArgs
+);
+
+$completed = scalar(
+  $conn,
+  "(SELECT COUNT(*) AS c FROM universal $whereUni AND status = 'completed')
+   UNION ALL
+   (SELECT COUNT(*) AS c FROM sales_strategy $whereSales AND status = 'completed')",
+  $wTypes, $wArgs
+);
+
+$newLast7 = scalar(
+  $conn,
+  "(SELECT COUNT(*) AS c FROM universal $whereUni AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY))
+   UNION ALL
+   (SELECT COUNT(*) AS c FROM sales_strategy $whereSales AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY))",
+  $wTypes, $wArgs
+);
+
+$successPct = $totalRecords ? round($completed / $totalRecords * 100, 1) : 0;
 
 $kpis = [
   ['metric'=>'All Records','value'=>$totalRecords,'dateRange'=>'Scoped to you'.($tableId?' · table '.$tableId:''),'color'=>'text-blue-600'],
@@ -93,10 +144,11 @@ $kpis = [
   ['metric'=>'Impact','value'=>$successPct,'dateRange'=>'Completion rate','color'=>'text-amber-500','isPct'=>true],
 ];
 
-/* ─────────── PROGRESS (derived from actual status mix) ───────────
-   We try to map common statuses; if not present, we take top 4 statuses dynamically. */
+/* ─────────── PROGRESS (status mix) ─────────── */
 $counts = [];
-foreach ($statusData as $s) $counts[$s['status']] = (int)$s['cnt'];
+foreach ($statusData as $s) {
+  $counts[$s['status']] = ($counts[$s['status']] ?? 0) + (int)$s['cnt'];
+}
 $den = max(1, $totalRecords);
 $pick = function($label) use ($counts) { return $counts[$label] ?? 0; };
 
@@ -118,7 +170,6 @@ if ($hasNamed) {
     ['metric'=>'Done','value'=>$done,'delta'=>0.0,'pct'=>round($done/$den*100),'bar'=>'bg-amber-500'],
   ];
 } else {
-  /* Fallback: top 4 statuses dynamically turned into progress cards */
   $progress = [];
   $palette  = ['bg-blue-500','bg-emerald-500','bg-amber-500','bg-rose-500'];
   foreach (array_slice($statusData, 0, 4) as $i => $s) {
@@ -132,8 +183,8 @@ if ($hasNamed) {
     ];
   }
 }
-
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en" class="overflow-x-hidden">
@@ -571,96 +622,75 @@ if ($hasNamed) {
   //   templates.style.display = 'block';
   // })
 
-  // -------- sidebar toggle --------
-  const menuBtn       = document.getElementById('menuBtn');
-  const sidebar       = document.getElementById('sidebar');
-  const hamburgerIcon = document.getElementById('hamburgerIcon');
-  const closeIcon     = document.getElementById('closeIcon');
-  const root          = document.documentElement;
-  const appHeader     = document.getElementById('appHeader');
+const menuBtn   = document.getElementById('menuBtn');
+const sidebar   = document.getElementById('sidebar');
+const root      = document.documentElement;
+const appHeader = document.getElementById('appHeader');
 
-  if (menuBtn && sidebar) {
-    const OFFSET_PX = 1;
-    const PEEK_PX   = 20;
+if (menuBtn && sidebar) {
+  const OFFSET_PX = 1;
+  const PEEK_PX   = 20;
 
-    const isHidden = () => sidebar.classList.contains('hidden');
-    const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+  const isHidden = () => !sidebar.classList.contains('show');
+  const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
 
-    function sidebarWidth() {
-      let wasHidden = isHidden();
-      if (wasHidden) sidebar.classList.remove('hidden');
-      const w = Math.ceil(sidebar.getBoundingClientRect().width);
-      if (wasHidden) sidebar.classList.add('hidden');
-      return w;
-    }
+  function sidebarWidth() {
+    sidebar.classList.add('show'); // temporarily show
+    const w = Math.ceil(sidebar.getBoundingClientRect().width);
+    if (isHidden()) sidebar.classList.remove('show');
+    return w;
+  }
 
-    function addBackdrop() {
-      if (document.getElementById('sb-backdrop')) return;
-      const el = document.createElement('div');
-      el.id = 'sb-backdrop';
-      el.addEventListener('click', () => closeSidebar());
-      document.body.appendChild(el);
-      document.body.classList.add('no-scroll');
-      root.classList.add('mobile-dim');
-    }
-    function removeBackdrop() {
-      const el = document.getElementById('sb-backdrop');
-      if (el) el.remove();
-      document.body.classList.remove('no-scroll');
-      root.classList.remove('mobile-dim');
-    }
+  function addBackdrop() {
+    if (document.getElementById('sb-backdrop')) return;
+    const el = document.createElement('div');
+    el.id = 'sb-backdrop';
+    el.addEventListener('click', closeSidebar);
+    document.body.appendChild(el);
+    document.body.classList.add('no-scroll');
+    root.classList.add('mobile-dim');
+  }
 
-    function openSidebar() {
-      const w = sidebarWidth();
-      root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
-      sidebar.classList.remove('hidden');
-      sidebar.style.marginLeft = '0px';
-      menuBtn.setAttribute('aria-expanded', 'true');
-      if (isMobile()) addBackdrop();
-      if (appHeader) {
-        appHeader.classList.remove('w-[400px]');
-        appHeader.classList.add('max-w-lg');
-      }
-    }
-    function closeSidebar() {
-      const w = sidebarWidth();
-      sidebar.style.marginLeft = `-${Math.max(0, w - PEEK_PX)}px`;
-      sidebar.classList.add('hidden');
-      root.style.setProperty('--sbw', '0px');
-      menuBtn.setAttribute('aria-expanded', 'false');
-      if (isMobile()) removeBackdrop();
-      if (appHeader) {
-        appHeader.classList.remove('max-w-lg');
-        appHeader.classList.add('w-[400px]');
-      }
-    }
+  function removeBackdrop() {
+    const el = document.getElementById('sb-backdrop');
+    if (el) el.remove();
+    document.body.classList.remove('no-scroll');
+    root.classList.remove('mobile-dim');
+  }
 
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      isHidden() ? openSidebar() : closeSidebar();
-    });
-    sidebar.addEventListener('click', (e) => e.stopPropagation());
-    document.addEventListener('click', (e) => {
-      if (!isMobile()) return;
-      if (isHidden()) return;
-      const clickedInside = sidebar.contains(e.target);
-      const clickedBtn = menuBtn.contains(e.target);
-      if (!clickedInside && !clickedBtn) closeSidebar();
-    }, true);
-    window.addEventListener('resize', () => {
-      if (!isMobile() && !isHidden()) {
-        const w = sidebarWidth();
-        root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
-      }
-      if (!isMobile()) removeBackdrop();
-    });
-    if (!isHidden()) {
-      const w = sidebarWidth();
-      root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
-    } else {
-      root.style.setProperty('--sbw', '0px');
+  function openSidebar() {
+    const w = sidebarWidth();
+    sidebar.classList.add('show');
+    root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
+    menuBtn.setAttribute('aria-expanded', 'true');
+    if (isMobile()) addBackdrop();
+    if (appHeader) {
+      appHeader.classList.remove('w-[400px]');
+      appHeader.classList.add('max-w-lg');
     }
   }
+
+  function closeSidebar() {
+    const w = sidebarWidth();
+    sidebar.classList.remove('show');
+    root.style.setProperty('--sbw', '0px');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    if (isMobile()) removeBackdrop();
+    if (appHeader) {
+      appHeader.classList.remove('max-w-lg');
+      appHeader.classList.add('w-[400px]');
+    }
+  }
+
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isHidden() ? openSidebar() : closeSidebar();
+  });
+
+  // Prevent flicker on load / AJAX
+  closeSidebar();
+  }
+
 
   // -------- tabs --------
   const homeTab    = document.getElementById("home");
@@ -783,10 +813,17 @@ if ($hasNamed) {
   });
 
   // -------- autoload --------
-  const shouldAutoload = new URLSearchParams(window.location.search).get("autoload");
-  if (shouldAutoload) {
-    if (currentId) loadTable(currentId, currentPage);
-    if (currentSalesId) loadStrategy(currentSalesId, currentPage);
+  const params = new URLSearchParams(window.location.search);
+  const shouldAutoload = params.get("autoload");
+  const tableIdFromUrl = parseInt(params.get("table_id")) || null;
+  const tableType      = params.get("type");
+
+  if (shouldAutoload && tableIdFromUrl) {
+    if (tableType === "sales") {
+      loadStrategy(tableIdFromUrl, currentPage);
+    } else {
+      loadTable(tableIdFromUrl, currentPage);
+    }
   }
 })();
 

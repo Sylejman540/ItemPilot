@@ -39,5 +39,5 @@ if (!$stmt->execute()) {
 }
 $stmt->close();
 
-header("Location: /ItemPilot/home.php");
+header("Location: /ItemPilot/home.php?autoload=1&type=sales&table_id={$table_id}");
 exit;

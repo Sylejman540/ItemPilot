@@ -23,6 +23,6 @@ if ($stmt->affected_rows === 0) {
 
 $stmt->close();
 
-header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+header("Location: /ItemPilot/home.php?autoload=1&type=sales&table_id={$table_id}");
 exit;
 

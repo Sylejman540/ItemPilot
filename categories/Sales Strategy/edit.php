@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // (happens when the row belongs to another user or title is unchanged)
   // $_SESSION['flash'] = $affected > 0 ? '✅ Title updated' : 'ℹ️ No changes';
 
-  header("Location: /ItemPilot/home.php");
+  header("Location: /ItemPilot/home.php?autoload=1&type=sales&table_id={$table_id}");
   exit;
 }
 
@@ -61,5 +61,5 @@ $stmt->close();
 
 // If you want to render something here, echo the title or a small form.
 // Otherwise, this endpoint is POST-only and you can redirect:
-header("Location: /ItemPilot/home.php");
+header("Location: /ItemPilot/home.php?autoload=1&type=sales&table_id={$table_id}");
 exit;

@@ -22,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt = $conn->prepare($sql);
   $stmt->bind_param('ssssssssii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $priority, $owner, $deadline, $id, $table_id);
   if ($stmt->execute()) {
-    header("Location: /ItemPilot/home.php");
-exit;
+  header("Location: /ItemPilot/home.php?autoload=1&type=sales&table_id={$table_id}");
+  exit;
   }else {
     die("Update failed: " . $stmt->error);
   }

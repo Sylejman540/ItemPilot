@@ -3,7 +3,7 @@
 <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
 <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
 
-<section class="bg-gray-100 rounded-md w-full" id="home-right">
+<section class="bg-gray-100 rounded-md w-full ml-2 mr-2" id="home-right">
         
 <article class="mx-5 md:mx-12 lg:mx-16 mb-10">
   <!-- Section header -->
@@ -82,17 +82,6 @@
       <?php endforeach; ?>
     </div>
   </div>
-
-<div id="dealsChart"></div>
-<div id="statusChart"></div>
-<div id="assigneeChart"></div>
-<div id="completionChart"></div>
-<div id="dealsBurnupChart"></div>
-<div id="dealsMAChart"></div>
-<div id="weekdayChart"></div>
-<div id="monthlyChart"></div>
-<div id="dealsSparkline"></div>
-
 </article>
 </section>
 
