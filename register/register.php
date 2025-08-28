@@ -1,5 +1,10 @@
 <?php
 require_once __DIR__ . '/../db.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require __DIR__ . '/../vendor/autoload.php';
 
 if (isset($_POST['signup'])) {
     $name     = trim($_POST['name'] ?? '');
@@ -8,41 +13,58 @@ if (isset($_POST['signup'])) {
 
     // Basic validation
     if (empty($name) || empty($email) || empty($password)) {
-        header("location: /ItemPilot/index.php?status=missing_fields");
+        header("Location: /ItemPilot/index.php?status=missing_fields");
         exit;
     }
-
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        header("location: /ItemPilot/index.php?status=invalid_format");
+        header("Location: /ItemPilot/index.php?status=invalid_format");
         exit;
     }
-
-    // Hash password
-    $hash = password_hash($password, PASSWORD_BCRYPT);
 
     // Check if email exists
-    $checkEmail = "SELECT id FROM users WHERE email = ?";
-    $stmt = $conn->prepare($checkEmail);
-    $stmt->bind_param('s', $email);
+    $stmt = $conn->prepare("SELECT id FROM users WHERE email=? LIMIT 1");
+    $stmt->bind_param("s", $email);
     $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        // Email already taken
-        header("location: /ItemPilot/index.php?status=invalid_email");
+    $res = $stmt->get_result();
+    if ($res->num_rows > 0) {
+        header("Location: /ItemPilot/index.php?status=invalid_email");
         exit;
     }
 
-    // Insert new user
-    $insertInto = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
-    $stmt = $conn->prepare($insertInto);
-    $stmt->bind_param('sss', $name, $email, $hash);
+    // Password hash
+    $hash = password_hash($password, PASSWORD_BCRYPT);
 
-    if ($stmt->execute()) {
-        header("location: /ItemPilot/home.php");
-        exit;
-    } else {
-        // Log error in production instead of showing
-        die("Error inserting user: " . $stmt->error);
+    // Generate verification code
+    $verifyCode = rand(100000, 999999);
+
+    // Insert user
+    $stmt = $conn->prepare("INSERT INTO users (name,email,password,is_verified,verify_code) VALUES (?,?,?,?,?)");
+    $zero = 0;
+    $stmt->bind_param("sssis", $name, $email, $hash, $zero, $verifyCode);
+    $stmt->execute();
+
+    // Send verification email
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'durgutisylejman00@gmail.com';
+        $mail->Password   = 'abqk vjfp qien siea'; // ⚠️ Gmail App Password
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+
+        $mail->setFrom('durgutisylejman00@gmail.com', 'ItemPilot');
+        $mail->addAddress($email, $name);
+        $mail->isHTML(true);
+        $mail->Subject = 'Verify your ItemPilot Account';
+        $mail->Body    = "<p>Your verification code is:</p><h2>$verifyCode</h2>";
+        $mail->send();
+    } catch (Exception $e) {
+        error_log("Mailer Error: {$mail->ErrorInfo}");
     }
+
+    $_SESSION['verify_email'] = $email;
+    header("Location: /ItemPilot/register/verify.php");
+    exit;
 }

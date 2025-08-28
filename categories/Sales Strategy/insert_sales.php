@@ -371,32 +371,33 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
 
        <?php if ($totalPages > 1): ?>
-      <div class="pagination my-2 flex justify-start md:justify-center space-x-2">
-        <?php if ($page > 1): ?>
-          <a href="insert_sales.php?page=<?= $page-1 ?>"
-            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
-            « Prev
-          </a>
-        <?php endif; ?>
-
-        <?php for ($i=1; $i<=$totalPages; $i++): ?>
-          <a href="insert_sales.php?page=<?= $i ?>"
-            class="px-3 py-1 border rounded transition
-                    <?= $i===$page
-                      ? 'bg-blue-600 text-white border-blue-600 font-semibold'
-                      : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>">
-            <?= $i ?>
-          </a>
-        <?php endfor; ?>
-
-        <?php if ($page < $totalPages): ?>
-          <a href="insert_sales.php?page=<?= $page+1 ?>"
-            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
-            Next »
-          </a>
-        <?php endif; ?>
-      </div>
+  <div class="pagination strategy-section my-2 flex justify-start md:justify-center space-x-2">
+    <?php if ($page > 1): ?>
+      <a href="insert_sales.php?page=<?= $page-1 ?>&table_id=<?= $salesId ?>"
+         class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
+        « Prev
+      </a>
     <?php endif; ?>
+
+    <?php for ($i=1; $i<=$totalPages; $i++): ?>
+      <a href="insert_sales.php?page=<?= $i ?>&table_id=<?= $salesId ?>"
+         class="px-3 py-1 border rounded transition
+                <?= $i===$page
+                  ? 'bg-blue-600 text-white border-blue-600 font-semibold'
+                  : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>">
+        <?= $i ?>
+      </a>
+    <?php endfor; ?>
+
+    <?php if ($page < $totalPages): ?>
+      <a href="insert_sales.php?page=<?= $page+1 ?>&table_id=<?= $salesId ?>"
+         class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
+        Next »
+      </a>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
+
     </div>
   </div>
 </header>
