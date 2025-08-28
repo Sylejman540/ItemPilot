@@ -152,7 +152,7 @@ $first = $rows[0] ?? null;
       $row = $res->fetch_assoc(); ?>
       <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php" class="mt-2">
         <input type="hidden" name="table_id" value="<?= (int)$row['table_id'] ?>">
-        <input type="text" name="table_title" value="<?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-semibold text-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        <input type="text" name="table_title" value="<?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
       </form>
     <?php
     } else {
@@ -167,8 +167,8 @@ $first = $rows[0] ?? null;
     </button>
   </section>
 
-<main class="md:mt-10 mt-40 overflow-x-auto md:overflow-x-hidden">
-  <div class="mx-3 md:mx-8 mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
+<main class="md:mt-10 mt-10 overflow-x-auto md:overflow-x-hidden">
+  <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
     <?php
     // get the most recent row just to PREFILL inputs (not to update it)
@@ -191,12 +191,12 @@ $first = $rows[0] ?? null;
     ?>
 
   <div class="universal-table" id="ut-<?= (int)$tableId ?>" data-table-id="<?= (int)$tableId ?>">
-    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full mb-2 thead-form border-b border-gray-200" data-table-id="<?= (int)$tableId ?>">
+    <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$tableId ?>">
 
       <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
       <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
 
-      <div class="flex text-xs md:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+      <div class="flex text-xs md:text-xs font-bold text-gray-900 uppercase">
         <div class="w-1/5 p-2">
           <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
@@ -238,22 +238,22 @@ $first = $rows[0] ?? null;
           <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
         </div>
 
-        <div class="w-40 px-3 py-1 text-xs font-semibold">
+        <div class="w-30 px-3 py-1 text-xs font-semibold">
           <?php
             $statusColors = [
-              'To Do'       => 'bg-gray-100 text-gray-800',
+              'To Do'       => 'bg-red-100 text-red-800',
               'In Progress' => 'bg-yellow-100 text-yellow-800',
               'Done'        => 'bg-green-100 text-green-800'
             ];
             $colorClass = $statusColors[$r['status']] ?? 'bg-white text-gray-900';
           ?>
-          <select name="status" class="w-full px-2 py-1 rounded-xl status--autosave <?= $colorClass ?>">
+          <select name="status" class="custom-select w-full px-3 py-1 rounded-xl status--autosave <?= $colorClass ?>">
             <option value="To Do"       <?= $r['status'] === 'To Do' ? 'selected' : '' ?>>To Do</option>
             <option value="In Progress" <?= $r['status'] === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
             <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
           </select>
         </div>
-        <div class="w-1/5 p-2 flex items-center gap-3 ml-8">
+        <div class="w-1/5 p-2 flex items-center gap-3 ml-19">
           <?php if ($r['attachment_summary']): ?>
             <!-- Show uploaded attachment -->
             <img 
@@ -263,7 +263,7 @@ $first = $rows[0] ?? null;
             >
           <?php else: ?>
             <!-- Show 'None' when no attachment -->
-            <span class="italic text-gray-400 ml-4">None</span>
+            <span class="italic text-gray-400 ml-2">📎 None</span>
           <?php endif; ?>
 
           <!-- Delete action -->
@@ -272,7 +272,14 @@ $first = $rows[0] ?? null;
               href="/ItemPilot/categories/Universal Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"
               onclick="return confirm('Are you sure?')"
               class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
-                <i class="fa-solid fa-trash"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" viewBox="0 0 24 24" 
+                  stroke-width="1.8" stroke="currentColor" 
+                  class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
+                <path stroke-linecap="round" 
+                      stroke-linejoin="round" 
+                      d="M9 3h6m2 4H7l1 12h8l1-12z" />
+              </svg>
             </a>
           </div>
 
@@ -349,25 +356,45 @@ $first = $rows[0] ?? null;
         }
         $stmt->close();
       ?>
+
+      <?php
+        // get the most recent row just to PREFILL inputs (not to update it)
+        $stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
+          FROM universal_thead
+          WHERE user_id = ? AND table_id = ?
+          ORDER BY id DESC
+          LIMIT 1");
+        $stmt->bind_param('ii', $uid, $tableId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+
+        if ($res && $res->num_rows) {
+          $row = $res->fetch_assoc();   
+          $row['id'] = 0;      
+        } else {
+          $row = ['id'=>0, 'table_id'=>$tableId];
+        }
+        $stmt->close();
+      ?>
       
       <div class="mt-5">
-        <label><?= htmlspecialchars($row['thead_name'] ?? 'Name') ?></label>
-        <input type="text" name="name" id="name" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($row['thead_name'] ?? 'Name') ?></label>
+        <input type="text" name="name" id="name" placeholder="<?= htmlspecialchars($row['thead_name'] ?? 'Name') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
       
       <div>
-        <label><?= htmlspecialchars($row['thead_notes'] ?? 'Notes') ?></label>
-        <input type="text" name="notes" id="notes" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($row['thead_notes'] ?? 'Notes') ?></label>
+        <input type="text" name="notes" id="notes" placeholder="<?= htmlspecialchars($row['thead_notes'] ?? 'Notes') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label><?= htmlspecialchars($row['thead_assignee'] ?? 'Assignee') ?></label>
-        <input type="text" name="assignee" id="assignee" class="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($row['thead_assignee'] ?? 'Assignee') ?></label>
+        <input type="text" name="assignee" id="assignee" placeholder="<?= htmlspecialchars($row['thead_assignee'] ?? 'Assignee') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label><?= htmlspecialchars($row['thead_status'] ?? 'Status') ?></label>
-        <select name="status" class="w-full mt-1 px-4 py-2 border rounded-lg">
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($row['thead_status'] ?? 'Status') ?></label>
+        <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="To Do">To Do</option>
           <option value="In Progress">In Progress</option>
           <option value="Done">Done</option>
@@ -375,7 +402,7 @@ $first = $rows[0] ?? null;
       </div>
       
       <div>
-        <label><?= htmlspecialchars($row['thead_attachment'] ?? 'Attachment') ?></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($row['thead_attachment'] ?? 'Attachment') ?></label>
         <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
@@ -386,6 +413,12 @@ $first = $rows[0] ?? null;
    </div>
   </div>
 
+  
 
+<style>
+.custom-select {
+  appearance: none; 
+}
+</style>
 </body>
 </html>

@@ -3,18 +3,15 @@
   <!-- Aside -->
   <aside id="sidebar" class="w-75 block bg-[#263544] min-h-screen">
     <a href="/ItemPilot/home.php">
-      <div class="flex items-center gap-2 px-4 py-4">
+      <div class="flex items-center gap-2 px-4">
         <!-- Logo icon -->
-        <img src="images/logo.png" alt="" class="w-15 h-15">
-
-        <!-- Brand name -->
-        <span class="text-white font-semibold text-lg tracking-wide">Pilota</span>
+        <img src="images/logo(4).png" alt="" class="w-30 h-30">
       </div>
     </a>
       <nav>
        <ul class="text-md">
           <!-- ===== GENERAL ===== -->
-          <li class="px-6 mt-6 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
+          <li class="px-6 mt-2 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
             General
           </li>
           <!-- DASHBOARD -->
@@ -102,7 +99,16 @@
                   onclick="return confirm('Are you sure you want to delete this entire table?');"
                   class="text-red-500 hover:text-red-700 mt-2"
                 >
-                  <button class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                <button class="text-gray-400 hover:text-red-500 transition mt-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" 
+                      fill="none" viewBox="0 0 24 24" 
+                      stroke-width="1.8" stroke="currentColor" 
+                      class="w-5 h-5">
+                    <path stroke-linecap="round" 
+                          stroke-linejoin="round" 
+                          d="M9 3h6m2 4H7l1 12h8l1-12z" />
+                  </svg>
+                </button>
                 </a>
               </li>
             <?php
@@ -116,7 +122,7 @@
           </ul>
 
           <!-- INSIGHTS -->
-          <div class="w-70 py-3 cursor-pointer px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white" id="insights">
+          <div class="w-70 py-3 px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white cursor-not-allowed" id="insights">
             <svg class="w-4 h-4 mt-[3px]" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
               <path d="M3 3h18v18H3z"/>
