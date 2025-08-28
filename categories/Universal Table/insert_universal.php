@@ -138,7 +138,7 @@ $rows  = $rows ?? [];
 $first = $rows[0] ?? null;   
 ?>
 
-<header id="appHeader"  class="absolute mt-25 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
+<header id="appHeader"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
   <section class="flex mt-2 justify-between ml-3" id="randomHeader">
     <?php
     $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
@@ -167,7 +167,7 @@ $first = $rows[0] ?? null;
     </button>
   </section>
 
-<main class="md:mt-10 mt-10 overflow-x-auto md:overflow-x-hidden">
+<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
   <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
     <?php

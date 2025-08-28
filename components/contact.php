@@ -1,5 +1,5 @@
 <!-- Contact Us -->
-<section class="bg-gray-100 rounded-md hidden w-full h-screen" id="contact-right">
+<section class="bg-gray-100 rounded-md hidden w-full" id="contact-right">
     
     <div class="flex gap-2 md:px-50 mt-20">
       <img src="images/contact.png" alt="Contact" class="w-10 h-10 rounded-full mr-3">

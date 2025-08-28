@@ -184,7 +184,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
 <div id="sales-right"></div>
 
-<header id="appHeader" class="absolute mt-25 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
+<header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
   <section class="flex mt-2 justify-between ml-3">
     <!-- Rename action to the title handler and encode the space -->
     <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="flex gap-2 mt-2">
@@ -209,7 +209,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
 
 
-<main class="md:mt-10 mt-10 overflow-x-auto md:overflow-x-hidden" id="strategy">
+<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" id="strategy">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[90rem]">
 
       <?php
@@ -371,7 +371,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
 
        <?php if ($totalPages > 1): ?>
-      <div class="pagination my-4 flex justify-start md:justify-center space-x-2">
+      <div class="pagination my-2 flex justify-start md:justify-center space-x-2">
         <?php if ($page > 1): ?>
           <a href="insert_sales.php?page=<?= $page-1 ?>"
             class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
