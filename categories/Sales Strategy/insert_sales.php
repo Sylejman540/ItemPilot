@@ -185,9 +185,9 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 <div id="sales-right"></div>
 
 <header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
-  <section class="flex mt-2 justify-between ml-3">
+  <section class="flex mt-6 justify-between ml-3">
     <!-- Rename action to the title handler and encode the space -->
-    <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="flex gap-2 mt-2">
+    <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="flex gap-2">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <input
         type="text"

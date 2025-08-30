@@ -139,7 +139,7 @@ $first = $rows[0] ?? null;
 ?>
 
 <header id="appHeader"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
-  <section class="flex mt-2 justify-between ml-3" id="randomHeader">
+  <section class="flex mt-6 justify-between ml-3" id="randomHeader">
     <?php
     $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
 
@@ -150,7 +150,7 @@ $first = $rows[0] ?? null;
 
     if ($res && $res->num_rows) {
       $row = $res->fetch_assoc(); ?>
-      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php" class="mt-2">
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit.php">
         <input type="hidden" name="table_id" value="<?= (int)$row['table_id'] ?>">
         <input type="text" name="table_title" value="<?= htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
       </form>
