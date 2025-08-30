@@ -750,6 +750,7 @@ if (menuBtn && sidebar) {
       appHeader.classList.remove('w-[400px]');
       appHeader.classList.add('max-w-lg');
     }
+    localStorage.setItem('sidebarState', 'open'); // ✅ remember
   }
 
   function closeSidebar() {
@@ -762,6 +763,7 @@ if (menuBtn && sidebar) {
       appHeader.classList.remove('max-w-lg');
       appHeader.classList.add('w-[400px]');
     }
+    localStorage.setItem('sidebarState', 'closed'); // ✅ remember
   }
 
   menuBtn.addEventListener('click', (e) => {
@@ -769,9 +771,26 @@ if (menuBtn && sidebar) {
     isHidden() ? openSidebar() : closeSidebar();
   });
 
-  // Prevent flicker on load / AJAX
-  closeSidebar();
+  // ✅ Restore state from history
+  const savedState = localStorage.getItem('sidebarState');
+  if (savedState === 'open') {
+    openSidebar();
+  } else if (savedState === 'closed') {
+    closeSidebar();
+  } else {
+    // default if nothing saved yet
+    closeSidebar(); // start closed (you can change to openSidebar() for desktop default)
   }
+
+  // ✅ Handle redirect after insert/edit/delete
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("action") === "done") {
+    if (isMobile()) {
+      closeSidebar(); // auto-close mobile
+    }
+    // desktop stays as last saved
+  }
+}
 
 
   // -------- tabs --------
