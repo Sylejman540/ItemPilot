@@ -10,9 +10,6 @@ if ($uid <= 0) {
   exit;
 }
 
-/* ─────────── INPUTS ─────────── */
-$tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
-
 /* ─────────── HELPERS ─────────── */
 function fetch_all_assoc($conn, $sql, $types = '', $params = []) {
   $stmt = $conn->prepare($sql);
@@ -24,7 +21,69 @@ function fetch_all_assoc($conn, $sql, $types = '', $params = []) {
   return $rows;
 }
 
+/**
+ * Fill missing daily dates with null (so Apex breaks lines if gaps exist)
+ */
+function fillMissingDailyWithNull(array $rows): array {
+    if (empty($rows)) return [];
+
+    $map = [];
+    foreach ($rows as $r) {
+        $map[$r['dt']] = (int)$r['cnt'];
+    }
+
+    $startDate = $rows[0]['dt'];
+    $endDate   = $rows[count($rows)-1]['dt'];
+
+    $out = [];
+    $current = new DateTime($startDate);
+    $end     = new DateTime($endDate);
+
+    while ($current <= $end) {
+        $dt = $current->format('Y-m-d');
+        $out[] = [
+            'dt'  => $dt,
+            'cnt' => $map[$dt] ?? null
+        ];
+        $current->modify('+1 day');
+    }
+
+    return $out;
+}
+
+/**
+ * Fill missing months with null (so no bar drawn for empty months)
+ */
+function fillMissingMonthlyWithNull(array $rows): array {
+    if (empty($rows)) return [];
+
+    $map = [];
+    foreach ($rows as $r) {
+        $map[$r['mth']] = (int)$r['cnt'];
+    }
+
+    $startMonth = $rows[0]['mth'];
+    $endMonth   = $rows[count($rows)-1]['mth'];
+
+    $out = [];
+    $current = new DateTime($startMonth . "-01");
+    $end     = new DateTime($endMonth . "-01");
+
+    while ($current <= $end) {
+        $mth = $current->format('Y-m');
+        $out[] = [
+            'mth' => $mth,
+            'cnt' => $map[$mth] ?? null
+        ];
+        $current->modify('+1 month');
+    }
+
+    return $out;
+}
+
 /* ─────────── COMMON WHERE ─────────── */
+$tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
+
 if ($tableId) {
   $whereUni   = "WHERE u.user_id = ? AND u.table_id = ?";
   $whereSales = "WHERE s.user_id = ? AND s.table_id = ?";
@@ -39,56 +98,118 @@ if ($tableId) {
 
 /* ─────────── QUERIES FOR CHARTS ─────────── */
 
-// 1. Area → New Tables Created
+/* ─────────── HEADER CARD METRICS ─────────── */
+
+// Total tables (from tables + sales_table)
+$totalTables = fetch_all_assoc(
+  $conn,
+  "SELECT SUM(cnt) as total FROM (
+      SELECT COUNT(*) as cnt FROM tables t WHERE t.user_id=? 
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM sales_table st WHERE st.user_id=? 
+   ) as combined",
+  "ii", [$uid, $uid]
+);
+$totalTables = $totalTables[0]['total'] ?? 0;
+
+// Total records (from universal + sales_strategy)
+$totalRecords = fetch_all_assoc(
+  $conn,
+  "SELECT SUM(cnt) as total FROM (
+      SELECT COUNT(*) as cnt FROM universal u WHERE u.user_id=? 
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM sales_strategy s WHERE s.user_id=? 
+   ) as combined",
+  "ii", [$uid, $uid]
+);
+$totalRecords = $totalRecords[0]['total'] ?? 0;
+
+// Active this month (new tables created in current month)
+$activeThisMonth = fetch_all_assoc(
+  $conn,
+  "SELECT SUM(cnt) as total FROM (
+      SELECT COUNT(*) as cnt FROM tables t 
+        WHERE t.user_id=? AND DATE_FORMAT(t.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM sales_table st 
+        WHERE st.user_id=? AND DATE_FORMAT(st.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+   ) as combined",
+  "ii", [$uid, $uid]
+);
+$activeThisMonth = $activeThisMonth[0]['total'] ?? 0;
+
+// Completed tasks (status = 'Done')
+$completedTasks = fetch_all_assoc(
+  $conn,
+  "SELECT SUM(cnt) as total FROM (
+      SELECT COUNT(*) as cnt FROM universal u WHERE u.user_id=? AND u.status='Done'
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM sales_strategy s WHERE s.user_id=? AND s.status='Done'
+   ) as combined",
+  "ii", [$uid, $uid]
+);
+$completedTasks = $completedTasks[0]['total'] ?? 0;
+
+
+// 1. Area → New Tables Created (tables + sales_table)
 $areaData = fetch_all_assoc(
   $conn,
-  "(SELECT DATE(ut.created_at) as dt, COUNT(*) as cnt 
-     FROM universal_thead ut
-     WHERE ut.user_id=? " . ($tableId ? "AND ut.table_id=?" : "") . " 
-     GROUP BY DATE(ut.created_at))
-   UNION ALL
-   (SELECT DATE(st.created_at) as dt, COUNT(*) as cnt 
-     FROM sales_strategy_thead st
-     WHERE st.user_id=? " . ($tableId ? "AND st.table_id=?" : "") . " 
-     GROUP BY DATE(st.created_at))
+  "SELECT dt, SUM(cnt) AS cnt
+     FROM (
+       SELECT DATE(ut.created_at) AS dt, COUNT(*) AS cnt
+         FROM tables ut
+         WHERE ut.user_id=? " . ($tableId ? "AND ut.table_id=?" : "") . "
+         GROUP BY DATE(ut.created_at)
+       UNION ALL
+       SELECT DATE(st.created_at) AS dt, COUNT(*) AS cnt
+         FROM sales_table st
+         WHERE st.user_id=? " . ($tableId ? "AND st.table_id=?" : "") . "
+         GROUP BY DATE(st.created_at)
+     ) AS combined
+   GROUP BY dt
    ORDER BY dt ASC",
   $wTypes, $wArgs
 );
 
-// 2. Polar → Records Per Table
+// 2. Polar → Records Per Table (no need to merge further)
 $polarData = fetch_all_assoc(
   $conn,
-  "(SELECT ut.thead_name AS table_name, COUNT(u.id) AS cnt
-     FROM universal u 
-     JOIN universal_thead ut ON ut.table_id = u.table_id
+  "(SELECT t.table_title AS table_name, COUNT(u.id) AS cnt
+     FROM universal u
+     JOIN tables t ON t.table_id = u.table_id
      WHERE u.user_id=? " . ($tableId ? "AND u.table_id=?" : "") . "
-     GROUP BY ut.thead_name)
+     GROUP BY t.table_title)
    UNION ALL
-   (SELECT st.linked_initiatives AS table_name, COUNT(s.id) AS cnt
-     FROM sales_strategy s 
-     JOIN sales_strategy_thead st ON st.table_id = s.table_id
+   (SELECT st.table_title AS table_name, COUNT(s.id) AS cnt
+     FROM sales_strategy s
+     JOIN sales_table st ON st.table_id = s.table_id
      WHERE s.user_id=? " . ($tableId ? "AND s.table_id=?" : "") . "
-     GROUP BY st.linked_initiatives)",
+     GROUP BY st.table_title)",
   $wTypes, $wArgs
 );
 
-// 3. Bar → Records Per Month
+// 3. Bar → Records Per Month (universal + sales_strategy)
 $barData = fetch_all_assoc(
   $conn,
-  "(SELECT DATE_FORMAT(u.created_at, '%Y-%m') as mth, COUNT(*) as cnt 
-     FROM universal u
-     $whereUni
-     GROUP BY mth)
-   UNION ALL
-   (SELECT DATE_FORMAT(s.created_at, '%Y-%m') as mth, COUNT(*) as cnt 
-     FROM sales_strategy s
-     $whereSales
-     GROUP BY mth)
+  "SELECT mth, SUM(cnt) AS cnt
+     FROM (
+       SELECT DATE_FORMAT(t.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
+         FROM tables t
+         WHERE t.user_id=? " . ($tableId ? "AND t.table_id=?" : "") . "
+         GROUP BY mth
+       UNION ALL
+       SELECT DATE_FORMAT(st.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
+         FROM sales_table st
+         WHERE st.user_id=? " . ($tableId ? "AND st.table_id=?" : "") . "
+         GROUP BY mth
+     ) AS combined
+   GROUP BY mth
    ORDER BY mth ASC",
   $wTypes, $wArgs
 );
 
-// 4. Radar → Status Distribution
+
+// 4. Radar → Status Distribution (fine to keep UNION ALL)
 $radarData = fetch_all_assoc(
   $conn,
   "(SELECT u.status as status, COUNT(*) as cnt 
@@ -103,23 +224,27 @@ $radarData = fetch_all_assoc(
   $wTypes, $wArgs
 );
 
-// 5. Gradient Line → Records Over Time
+// 5. Gradient Line → Records Over Time (universal + sales_strategy)
 $lineData = fetch_all_assoc(
   $conn,
-  "(SELECT DATE(u.created_at) as dt, COUNT(*) as cnt 
-     FROM universal u
-     $whereUni
-     GROUP BY dt)
-   UNION ALL
-   (SELECT DATE(s.created_at) as dt, COUNT(*) as cnt 
-     FROM sales_strategy s
-     $whereSales
-     GROUP BY dt)
+  "SELECT dt, SUM(cnt) AS cnt
+     FROM (
+       SELECT DATE(u.created_at) AS dt, COUNT(*) AS cnt
+         FROM universal u
+         $whereUni
+         GROUP BY dt
+       UNION ALL
+       SELECT DATE(s.created_at) AS dt, COUNT(*) AS cnt
+         FROM sales_strategy s
+         $whereSales
+         GROUP BY dt
+     ) AS combined
+   GROUP BY dt
    ORDER BY dt ASC",
   $wTypes, $wArgs
 );
 
-// 6. Pie → To Do / In Progress / Done
+// 6. Pie → To Do / In Progress / Done (fine to keep UNION ALL)
 $pieData = fetch_all_assoc(
   $conn,
   "(SELECT u.status as status, COUNT(*) as cnt 
@@ -134,8 +259,12 @@ $pieData = fetch_all_assoc(
   $wTypes, $wArgs
 );
 
-// ✅ Arrays ready for charts:
-// $areaData, $polarData, $barData, $radarData, $lineData, $pieData
+/* ─────────── FILL MISSING ─────────── */
+$areaData = fillMissingDailyWithNull($areaData);
+$lineData = fillMissingDailyWithNull($lineData);
+$barData  = fillMissingMonthlyWithNull($barData);
+
+// ✅ Arrays ready for charts
 ?>
 
 
@@ -792,17 +921,18 @@ if (menuBtn && sidebar) {
 
   /* 1. Area Chart - New Tables */
   render('#areaChart', {
-    chart: { type: 'area', height: 330, toolbar: { show: false } },
-    series: [{
-      name: 'Tables',
-      data: <?= json_encode(array_map(fn($r)=>['x'=>$r['dt'], 'y'=>(int)$r['cnt']], $areaData)) ?>
-    }],
-    xaxis: { type: 'datetime' },
-    stroke: { curve: 'smooth', width: 2 },
-    markers: { size: 4 },
-    colors: ['#3b82f6'],
-    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.1 } }
-  });
+  chart: { type: 'area', height: 330, toolbar: { show: false } },
+  series: [{
+    name: 'Tables',
+    data: <?= json_encode(array_map(fn($r)=>['x'=>$r['dt'], 'y'=>$r['cnt']], $areaData)) ?>
+  }],
+  xaxis: { type: 'datetime' },
+  stroke: { curve: 'smooth', width: 2 },
+  markers: { size: 4 },
+  colors: ['#3b82f6'],
+  fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.1 } }
+});
+
 
   /* 2. Polar Area - Records Per Table */
   render('#polarAreaChart', {
@@ -818,7 +948,7 @@ if (menuBtn && sidebar) {
     chart: { type: 'bar', height: 330 },
     series: [{ name: 'Records', data: <?= json_encode(array_column($barData, 'cnt')) ?> }],
     xaxis: { categories: <?= json_encode(array_column($barData, 'mth')) ?> },
-    plotOptions: { bar: { columnWidth: '40%', borderRadius: 4 } },
+    plotOptions: { bar: { columnWidth: '20%', borderRadius: 4 } },
     colors: ['#10b981'],
     dataLabels: { enabled: false }
   });
@@ -840,7 +970,7 @@ if (menuBtn && sidebar) {
     chart: { type: 'line', height: 330, toolbar: { show: false } },
     series: [{
       name: 'Records',
-      data: <?= json_encode(array_map(fn($r)=>['x'=>$r['dt'], 'y'=>(int)$r['cnt']], $lineData)) ?>
+      data: <?= json_encode(array_map(fn($r)=>['x'=>$r['dt'], 'y'=>$r['cnt']], $lineData)) ?>
     }],
     xaxis: { type: 'datetime' },
     stroke: { curve: 'smooth', width: 3 },
@@ -860,5 +990,6 @@ if (menuBtn && sidebar) {
 
 })();
 </script>
+
 </body>
 </html>

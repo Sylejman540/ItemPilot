@@ -466,7 +466,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Attachment') ?></label>
-        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm  file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
+        <input id="attachment_summary" type="file" name="attachment" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm  file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
       <div>
