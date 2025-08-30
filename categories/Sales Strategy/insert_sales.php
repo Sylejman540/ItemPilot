@@ -239,15 +239,15 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
           <div class="flex text-xs gap-2 font-semibold text-black uppercase">
             <div class="w-1/10 p-2">
               <input name="linked_initiatives" value="<?= htmlspecialchars($headRow['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Linked initiatives" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/10 p-2">
               <input name="notes" value="<?= htmlspecialchars($headRow['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Data per dorëzim" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/10 p-2">
               <input name="executive_sponsor" value="<?= htmlspecialchars($headRow['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Executive sponsor" class="w-full bg-transparent  whitespace-normal break-words border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Shteti" class="w-full bg-transparent  whitespace-normal break-words border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/10 p-2">
               <input name="status" value="<?= htmlspecialchars($headRow['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
@@ -255,23 +255,23 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
             </div>
             <div class="w-1/10 p-2">
               <input name="complete" value="<?= htmlspecialchars($headRow['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Complete" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Mosha" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/10 p-2">
               <input name="priority" value="<?= htmlspecialchars($headRow['priority'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Priority" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Cmimi" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/10 p-2">
               <input name="owner" value="<?= htmlspecialchars($headRow['owner'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Owner" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Cmimi i materialit" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/10 p-2">
               <input name="deadline" value="<?= htmlspecialchars($headRow['deadline'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Deadline" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Fitimi" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/10 p-2">
               <input name="attachment" value="<?= htmlspecialchars($headRow['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                     placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+                     placeholder="Modeli" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
           </div>
         </form>
@@ -421,18 +421,18 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </h1>
 
       <div class="mt-5">
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['linked_initiatives'] ?? 'Linked initiatives') ?></label>
-        <input type="text" name="linked_initiatives" placeholder="<?= htmlspecialchars($thead['linked_initiatives'] ?? 'Linked initiatives') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?></label>
+        <input type="text" name="linked_initiatives" placeholder="<?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['notes'] ?? 'Notes') ?></label>
-        <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['notes'] ?? 'Notes') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['notes'] ?? 'Data per dorëzim') ?></label>
+        <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['notes'] ?? 'Data per dorëzim') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['executive_sponsor'] ?? 'Executive sponsor') ?></label>
-        <input type="text" name="executive_sponsor" placeholder="<?= htmlspecialchars($thead['executive_sponsor'] ?? 'Executive sponsor') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?></label>
+        <input type="text" name="executive_sponsor" placeholder="<?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
@@ -445,27 +445,27 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['complete'] ?? 'Complete') ?></label>
-        <input type="text" name="complete" placeholder="<?= htmlspecialchars($thead['complete'] ?? 'Complete') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?></label>
+        <input type="text" name="complete" placeholder="<?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['priority'] ?? 'Priority') ?></label>
-        <input type="text" name="priority" placeholder="<?= htmlspecialchars($thead['priority'] ?? 'Priority') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?></label>
+        <input type="text" name="priority" placeholder="<?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['owner'] ?? 'Owner') ?></label>
-        <input type="text" name="owner" placeholder="<?= htmlspecialchars($thead['owner'] ?? 'Owner') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?></label>
+        <input type="text" name="owner" placeholder="<?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['deadline'] ?? 'Deadline') ?></label>
-        <input type="text" name="deadline" placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Deadline') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?></label>
+        <input type="text" name="deadline" placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Attachment') ?></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Modeli') ?></label>
         <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm  file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
