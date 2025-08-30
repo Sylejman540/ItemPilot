@@ -773,12 +773,16 @@ if (menuBtn && sidebar) {
     if (closeAdd) document.getElementById('addForm')?.classList.add('hidden');
   });
 
-  // -------- Enter submits form --------
-  document.addEventListener('change', (e) => {
-  if (e.target.closest('form')) {
-    e.target.closest('form').submit();
-  }
+  // Enter submits form (leave everything else as-is)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const form = e.target.closest('form');
+    if (!form) return;
+    if (e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return; // optional
+    e.preventDefault();
+    form.requestSubmit(); // or form.submit() if you don't want validation
   });
+
 
 
   // -------- autosave status --------
