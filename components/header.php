@@ -1,5 +1,5 @@
  <!-- Header -->
-<main class="flex text-base font-[Open_Sans] overflow-x-hidden overflow-y-hidden">
+<main class="flex text-base font-[Open_Sans]">
   <!-- Aside -->
   <aside id="sidebar" class="w-75 block bg-[#263544] min-h-screen">
     <a href="/ItemPilot/home.php">
@@ -171,10 +171,6 @@
     border-left: 2px solid #3b82f6; /* Tailwind blue-500 */
   }
 
-    #sidebar {
-    transition: transform 0.3s ease-in-out;
-    display: none;
-  }
   #sidebar.show {
     transform: translateX(0);  
     display: block;     /* slides in */
