@@ -14,7 +14,7 @@ if ($uid <= 0) {
 $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
 
 /* ─────────── HELPERS ─────────── */
-function fetch_all_assoc(mysqli $conn, string $sql, string $types = '', array $params = []): array {
+function fetch_all_assoc($conn, $sql, $types = '', $params = []) {
   $stmt = $conn->prepare($sql);
   if ($types && $params) $stmt->bind_param($types, ...$params);
   $stmt->execute();
@@ -23,166 +23,119 @@ function fetch_all_assoc(mysqli $conn, string $sql, string $types = '', array $p
   $stmt->close();
   return $rows;
 }
-function scalar(mysqli $conn, string $sql, string $types = '', array $params = []): int|float {
-  $stmt = $conn->prepare($sql);
-  if ($types && $params) $stmt->bind_param($types, ...$params);
-  $stmt->execute();
-  $res = $stmt->get_result()->fetch_row();
-  $stmt->close();
-  return (int)($res[0] ?? 0);
-}
 
-/* ─────────── COMMON WHERE for UNION ─────────── */
+/* ─────────── COMMON WHERE ─────────── */
 if ($tableId) {
-  $whereUni  = "WHERE user_id = ? AND table_id = ?";
-  $whereSales = "WHERE user_id = ? AND table_id = ?";
-  $wTypes = "iiii";
-  $wArgs  = [$uid, $tableId, $uid, $tableId];
+  $whereUni   = "WHERE u.user_id = ? AND u.table_id = ?";
+  $whereSales = "WHERE s.user_id = ? AND s.table_id = ?";
+  $wTypes     = "iiii";
+  $wArgs      = [$uid, $tableId, $uid, $tableId];
 } else {
-  $whereUni  = "WHERE user_id = ?";
-  $whereSales = "WHERE user_id = ?";
-  $wTypes = "ii";
-  $wArgs  = [$uid, $uid];
+  $whereUni   = "WHERE u.user_id = ?";
+  $whereSales = "WHERE s.user_id = ?";
+  $wTypes     = "ii";
+  $wArgs      = [$uid, $uid];
 }
 
-/* ─────────── DAILY LINE: records by day (last 90 days) ─────────── */
-$rows = fetch_all_assoc(
+/* ─────────── QUERIES FOR CHARTS ─────────── */
+
+// 1. Area → New Tables Created
+$areaData = fetch_all_assoc(
   $conn,
-  "(SELECT DATE(created_at) AS dt, COUNT(*) AS amt
-     FROM universal
-     $whereUni AND created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-     GROUP BY DATE(created_at))
+  "(SELECT DATE(ut.created_at) as dt, COUNT(*) as cnt 
+     FROM universal_thead ut
+     WHERE ut.user_id=? " . ($tableId ? "AND ut.table_id=?" : "") . " 
+     GROUP BY DATE(ut.created_at))
    UNION ALL
-   (SELECT DATE(created_at) AS dt, COUNT(*) AS amt
-     FROM sales_strategy
-     $whereSales AND created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-     GROUP BY DATE(created_at))
+   (SELECT DATE(st.created_at) as dt, COUNT(*) as cnt 
+     FROM sales_strategy_thead st
+     WHERE st.user_id=? " . ($tableId ? "AND st.table_id=?" : "") . " 
+     GROUP BY DATE(st.created_at))
    ORDER BY dt ASC",
   $wTypes, $wArgs
 );
 
-/* zero-fill in PHP */
-$dealsMap = [];
-foreach ($rows as $r) {
-  $dealsMap[$r['dt']] = ($dealsMap[$r['dt']] ?? 0) + (int)$r['amt'];
-}
-$start = new DateTime(date('Y-m-d', strtotime('-89 days')));
-$end   = new DateTime(date('Y-m-d')); 
-$deals = [];
-for ($d = clone $start; $d <= $end; $d->modify('+1 day')) {
-  $key = $d->format('Y-m-d');
-  $deals[] = ['dt'=>$key, 'amt'=>($dealsMap[$key] ?? 0)];
-}
-
-/* ─────────── DONUT: by status ─────────── */
-$statusData = fetch_all_assoc(
+// 2. Polar → Records Per Table
+$polarData = fetch_all_assoc(
   $conn,
-  "(SELECT COALESCE(NULLIF(TRIM(status),''),'(none)') AS status, COUNT(*) AS cnt
-     FROM universal
+  "(SELECT ut.thead_name AS table_name, COUNT(u.id) AS cnt
+     FROM universal u 
+     JOIN universal_thead ut ON ut.table_id = u.table_id
+     WHERE u.user_id=? " . ($tableId ? "AND u.table_id=?" : "") . "
+     GROUP BY ut.thead_name)
+   UNION ALL
+   (SELECT st.linked_initiatives AS table_name, COUNT(s.id) AS cnt
+     FROM sales_strategy s 
+     JOIN sales_strategy_thead st ON st.table_id = s.table_id
+     WHERE s.user_id=? " . ($tableId ? "AND s.table_id=?" : "") . "
+     GROUP BY st.linked_initiatives)",
+  $wTypes, $wArgs
+);
+
+// 3. Bar → Records Per Month
+$barData = fetch_all_assoc(
+  $conn,
+  "(SELECT DATE_FORMAT(u.created_at, '%Y-%m') as mth, COUNT(*) as cnt 
+     FROM universal u
      $whereUni
-     GROUP BY status)
+     GROUP BY mth)
    UNION ALL
-   (SELECT COALESCE(NULLIF(TRIM(status),''),'(none)') AS status, COUNT(*) AS cnt
-     FROM sales_strategy
+   (SELECT DATE_FORMAT(s.created_at, '%Y-%m') as mth, COUNT(*) as cnt 
+     FROM sales_strategy s
      $whereSales
-     GROUP BY status)",
+     GROUP BY mth)
+   ORDER BY mth ASC",
   $wTypes, $wArgs
 );
 
-/* ─────────── BAR: by assignee (top 5, only in universal) ─────────── */
-$assigneeData = fetch_all_assoc(
+// 4. Radar → Status Distribution
+$radarData = fetch_all_assoc(
   $conn,
-  "SELECT assignee, SUM(cnt) AS cnt
-   FROM (
-     SELECT COALESCE(NULLIF(TRIM(assignee),''),'(unassigned)') AS assignee, COUNT(*) AS cnt
-     FROM universal
+  "(SELECT u.status as status, COUNT(*) as cnt 
+     FROM universal u
      $whereUni
-     GROUP BY assignee
-
-     UNION ALL
-
-     SELECT '(unassigned)' AS assignee, COUNT(*) AS cnt
-     FROM sales_strategy
+     GROUP BY u.status)
+   UNION ALL
+   (SELECT s.status as status, COUNT(*) as cnt 
+     FROM sales_strategy s
      $whereSales
-   ) AS combined
-   GROUP BY assignee
-   ORDER BY cnt DESC
-   LIMIT 5",
+     GROUP BY s.status)",
   $wTypes, $wArgs
 );
 
-/* ─────────── KPIs ─────────── */
-$totalRecords = scalar(
+// 5. Gradient Line → Records Over Time
+$lineData = fetch_all_assoc(
   $conn,
-  "(SELECT COUNT(*) AS c FROM universal $whereUni)
+  "(SELECT DATE(u.created_at) as dt, COUNT(*) as cnt 
+     FROM universal u
+     $whereUni
+     GROUP BY dt)
    UNION ALL
-   (SELECT COUNT(*) AS c FROM sales_strategy $whereSales)",
+   (SELECT DATE(s.created_at) as dt, COUNT(*) as cnt 
+     FROM sales_strategy s
+     $whereSales
+     GROUP BY dt)
+   ORDER BY dt ASC",
   $wTypes, $wArgs
 );
 
-$completed = scalar(
+// 6. Pie → To Do / In Progress / Done
+$pieData = fetch_all_assoc(
   $conn,
-  "(SELECT COUNT(*) AS c FROM universal $whereUni AND status = 'completed')
+  "(SELECT u.status as status, COUNT(*) as cnt 
+     FROM universal u
+     $whereUni
+     GROUP BY u.status)
    UNION ALL
-   (SELECT COUNT(*) AS c FROM sales_strategy $whereSales AND status = 'completed')",
+   (SELECT s.status as status, COUNT(*) as cnt 
+     FROM sales_strategy s
+     $whereSales
+     GROUP BY s.status)",
   $wTypes, $wArgs
 );
 
-$newLast7 = scalar(
-  $conn,
-  "(SELECT COUNT(*) AS c FROM universal $whereUni AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY))
-   UNION ALL
-   (SELECT COUNT(*) AS c FROM sales_strategy $whereSales AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY))",
-  $wTypes, $wArgs
-);
-
-$successPct = $totalRecords ? round($completed / $totalRecords * 100, 1) : 0;
-
-$kpis = [
-  ['metric'=>'All Records','value'=>$totalRecords,'dateRange'=>'Scoped to you'.($tableId?' · table '.$tableId:''),'color'=>'text-blue-600'],
-  ['metric'=>'Completed','value'=>$completed,'dateRange'=>'Since launch','color'=>'text-emerald-500'],
-  ['metric'=>'Impact','value'=>$successPct,'dateRange'=>'Completion rate','color'=>'text-amber-500','isPct'=>true],
-];
-
-/* ─────────── PROGRESS (status mix) ─────────── */
-$counts = [];
-foreach ($statusData as $s) {
-  $counts[$s['status']] = ($counts[$s['status']] ?? 0) + (int)$s['cnt'];
-}
-$den = max(1, $totalRecords);
-$pick = function($label) use ($counts) { return $counts[$label] ?? 0; };
-
-$hasNamed = isset($counts['Published']) || isset($counts['published'])
-         || isset($counts['To Do'])    || isset($counts['todo'])
-         || isset($counts['In Progress']) || isset($counts['in_progress'])
-         || isset($counts['Done'])     || isset($counts['done']) || isset($counts['completed']);
-
-if ($hasNamed) {
-  $published = $pick('Published') + $pick('published');
-  $todo      = $pick('To Do') + $pick('todo');
-  $inprog    = $pick('In Progress') + $pick('in_progress');
-  $done      = $pick('Done') + $pick('done') + $pick('completed');
-
-  $progress = [
-    ['metric'=>'Published Project','value'=>$published,'delta'=>0.0,'pct'=>round($published/$den*100),'bar'=>'bg-rose-500'],
-    ['metric'=>'To Do','value'=>$todo,'delta'=>0.0,'pct'=>round($todo/$den*100),'bar'=>'bg-blue-500'],
-    ['metric'=>'In Progress','value'=>$inprog,'delta'=>0.0,'pct'=>round($inprog/$den*100),'bar'=>'bg-emerald-500','isPct'=>true],
-    ['metric'=>'Done','value'=>$done,'delta'=>0.0,'pct'=>round($done/$den*100),'bar'=>'bg-amber-500'],
-  ];
-} else {
-  $progress = [];
-  $palette  = ['bg-blue-500','bg-emerald-500','bg-amber-500','bg-rose-500'];
-  foreach (array_slice($statusData, 0, 4) as $i => $s) {
-    $pct = round(($s['cnt'] / $den) * 100);
-    $progress[] = [
-      'metric' => $s['status'],
-      'value'  => (int)$s['cnt'],
-      'delta'  => 0.0,
-      'pct'    => $pct,
-      'bar'    => $palette[$i % count($palette)],
-    ];
-  }
-}
+// ✅ Arrays ready for charts:
+// $areaData, $polarData, $barData, $radarData, $lineData, $pieData
 ?>
 
 
@@ -831,59 +784,80 @@ if (menuBtn && sidebar) {
 })();
 
 (() => {
-  // Helper: safely render a chart if the target exists
-  function renderChart(selector, options) {
-    const el = document.querySelector(selector);
-    if (!el) return; // silently skip if the container isn't on the page
-    try {
-      new ApexCharts(el, options).render();
-    } catch (err) {
-      console.error(`ApexCharts render failed for ${selector}:`, err);
-    }
-  }
+  const render = (id, opt) => {
+    const el = document.querySelector(id);
+    if (!el) return;
+    new ApexCharts(el, opt).render();
+  };
 
-  // ---- Deals (area) ----
-  const dealsSeries = [{
-    name: 'Deals',
-    data: <?= json_encode(
-      array_map(fn($r) => [(new DateTime($r['dt']))->format('Y-m-d'), (int)$r['amt']], $deals),
-      JSON_UNESCAPED_SLASHES
-    ) ?>.map(([d, v]) => ({ x: d, y: v }))
-  }];
-
-  renderChart('#dealsChart', {
-    chart:  { type: 'area', height: 330, toolbar: { show: false } },
-    series: dealsSeries,
-    xaxis:  { type: 'datetime' },
+  /* 1. Area Chart - New Tables */
+  render('#areaChart', {
+    chart: { type: 'area', height: 330, toolbar: { show: false } },
+    series: [{
+      name: 'Tables',
+      data: <?= json_encode(array_map(fn($r)=>['x'=>$r['dt'], 'y'=>(int)$r['cnt']], $areaData)) ?>
+    }],
+    xaxis: { type: 'datetime' },
     stroke: { curve: 'smooth', width: 2 },
-    colors: ['#3b82f6']
+    markers: { size: 4 },
+    colors: ['#3b82f6'],
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.1 } }
   });
 
-  // ---- Status (donut) ----
-  renderChart('#statusChart', {
-    chart:  { type: 'donut', height: 330 },
-    series: <?= json_encode(array_column($statusData, 'cnt')) ?>,
-    labels: <?= json_encode(array_column($statusData, 'status')) ?>,
-    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6b7280']
+  /* 2. Polar Area - Records Per Table */
+  render('#polarAreaChart', {
+    chart: { type: 'polarArea', height: 330 },
+    series: <?= json_encode(array_column($polarData, 'cnt')) ?>,
+    labels: <?= json_encode(array_column($polarData, 'table_name')) ?>,
+    colors: ['#3b82f6','#10b981','#f59e0b','#ef4444','#6366f1'],
+    stroke: { colors: ['#fff'] }
   });
 
-  // ---- Assignee (bar) ----
-  renderChart('#assigneeChart', {
-    chart:  { type: 'bar', height: 330 },
-    series: [{ name: 'Records', data: <?= json_encode(array_column($assigneeData, 'cnt')) ?> }],
-    xaxis:  { categories: <?= json_encode(array_column($assigneeData, 'assignee')) ?> },
-    plotOptions: { bar: { distributed: true } },
-    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1']
-  });
-
-  // ---- Completion (radial) ----
-  renderChart('#completionChart', {
-    chart:  { type: 'radialBar', height: 330 },
-    series: [<?= $successPct ?>],
-    labels: ['Completion %'],
+  /* 3. Bar Chart - Records Per Month */
+  render('#barChart', {
+    chart: { type: 'bar', height: 330 },
+    series: [{ name: 'Records', data: <?= json_encode(array_column($barData, 'cnt')) ?> }],
+    xaxis: { categories: <?= json_encode(array_column($barData, 'mth')) ?> },
+    plotOptions: { bar: { columnWidth: '40%', borderRadius: 4 } },
     colors: ['#10b981'],
-    plotOptions: { radialBar: { hollow: { size: '60%' } } }
+    dataLabels: { enabled: false }
   });
+
+  /* 4. Radar Chart - Status Distribution */
+  render('#radarChart', {
+    chart: { type: 'radar', height: 330 },
+    series: [{
+      name: 'Records',
+      data: <?= json_encode(array_column($radarData, 'cnt')) ?>
+    }],
+    labels: <?= json_encode(array_column($radarData, 'status')) ?>,
+    colors: ['#f59e0b'],
+    stroke: { width: 2 }
+  });
+
+  /* 5. Gradient Line Chart - Records Over Time */
+  render('#gradientLineChart', {
+    chart: { type: 'line', height: 330, toolbar: { show: false } },
+    series: [{
+      name: 'Records',
+      data: <?= json_encode(array_map(fn($r)=>['x'=>$r['dt'], 'y'=>(int)$r['cnt']], $lineData)) ?>
+    }],
+    xaxis: { type: 'datetime' },
+    stroke: { curve: 'smooth', width: 3 },
+    markers: { size: 4 },
+    colors: ['#3b82f6'],
+    fill: { type: 'gradient', gradient: { shade: 'light', type: "vertical", opacityFrom: 0.7, opacityTo: 0.1 } }
+  });
+
+  /* 6. Pie Chart - Status Breakdown */
+  render('#pieChart', {
+    chart: { type: 'pie', height: 330 },
+    series: <?= json_encode(array_column($pieData, 'cnt')) ?>,
+    labels: <?= json_encode(array_column($pieData, 'status')) ?>,
+    colors: ['#3b82f6','#10b981','#f59e0b','#ef4444'],
+    legend: { position: 'bottom' }
+  });
+
 })();
 </script>
 </body>
