@@ -534,7 +534,15 @@ $barData  = fillMissingMonthlyWithNull($barData);
   <?php require_once __DIR__ . '/components/categories.php'; ?>
 
   <?php require_once __DIR__ . '/components/insight.php'; ?>
+<style>
+  .no-scroll {
+  overflow: hidden;     /* block scrolling */
+  height: 100vh;        /* lock viewport height */
+  position: fixed;      /* freeze body so it doesn't shift */
+  width: 100%;          /* prevent content shift */
+}
 
+</style>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
