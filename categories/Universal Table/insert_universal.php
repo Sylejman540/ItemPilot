@@ -159,12 +159,15 @@ $first = $rows[0] ?? null;
     }
     $stmt->close();
     ?>
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-      </svg>
-      <span class="text-sm">New Record</span>
-    </button>
+    <button
+  class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 font-semibold text-white shadow hover:bg-blue-500 hover:shadow-md active:scale-95 transition-all duration-200"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+    stroke-width="2" stroke="currentColor" class="w-5 h-5">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+  </svg>
+  New Record
+</button>
   </section>
 
 <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">

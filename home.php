@@ -725,7 +725,7 @@ const root      = document.documentElement;
 const appHeader = document.getElementById('appHeader');
 
 if (menuBtn && sidebar) {
-  const OFFSET_PX = 1;
+  const OFFSET_PX = -2;
   const PEEK_PX   = 20;
 
   const isHidden = () => !sidebar.classList.contains('show');
@@ -1023,6 +1023,50 @@ if (menuBtn && sidebar) {
   });
 
 })();
+
+document.addEventListener("DOMContentLoaded", () => {
+  const searchInput = document.querySelector("input[type='search']");
+  const sortSelect  = document.querySelector("select");
+  const list        = document.querySelector("#event-right ul"); // the grid container
+  const cards       = Array.from(list.querySelectorAll("li"));
+
+  function filterAndSort() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const sortBy = sortSelect.value;
+
+    // 1️⃣ Filter by name
+    cards.forEach(card => {
+      const name = card.dataset.name || "";
+      if (name.includes(searchTerm)) {
+        card.style.display = "";
+      } else {
+        card.style.display = "none";
+      }
+    });
+
+    // 2️⃣ Sort (only the visible ones)
+    const visibleCards = cards.filter(card => card.style.display !== "none");
+
+    visibleCards.sort((a, b) => {
+      if (sortBy === "name") {
+        return (a.dataset.name > b.dataset.name) ? 1 : -1;
+      } else if (sortBy === "date") {
+        return b.dataset.date - a.dataset.date; // newest first
+      }
+      return 0;
+    });
+
+    // 3️⃣ Re-append in sorted order
+    visibleCards.forEach(card => list.appendChild(card));
+  }
+
+  // Attach events
+  searchInput.addEventListener("input", filterAndSort);
+  sortSelect.addEventListener("change", filterAndSort);
+
+  // Run once on load
+  filterAndSort();
+});
 </script>
 
 </body>

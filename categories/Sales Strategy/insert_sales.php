@@ -421,18 +421,18 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </h1>
 
       <div class="mt-5">
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['linked_initiatives'] ?? 'Linked initiatives') ?></label>
-        <input type="text" name="linked_initiatives" placeholder="<?= htmlspecialchars($thead['linked_initiatives'] ?? 'Linked initiatives') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?></label>
+        <input type="text" name="linked_initiatives" placeholder="<?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['notes'] ?? 'Notes') ?></label>
-        <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['notes'] ?? 'Notes') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['notes'] ?? 'Data per dorezim') ?></label>
+        <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['notes'] ?? 'Data per dorezim') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['executive_sponsor'] ?? 'Executive sponsor') ?></label>
-        <input type="text" name="executive_sponsor" placeholder="<?= htmlspecialchars($thead['executive_sponsor'] ?? 'Executive sponsor') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?></label>
+        <input type="text" name="executive_sponsor" placeholder="<?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
@@ -445,27 +445,27 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['complete'] ?? 'Complete') ?></label>
-        <input type="text" name="complete" placeholder="<?= htmlspecialchars($thead['complete'] ?? 'Complete') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?></label>
+        <input type="text" name="complete" placeholder="<?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['priority'] ?? 'Priority') ?></label>
-        <input type="text" name="priority" placeholder="<?= htmlspecialchars($thead['priority'] ?? 'Priority') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?></label>
+        <input type="text" name="priority" placeholder="<?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['owner'] ?? 'Owner') ?></label>
-        <input type="text" name="owner" placeholder="<?= htmlspecialchars($thead['owner'] ?? 'Owner') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?></label>
+        <input type="text" name="owner" placeholder="<?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['deadline'] ?? 'Deadline') ?></label>
-        <input type="text" name="deadline" placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Deadline') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?></label>
+        <input type="text" name="deadline" placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Attachment') ?></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Modeli') ?></label>
         <input id="attachment_summary" type="file" name="attachment" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm  file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
