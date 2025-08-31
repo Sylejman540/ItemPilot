@@ -159,7 +159,7 @@ $first = $rows[0] ?? null;
     }
     $stmt->close();
     ?>
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 cursor-pointer hover:bg-blue-700 px-1 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>

@@ -210,17 +210,22 @@ $barData = fetch_all_assoc(
 
 
 // 4. Radar → Status Distribution (fine to keep UNION ALL)
+
 $radarData = fetch_all_assoc(
   $conn,
-  "(SELECT u.status as status, COUNT(*) as cnt 
+  "SELECT status, SUM(cnt) as cnt
+   FROM (
+     SELECT u.status as status, COUNT(*) as cnt
      FROM universal u
      $whereUni
-     GROUP BY u.status)
-   UNION ALL
-   (SELECT s.status as status, COUNT(*) as cnt 
+     GROUP BY u.status
+     UNION ALL
+     SELECT s.status as status, COUNT(*) as cnt
      FROM sales_strategy s
      $whereSales
-     GROUP BY s.status)",
+     GROUP BY s.status
+   ) merged
+   GROUP BY status",
   $wTypes, $wArgs
 );
 
@@ -247,17 +252,33 @@ $lineData = fetch_all_assoc(
 // 6. Pie → To Do / In Progress / Done (fine to keep UNION ALL)
 $pieData = fetch_all_assoc(
   $conn,
-  "(SELECT u.status as status, COUNT(*) as cnt 
+  "SELECT status, SUM(cnt) as cnt
+   FROM (
+     SELECT u.status as status, COUNT(*) as cnt 
      FROM universal u
      $whereUni
-     GROUP BY u.status)
-   UNION ALL
-   (SELECT s.status as status, COUNT(*) as cnt 
+     GROUP BY u.status
+     UNION ALL
+     SELECT s.status as status, COUNT(*) as cnt 
      FROM sales_strategy s
      $whereSales
-     GROUP BY s.status)",
+     GROUP BY s.status
+   ) merged
+   GROUP BY status",
   $wTypes, $wArgs
 );
+
+
+$statuses = ["To Do", "In Progress", "Done"]; // adjust if you have more
+$statusMap = array_fill_keys($statuses, 0);
+
+foreach ($pieData as $row) {
+  $status = $row['status'];
+  $cnt = (int)$row['cnt'];
+  if (isset($statusMap[$status])) {
+    $statusMap[$status] = $cnt;
+  }
+}
 
 /* ─────────── FILL MISSING ─────────── */
 $areaData = fillMissingDailyWithNull($areaData);
@@ -1015,11 +1036,11 @@ if (menuBtn && sidebar) {
 
   /* 6. Pie Chart - Status Breakdown */
   render('#pieChart', {
-    chart: { type: 'pie', height: 330 },
-    series: <?= json_encode(array_column($pieData, 'cnt')) ?>,
-    labels: <?= json_encode(array_column($pieData, 'status')) ?>,
-    colors: ['#3b82f6','#10b981','#f59e0b','#ef4444'],
-    legend: { position: 'bottom' }
+  chart: { type: 'pie', height: 330 },
+  series: <?= json_encode(array_values($statusMap)) ?>, // [toDo, inProgress, done]
+  labels: <?= json_encode(array_keys($statusMap)) ?>,   // ["To Do","In Progress","Done"]
+  colors: ['#3b82f6','#10b981','#f59e0b','#ef4444'],
+  legend: { position: 'bottom' }
   });
 
 })();
