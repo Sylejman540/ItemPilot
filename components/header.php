@@ -151,6 +151,7 @@
   #sidebar {
     transition: transform 0.3s ease-in-out;
     display: none;
+    position: fixed;
   }
   #sidebar.hidden {
     margin-left: -250px; /* adjust to your sidebar width */

@@ -741,30 +741,31 @@ if (menuBtn && sidebar) {
   }
 
   function openSidebar() {
-    const w = sidebarWidth();
-    sidebar.classList.add('show');
-    root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
-    menuBtn.setAttribute('aria-expanded', 'true');
-    if (isMobile()) addBackdrop();
-    if (appHeader) {
-      appHeader.classList.remove('w-[400px]');
-      appHeader.classList.add('max-w-lg');
-    }
-    localStorage.setItem('sidebarState', 'open'); // ✅ remember
+  const w = sidebarWidth();
+  sidebar.classList.add('show');
+  root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
+  menuBtn.setAttribute('aria-expanded', 'true');
+  if (isMobile()) addBackdrop();
+  if (appHeader) {
+    appHeader.classList.remove('w-[1600px]');
+    appHeader.classList.add('max-w-7xl'); // 🔥 Big responsive max width
   }
+  localStorage.setItem('sidebarState', 'open');
+}
 
-  function closeSidebar() {
-    const w = sidebarWidth();
-    sidebar.classList.remove('show');
-    root.style.setProperty('--sbw', '0px');
-    menuBtn.setAttribute('aria-expanded', 'false');
-    if (isMobile()) removeBackdrop();
-    if (appHeader) {
-      appHeader.classList.remove('max-w-lg');
-      appHeader.classList.add('w-[400px]');
-    }
-    localStorage.setItem('sidebarState', 'closed'); // ✅ remember
+function closeSidebar() {
+  const w = sidebarWidth();
+  sidebar.classList.remove('show');
+  root.style.setProperty('--sbw', '0px');
+  menuBtn.setAttribute('aria-expanded', 'false');
+  if (isMobile()) removeBackdrop();
+  if (appHeader) {
+    appHeader.classList.remove('max-w-7xl');
+    appHeader.classList.add('w-[1600px]'); // 🔥 Wider fixed width
   }
+  localStorage.setItem('sidebarState', 'closed');
+}
+
 
   menuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -967,7 +968,7 @@ if (menuBtn && sidebar) {
     chart: { type: 'bar', height: 330 },
     series: [{ name: 'Records', data: <?= json_encode(array_column($barData, 'cnt')) ?> }],
     xaxis: { categories: <?= json_encode(array_column($barData, 'mth')) ?> },
-    plotOptions: { bar: { columnWidth: '20%', borderRadius: 4 } },
+    plotOptions: { bar: { columnWidth: '10%', borderRadius: 4 } },
     colors: ['#10b981'],
     dataLabels: { enabled: false }
   });
