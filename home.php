@@ -533,6 +533,8 @@ $barData  = fillMissingMonthlyWithNull($barData);
 
   <?php require_once __DIR__ . '/components/categories.php'; ?>
 
+  <?php require_once __DIR__ . '/components/insight.php'; ?>
+
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
@@ -540,6 +542,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   const eventRight   = document.getElementById("event-right");
   const homeRight    = document.getElementById("home-right");
   const contactRight = document.getElementById("contact-right");
+  const insightRight = document.getElementById("insight-right");
   const blank        = document.getElementById("blank");        // "Create New" button
   const universal    = document.getElementById("universal");    // optional "Open current table" button
   const dropdown     = document.getElementById("dropdown");     // the tables list (UL)
@@ -557,10 +560,11 @@ $barData  = fillMissingMonthlyWithNull($barData);
     fetch(`categories/Universal%20Table/insert_universal.php?page=${page}&table_id=${tableId}`)
       .then(r => r.text())
       .then(html => {
-        eventRight.innerHTML = html;
+        insightRight.innerHTML = html;
         if (homeRight)    homeRight.style.display = "none";
+        if (eventRight) eventRight.style.display = "none";
         if (contactRight) contactRight.style.display = "none";
-        eventRight.style.display = "block";
+        insightRight.style.display = "block";
         currentPage = page;
       });
   }
@@ -569,10 +573,11 @@ $barData  = fillMissingMonthlyWithNull($barData);
     fetch(`categories/Universal%20Table/insert_universal.php?action=create_blank&page=${page}`)
       .then(r => r.text())
       .then(html => {
-        eventRight.innerHTML = html;
+        insightRight.innerHTML = html;
         if (homeRight)    homeRight.style.display = "none";
+        if (eventRight) eventRight.style.display = "none";
         if (contactRight) contactRight.style.display = "none";
-        eventRight.style.display = "block";
+        insightRight.style.display = "block";
         currentPage = page;
       });
   }
@@ -602,10 +607,11 @@ $barData  = fillMissingMonthlyWithNull($barData);
     fetch(`categories/Sales%20Strategy/insert_sales.php?page=${page}&table_id=${salesId}`)
       .then(r => r.text())
       .then(html => {
-        eventRight.innerHTML = html;
-        if (homeRight) homeRight.style.display = "none";
+        insightRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (eventRight) eventRight.style.display = "none";
         if (contactRight) contactRight.style.display = "none";
-        eventRight.style.display = "block";
+        insightRight.style.display = "block";
         currentPage = page;
       });
   }
@@ -614,10 +620,11 @@ $barData  = fillMissingMonthlyWithNull($barData);
     fetch(`categories/Sales%20Strategy/insert_sales.php?action=create_blank&page=${page}`)
       .then(r => r.text())
       .then(html => {
-        eventRight.innerHTML = html;
-        if (homeRight) homeRight.style.display = "none";
+        insightRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (eventRight) eventRight.style.display = "none";
         if (contactRight) contactRight.style.display = "none";
-        eventRight.style.display = "block";
+        insightRight.style.display = "block";
         currentPage = page;
       });
   }
@@ -741,31 +748,30 @@ if (menuBtn && sidebar) {
   }
 
   function openSidebar() {
-  const w = sidebarWidth();
-  sidebar.classList.add('show');
-  root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
-  menuBtn.setAttribute('aria-expanded', 'true');
-  if (isMobile()) addBackdrop();
-  if (appHeader) {
-    appHeader.classList.remove('w-[1600px]');
-    appHeader.classList.add('max-w-7xl'); // 🔥 Big responsive max width
+    const w = sidebarWidth();
+    sidebar.classList.add('show');
+    root.style.setProperty('--sbw', Math.max(0, w - OFFSET_PX) + 'px');
+    menuBtn.setAttribute('aria-expanded', 'true');
+    if (isMobile()) addBackdrop();
+    if (appHeader) {
+      appHeader.classList.remove('w-[400px]');
+      appHeader.classList.add('max-w-lg');
+    }
+    localStorage.setItem('sidebarState', 'open'); // ✅ remember
   }
-  localStorage.setItem('sidebarState', 'open');
-}
 
-function closeSidebar() {
-  const w = sidebarWidth();
-  sidebar.classList.remove('show');
-  root.style.setProperty('--sbw', '0px');
-  menuBtn.setAttribute('aria-expanded', 'false');
-  if (isMobile()) removeBackdrop();
-  if (appHeader) {
-    appHeader.classList.remove('max-w-7xl');
-    appHeader.classList.add('w-[1600px]'); // 🔥 Wider fixed width
+  function closeSidebar() {
+    const w = sidebarWidth();
+    sidebar.classList.remove('show');
+    root.style.setProperty('--sbw', '0px');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    if (isMobile()) removeBackdrop();
+    if (appHeader) {
+      appHeader.classList.remove('max-w-lg');
+      appHeader.classList.add('w-[400px]');
+    }
+    localStorage.setItem('sidebarState', 'closed'); // ✅ remember
   }
-  localStorage.setItem('sidebarState', 'closed');
-}
-
 
   menuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -798,7 +804,7 @@ function closeSidebar() {
   const homeTab    = document.getElementById("home");
   const contactTab = document.getElementById("contact");
   const eventsTab  = document.getElementById("events");
-  const manageTab  = document.getElementById("manageTab");
+  const insightTab = document.getElementById("insight");
 
   function show(el) { if (el) el.style.display = "block"; }
   function hide(el) { if (el) el.style.display = "none"; }
@@ -815,25 +821,25 @@ function closeSidebar() {
 
   if (homeTab) homeTab.addEventListener('click', (e) => {
     e.preventDefault?.();
-    show(homeRight); hide(contactRight); hide(eventRight); hide(document.getElementById("account"));
+    show(homeRight); hide(contactRight); hide(eventRight); hide(insightRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
 
   if (contactTab) contactTab.addEventListener('click', (e) => {
     e.preventDefault?.();
-    show(contactRight); hide(homeRight); hide(eventRight); hide(document.getElementById("account"));
+    show(contactRight); hide(homeRight); hide(eventRight); hide(insightRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
 
   if (eventsTab) eventsTab.addEventListener("click", (e) => {
     e.preventDefault?.();
-    show(eventRight); hide(homeRight); hide(contactRight); hide(document.getElementById("account"));
+    show(eventRight); hide(homeRight); hide(contactRight); hide(insightRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
 
-  if (manageTab) manageTab.addEventListener("click", (e) => {
+  if (insightTab) insightTab.addEventListener("click", (e) => {
     e.preventDefault?.();
-    show(document.getElementById("account")); hide(eventRight); hide(homeRight); hide(contactRight);
+    show(insightRight); hide(homeRight); hide(eventRight); hide(contactRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
 

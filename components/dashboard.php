@@ -1,5 +1,15 @@
+<style>
+  #appHeader3{
+  top: 0;
+  left: var(--sbw);                    /* start after the sidebar */
+  right: 0;                            /* stretch to right edge */
+  width: auto;                         /* ignore any Tailwind w-* */
+}
 
-<header id="appHeader"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
+</style>
+
+<header id="appHeader3"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
+<section class="bg-gray-50 w-full px-4 sm:px-6 lg:px-8 py-10" id="home-right">
   <article class="max-w-7xl mx-auto mt-10">
   <!-- Header KPIs -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -102,3 +112,4 @@
 
   </article>
 </section>
+</header>

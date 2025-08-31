@@ -122,7 +122,7 @@
           </ul>
 
           <!-- INSIGHTS -->
-          <div class="w-70 py-3 px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white cursor-not-allowed" id="insights">
+          <div class="w-70 py-3 px-6 flex justify-start gap-5 sidebar text-[#A7B6CC] hover:text-white cursor-not-allowed" id="insight">
             <svg class="w-4 h-4 mt-[3px]" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
               <path d="M3 3h18v18H3z"/>

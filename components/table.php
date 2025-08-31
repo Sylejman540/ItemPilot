@@ -1,4 +1,14 @@
-<!-- Tables Section -->
+<!-- Tables Section --><style>
+  #appHeader3{
+  top: 0;
+  left: var(--sbw);                    /* start after the sidebar */
+  right: 0;                            /* stretch to right edge */
+  width: auto;                         /* ignore any Tailwind w-* */
+}
+
+</style>
+
+<header id="appHeader3"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
 <section class="bg-gray-100 rounded-md hidden w-full mb-5" id="event-right">
 
   <!-- Header -->
@@ -95,3 +105,4 @@
     </ul>
   </div>
 </section>
+</header>

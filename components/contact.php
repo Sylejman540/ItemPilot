@@ -1,4 +1,15 @@
 <!-- Contact Us -->
+<!-- Tables Section -->
+<style>
+  #appHeader4{
+  top: 0;
+  left: var(--sbw);  
+  right: 0;                      
+  width: auto;             
+}
+
+</style>
+<header id="appHeader4"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
 <section class="bg-gray-100 rounded-md hidden w-full" id="contact-right">
     
     <div class="flex gap-2 md:px-50 mt-20">
@@ -48,3 +59,4 @@
         <button class="bg-blue-600 hover:bg-blue-500 mb-5 text-white rounded-lg py-1 px-4 cursor-pointer mt-4 md:ml-50" type="submit">Reach Out</button>
     </form>
 </section>
+</header>
