@@ -834,6 +834,7 @@ if (menuBtn && sidebar) {
   const contactTab = document.getElementById("contact");
   const eventsTab  = document.getElementById("events");
   const insightTab = document.getElementById("insight");
+  const manageTab  = document.getElementById("manageTab");
 
   function show(el) { if (el) el.style.display = "block"; }
   function hide(el) { if (el) el.style.display = "none"; }
@@ -871,6 +872,11 @@ if (menuBtn && sidebar) {
     show(insightRight); hide(homeRight); hide(eventRight); hide(contactRight); hide(document.getElementById("account"));
     requestAnimationFrame(resetScroll);
   });
+
+  if (manageTab) manageTab.addEventListener("click", (e) => {
+    show(document.getElementById("account")); hide(homeRight); hide(contactRight); hide(insightRight);
+    requestAnimationFrame(resetScroll);
+  })
 
   // -------- modals --------
   document.querySelectorAll('[data-modal-target]').forEach(btn => {
