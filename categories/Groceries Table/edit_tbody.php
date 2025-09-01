@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt = $conn->prepare($sql);
   $stmt->bind_param('ssssssii', $photo, $brand_flavor, $quantity, $department, $purchased, $notes, $id, $table_id);
   if ($stmt->execute()) {
-header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
-exit;
+  header("Location: /ItemPilot/home.php?autoload=1&type=groceries&table_id={$table_id}");
+  exit;
   }else {
     die("Update failed: " . $stmt->error);
   }

@@ -1022,10 +1022,13 @@ $barData  = fillMissingMonthlyWithNull($barData);
   if (shouldAutoload && tableIdFromUrl) {
     if (tableType === "sales") {
       loadStrategy(tableIdFromUrl, currentPage);
+    } else if (tableType === "groceries") {
+      loadGroceriesTable(tableIdFromUrl, currentPage);
     } else {
-      loadTable(tableIdFromUrl, currentPage);
+      loadTable(tableIdFromUrl, currentPage); // universal
     }
   }
+
 })();
 
 (() => {

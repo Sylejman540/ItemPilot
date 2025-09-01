@@ -10,12 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $uid = (int)($_SESSION['user_id'] ?? 0);
 if ($uid <= 0) { http_response_code(401); exit('Unauthorized'); }
 
-$photo       = trim($_POST['photo'] ?? '');
-$brand_flavor      = trim($_POST['brand_flavor'] ?? '');
-$quantity   = trim($_POST['quantity'] ?? '');
-$department    = trim($_POST['department'] ?? '');
-$purchased = trim($_POST['purchased'] ?? '');
-$notes = trim($_POST['notes'] ?? '');
+$photo            = trim($_POST['photo'] ?? '');
+$brand_flavor     = trim($_POST['brand_flavor'] ?? '');
+$quantity         = trim($_POST['quantity'] ?? '');
+$department       = trim($_POST['department'] ?? '');
+$purchased        = trim($_POST['purchased'] ?? '');
+$notes            = trim($_POST['notes'] ?? '');
 $table_id         = trim($_POST['table_id'] ?? ''); 
 
 // require a table_id
@@ -36,5 +36,5 @@ if (!$stmt->execute()) {
 }
 $stmt->close();
 
-header("Location: /ItemPilot/home.php");
+header("Location: /ItemPilot/home.php?autoload=1&type=groceries&table_id={$table_id}");
 exit;
