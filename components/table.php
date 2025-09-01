@@ -47,11 +47,11 @@
           $res = $stmt->get_result();
 
           while ($row = $res->fetch_assoc()):
-            $tid   = (int)$row['table_id'];
-            $title = htmlspecialchars($row['table_title'] ?? 'Untitled Table');
+            $tid        = (int)$row['table_id'];
+            $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Table', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
             $createdTs  = $row['created_at'] ? strtotime($row['created_at']) : 0;
-            $href  = "/ItemPilot/home.php?autoload=1&table_id={$tid}";
+            $href       = "/ItemPilot/home.php?autoload=1&table_id={$tid}";
         ?>
         <!-- Universal Card -->
         <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200"
@@ -87,11 +87,11 @@
           $res = $stmt->get_result();
 
           while ($row = $res->fetch_assoc()):
-            $sid   = (int)$row['table_id'];
-            $title = htmlspecialchars($row['table_title'] ?? 'Untitled Sales');
+            $sid        = (int)$row['table_id'];
+            $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Sales', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
             $createdTs  = $row['created_at'] ? strtotime($row['created_at']) : 0;
-            $href  = "/ItemPilot/home.php?autoload=1&type=sales&table_id={$sid}";
+            $href       = "/ItemPilot/home.php?autoload=1&type=sales&table_id={$sid}";
         ?>
         <!-- Sales Card -->
         <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200"
@@ -117,6 +117,47 @@
           </a>
         </li>
         <?php endwhile; $stmt->close(); ?>
+
+
+        <?php
+          // ---- GROCERIES TABLES ----
+          $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM groceries_table WHERE user_id = ? ORDER BY table_id ASC");
+          $stmt->bind_param('i', $uid);
+          $stmt->execute();
+          $res = $stmt->get_result();
+
+          while ($row = $res->fetch_assoc()):
+            $gid        = (int)$row['table_id'];
+            $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Groceries', ENT_QUOTES, 'UTF-8');
+            $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
+            $createdTs  = $row['created_at'] ? strtotime($row['created_at']) : 0;
+            $href       = "/ItemPilot/home.php?autoload=1&type=groceries&table_id={$gid}";
+        ?>
+        <!-- Groceries Card -->
+        <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200"
+            data-name="<?= strtolower($title) ?>"
+            data-date="<?= $createdTs ?>"
+            data-status="Grocery List">
+          <a href="<?= $href ?>" class="block p-5 space-y-3">
+            <div class="flex items-center gap-3">
+              <img src="images/categories/groceries.svg" alt="" class="w-10 h-10">
+              <div>
+                <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
+                <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
+                <p class="text-xs text-gray-400">Placeholder for grocery items</p>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-3 border-t">
+              <span class="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Grocery List</span>
+              <button class="text-gray-400 hover:text-gray-600 transition">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+            </div>
+          </a>
+        </li>
+        <?php endwhile; $stmt->close(); ?>
+
       </ul>
     </div>
   </section>

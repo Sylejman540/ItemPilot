@@ -67,58 +67,77 @@
 
           <ul id="dropdown" class="hidden pl-8 space-y-1">
             <?php
-              // Combine both tables into one result set
-              $sql = "
-                SELECT table_id, table_title, 'tables' AS src
-                FROM tables
-                WHERE user_id = ?
-                UNION ALL
-                SELECT table_id, table_title, 'sales_table' AS src
-                FROM sales_table
-                WHERE user_id = ?
-                ORDER BY table_id ASC
-              ";
-              $stmt = $conn->prepare($sql);
-              $stmt->bind_param('ii', $uid, $uid);
-              $stmt->execute();
-              $res = $stmt->get_result();
+// Combine all three into one list
+$sql = "
+  SELECT table_id, table_title, 'tables' AS src
+  FROM tables
+  WHERE user_id = ?
+  UNION ALL
+  SELECT table_id, table_title, 'sales_table' AS src
+  FROM sales_table
+  WHERE user_id = ?
+  UNION ALL
+  SELECT table_id, table_title, 'groceries_table' AS src
+  FROM groceries_table
+  WHERE user_id = ?
+  ORDER BY table_id ASC
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('iii', $uid, $uid, $uid);
+$stmt->execute();
+$res = $stmt->get_result();
 
-              if ($res && $res->num_rows):
-                while ($row = $res->fetch_assoc()):
-                  $src  = $row['src']; // which table it came from
-                  $tid  = (int)$row['table_id'];
-                  $name = htmlspecialchars($row['table_title'] ?? '');
-            ?>
-              <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">
-                <a href="#" class="js-table-link block px-4 py-2 <?= $src === 'sales_table' ? 'js-strategy-link' : '' ?>"  data-table-id="<?= $tid ?>" data-src="<?= $src ?>">
-                  <?= $name ?>
-                </a>
+if ($res && $res->num_rows):
+  while ($row = $res->fetch_assoc()):
+    $src  = $row['src'];
+    $tid  = (int)$row['table_id'];
+    $name = htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8');
 
-                <a
-                  href="categories/<?= $src === 'sales_table' ? 'Sales Strategy' : 'Universal Table' ?>/delete_table.php?table_id=<?= $tid ?>"
-                  onclick="return confirm('Are you sure you want to delete this entire table?');"
-                  class="text-red-500 hover:text-red-700 mt-2"
-                >
-                <button class="text-gray-400 hover:text-red-500 transition mt-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" 
-                      fill="none" viewBox="0 0 24 24" 
-                      stroke-width="1.8" stroke="currentColor" 
-                      class="w-5 h-5">
-                    <path stroke-linecap="round" 
-                          stroke-linejoin="round" 
-                          d="M9 3h6m2 4H7l1 12h8l1-12z" />
-                  </svg>
-                </button>
-                </a>
-              </li>
-            <?php
-                endwhile;
-              else:
-            ?>
-              <li class="px-4 py-2 italic text-[#A7B6CC]">No tables yet.</li>
-            <?php endif;
-              $stmt->close();
-            ?>
+    // Map src -> folder name (URL-encoded spaces)
+    if ($src === 'sales_table') {
+      $dir = 'Sales%20Strategy';
+      $extraClass = 'js-strategy-link';
+    } elseif ($src === 'groceries_table') {
+      $dir = 'Groceries%20Table';
+      $extraClass = 'js-groceries-link';
+    } else {
+      $dir = 'Universal%20Table';
+      $extraClass = '';
+    }
+?>
+  <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">
+    <a href="#"
+       class="js-table-link block px-4 py-2 <?= $extraClass ?>"
+       data-table-id="<?= $tid ?>"
+       data-src="<?= $src ?>">
+      <?= $name ?>
+    </a>
+
+    <a href="categories/<?= $dir ?>/delete_table.php?table_id=<?= $tid ?>"
+       onclick="return confirm('Are you sure you want to delete this entire table?');"
+       class="text-red-500 hover:text-red-700 mt-2">
+      <button class="text-gray-400 hover:text-red-500 transition mt-1">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             fill="none" viewBox="0 0 24 24"
+             stroke-width="1.8" stroke="currentColor"
+             class="w-5 h-5">
+          <path stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 3h6m2 4H7l1 12h8l1-12z" />
+        </svg>
+      </button>
+    </a>
+  </li>
+<?php
+  endwhile;
+else:
+?>
+  <li class="px-4 py-2 italic text-[#A7B6CC]">No tables yet.</li>
+<?php
+endif;
+$stmt->close();
+?>
+
           </ul>
 
           <!-- INSIGHTS -->

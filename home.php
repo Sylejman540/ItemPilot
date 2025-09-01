@@ -577,6 +577,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   const dropdown     = document.getElementById("dropdown");     // the tables list (UL)
   const sales        = document.getElementById("sales-strategy"); // sales template card
   const strategy     = document.getElementById("strategy");       // optional open strategy button
+  const groceries    = document.getElementById("groceries");
 
   let currentPage    = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
   let currentId      = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
@@ -675,6 +676,57 @@ $barData  = fillMissingMonthlyWithNull($barData);
     });
   }
 
+  const G_PATH = 'categories/Groceries%20Table/insert_groceries.php';
+
+  function loadGroceriesTable(tableId, page = 1) {
+    if (!tableId) return;
+    currentId = tableId;
+    fetch(`${G_PATH}?page=${page}&table_id=${tableId}`)
+      .then(r => r.text())
+      .then(html => {
+        insightRight.innerHTML = html;
+        if (homeRight)   homeRight.style.display = "none";
+        if (eventRight)  eventRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        insightRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  function newGroceriesTable(page = 1) {
+    fetch(`${G_PATH}?action=create_blank&page=${page}`)
+      .then(r => r.text())
+      .then(html => {
+        insightRight.innerHTML = html;
+        if (homeRight)   homeRight.style.display = "none";
+        if (eventRight)  eventRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        insightRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  if (groceries && eventRight) {
+    groceries.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      newGroceriesTable(1);
+    });
+  }
+
+  // 2) Open existing (from sidebar/list links with class="js-groceries-link")
+  document.addEventListener("click", e => {
+    const link = e.target.closest(".js-groceries-link");
+    if (!link || !eventRight) return;
+
+    e.preventDefault();
+    document.getElementById("categories")?.classList.add("hidden");
+
+    const idFromBtn = parseInt(link.dataset.tableId || "", 10);
+    loadGroceriesTable(!Number.isNaN(idFromBtn) ? idFromBtn : currentId, currentPage || 1);
+  });
+
+
   // -------- Dropdown delegation (detect src) --------
   if (dropdown && eventRight) {
     dropdown.addEventListener("click", e => {
@@ -740,12 +792,12 @@ $barData  = fillMissingMonthlyWithNull($barData);
   //   templates.style.display = 'block';
   // })
 
-const menuBtn   = document.getElementById('menuBtn');
-const sidebar   = document.getElementById('sidebar');
-const root      = document.documentElement;
-const appHeader = document.getElementById('appHeader');
+  const menuBtn   = document.getElementById('menuBtn');
+  const sidebar   = document.getElementById('sidebar');
+  const root      = document.documentElement;
+  const appHeader = document.getElementById('appHeader');
 
-if (menuBtn && sidebar) {
+  if (menuBtn && sidebar) {
   const OFFSET_PX = -2;
   const PEEK_PX   = 20;
 
@@ -827,7 +879,6 @@ if (menuBtn && sidebar) {
     // desktop stays as last saved
   }
 }
-
 
   // -------- tabs --------
   const homeTab    = document.getElementById("home");
@@ -926,6 +977,10 @@ if (menuBtn && sidebar) {
     form.requestSubmit(); // or form.submit() if you don't want validation
   });
 
+  document.addEventListener('change', (e) => {
+    const s = e.target.closest('select[data-autosave="1"]');
+    if (s) s.form?.requestSubmit();
+  });
 
 
   // -------- autosave status --------
