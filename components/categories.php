@@ -46,7 +46,8 @@
     </article>
       
     <!-- Groceries Table -->
-    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 rounded-md" id="groceries">
+     <!-- id="groceries" -->
+    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 rounded-md"> 
         <div class="bg-yellow-400 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/groceries.svg" alt="" class="w-6 h-6">
         </div>

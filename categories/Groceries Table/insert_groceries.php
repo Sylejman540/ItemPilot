@@ -323,33 +323,51 @@ $rows  = $rows ?? [];   // already fetched above
         <?php endif; ?>
       </div>
 
-      <?php if ($totalPages > 1): ?>
-        <div class="pagination my-4 flex justify-start md:justify-center space-x-2">
-          <?php if ($page > 1): ?>
-            <a href="insert_groceries.php?page=<?= $page-1 ?>&table_id=<?= (int)$tableId ?>"
-              class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
-              « Prev
-            </a>
-          <?php endif; ?>
+<?php if ($totalPages > 1): ?>
+  <?php
+    $base = htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8');
+    $qs   = $_GET;                // keep existing filters/search, etc.
+    unset($qs['page']);           // we’ll set page per link
+    $qs['table_id'] = $tableId;   // ensure consistency
 
-          <?php for ($i=1; $i<=$totalPages; $i++): ?>
-            <a href="insert_groceries.php?page=<?= $i ?>&table_id=<?= (int)$tableId ?>"
-              class="px-3 py-1 border rounded transition
-                      <?= $i===$page
-                        ? 'bg-blue-600 text-white border-blue-600 font-semibold'
-                        : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>">
-              <?= $i ?>
-            </a>
-          <?php endfor; ?>
+    $url = function(int $n) use ($base, $qs) {
+      $qs['page'] = $n;
+      return $base . '?' . http_build_query($qs);
+    };
+  ?>
+  <nav class="pagination my-4 flex justify-start md:justify-center space-x-2" aria-label="Pagination">
+    <!-- Prev -->
+    <a href="<?= $page > 1 ? $url($page-1) : '#' ?>"
+       <?= $page > 1 ? 'rel="prev"' : 'aria-disabled="true" tabindex="-1"' ?>
+       class="px-3 py-1 border rounded transition
+              <?= $page > 1 ? 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                            : 'text-gray-400 border-gray-200 cursor-not-allowed' ?>">
+      « Prev
+    </a>
 
-          <?php if ($page < $totalPages): ?>
-            <a href="insert_groceries.php?page=<?= $page+1 ?>&table_id=<?= (int)$tableId ?>"
-              class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
-              Next »
-            </a>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
+    <!-- Page numbers -->
+    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+      <a href="<?= $url($i) ?>"
+         class="px-3 py-1 border rounded transition
+                <?= $i === $page
+                   ? 'bg-blue-600 text-white border-blue-600 font-semibold'
+                   : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>"
+         <?= $i === $page ? 'aria-current="page"' : '' ?>>
+        <?= $i ?>
+      </a>
+    <?php endfor; ?>
+
+    <!-- Next -->
+    <a href="<?= $page < $totalPages ? $url($page+1) : '#' ?>"
+       <?= $page < $totalPages ? 'rel="next"' : 'aria-disabled="true" tabindex="-1"' ?>
+       class="px-3 py-1 border rounded transition
+              <?= $page < $totalPages ? 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                                       : 'text-gray-400 border-gray-200 cursor-not-allowed' ?>">
+      Next »
+    </a>
+  </nav>
+<?php endif; ?>
+
 
     </div>
   </main>

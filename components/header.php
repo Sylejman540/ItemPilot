@@ -200,7 +200,6 @@ $stmt->close();
   transition: background-color 160ms cubic-bezier(.22,.61,.36,1), box-shadow 160ms cubic-bezier(.22,.61,.36,1);
 }
 .navitem:hover {
-  background-color: rgba(59,130,246,.06);
   box-shadow: inset 2px 0 0 0 #3b82f6;
 }
 

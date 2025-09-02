@@ -227,6 +227,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       $headRow = $res && $res->num_rows ? $res->fetch_assoc() : ['id'=>0,'table_id'=>$table_id];
       $theadFetch->close();
       ?>
+      
 
       <!-- THEAD -->
       <div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
@@ -278,7 +279,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
 
       <!-- TBODY -->
-      <div class="md:w-full w-[90rem] divide-y divide-gray-200">
+      <div class="md:w-full w-[88rem] divide-y divide-gray-200">
         <?php if ($hasRecord): foreach ($rows as $r): ?>
           <form method="POST"
                 action="/ItemPilot/categories/Sales Strategy/edit_tbody.php?id=<?= (int)$r['id'] ?>"
