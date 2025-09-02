@@ -161,7 +161,7 @@ $rows  = $rows ?? [];   // already fetched above
     }
     $stmt->close();
     ?>
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 py-[10px] cursor-pointer px-2 rounded-lg text-white">
+    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-400 hover:bg-blue-500 py-[10px] cursor-pointer px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
@@ -216,7 +216,7 @@ $rows  = $rows ?? [];   // already fetched above
             <div class="w-1/7 p-2">
               <input name="quantity" value="<?= htmlspecialchars($head['quantity'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Quantity" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
-            <div class="w-1/7 p-2">
+            <div class="w-30 p-2">
               <input name="department" value="<?= htmlspecialchars($head['department'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Department" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
             </div>
             <div class="w-1/7 p-2">
@@ -277,7 +277,7 @@ $rows  = $rows ?? [];   // already fetched above
 
             $deptClass = $deptColors[$r['department'] ?? ''] ?? 'bg-white text-gray-900';
             ?>
-            <div class="w-40 p-2 text-gray-600 text-xs font-semibold ">
+            <div class="w-30 p-2 text-gray-600 text-xs font-semibold ">
               <select  data-autosave="1"   name="department"
                       style="appearance:none;"
                       class="w-full px-2 py-1 rounded-xl status--autosave1 <?= $deptClass ?>">
@@ -291,7 +291,7 @@ $rows  = $rows ?? [];   // already fetched above
 
             <!-- Purchased -->
             <div class="w-1/7 p-2 text-gray-600">
-              <label class="inline-flex items-center gap-2">
+              <label class="inline-flex items-center gap-2 ml-2">
                 <input type="checkbox" name="purchased" value="1" <?= !empty($r['purchased']) ? 'checked' : '' ?> />
                 <span>Purchased</span>
               </label>
@@ -443,7 +443,7 @@ $rows  = $rows ?? [];   // already fetched above
       </div>
 
       <div>
-        <button type="submit" class="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-white font-semibold rounded-lg transition">Create New Record</button>
+        <button type="submit" class="w-full py-3 bg-blue-400 hover:bg-blue-500 text-white font-semibold rounded-lg transition">Create New Record</button>
       </div>
     </form>
   </div>

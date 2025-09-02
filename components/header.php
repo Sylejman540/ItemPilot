@@ -1,7 +1,7 @@
  <!-- Header -->
 <main class="flex text-base font-[Open_Sans]">
   <!-- Aside -->
-  <aside id="sidebar" class="w-75 block bg-[#263544] min-h-screen">
+  <aside id="sidebar" class="md:w-75 w-65 block bg-[#263544] min-h-screen">
     <a href="/ItemPilot/home.php">
       <div class="flex items-center gap-2 px-4">
         <!-- Logo icon -->
@@ -167,32 +167,57 @@ $stmt->close();
     </aside>
 
 <style>
-  #sidebar {
-    transition: transform 0.3s ease-in-out;
-    display: none;
-    position: fixed;
-  }
-  #sidebar.hidden {
-    margin-left: -250px; /* adjust to your sidebar width */
-  }
+/* Smooth off-canvas without setting width */
+#sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;        /* stick to left edge, full height */
+  transform: translateX(-100%);      /* hide by shifting its own width */
+  transition: transform 320ms cubic-bezier(.22,.61,.36,1), opacity 200ms linear;
+  opacity: .98;
+  will-change: transform;
+  backface-visibility: hidden;
+  contain: layout paint;
+}
 
-  .sidebar{
-      transition: background-color 0.3s ease;
-  }
-  .sidebar:hover {
-    background-color: #1d2b36ff;
-    transition: background-color 0.3s ease;
-    color: white;
-    border-left: 3px solid #3b82f6; /* Tailwind blue-500 */
-  }
+/* Visible */
+#sidebar.show {
+  transform: translateX(0);
+  opacity: 1;
+}
 
-  .navitem:hover {
-    transition: background-color 0.3s ease;
-    border-left: 2px solid #3b82f6; /* Tailwind blue-500 */
-  }
+/* Optional compatibility class if you still toggle .hidden somewhere */
+#sidebar.hidden { transform: translateX(-100%); }
 
-  #sidebar.show {
-    transform: translateX(0);  
-    display: block;     /* slides in */
-  }
+/* Hover effects – avoid border jank */
+.sidebar { transition: background-color 160ms cubic-bezier(.22,.61,.36,1); }
+.sidebar:hover {
+  background-color: #1d2b36;
+  color: white;
+  box-shadow: inset 3px 0 0 0 #3b82f6; /* visual left bar without layout shift */
+}
+
+.navitem {
+  transition: background-color 160ms cubic-bezier(.22,.61,.36,1), box-shadow 160ms cubic-bezier(.22,.61,.36,1);
+}
+.navitem:hover {
+  background-color: rgba(59,130,246,.06);
+  box-shadow: inset 2px 0 0 0 #3b82f6;
+}
+
+/* Backdrop (mobile/overlay) */
+#sidebar-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none;
+  transition: opacity 200ms cubic-bezier(.22,.61,.36,1);
+}
+#sidebar-backdrop.show {
+  opacity: 1; pointer-events: auto;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #sidebar, .sidebar, .navitem, #sidebar-backdrop { transition: none !important; }
+}
+
 </style>

@@ -287,8 +287,6 @@ $barData  = fillMissingMonthlyWithNull($barData);
 
 // ✅ Arrays ready for charts
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en" class="overflow-x-hidden">
 <head>  
@@ -360,19 +358,12 @@ $barData  = fillMissingMonthlyWithNull($barData);
 <header id="appHeader2" class="fixed top-0 z-50 flex justify-between md:px-10 py-[19px] md:py-3 px-3 backdrop-blur-xl bg-transparent">
         <!-- Left Side Of The Header -->
         <article class="flex items-center gap-4">
-          <button id="menuBtn" class="top-1 left-2 z-50 text-gray-500 hover:text-blue-500 cursor-pointer">
+          <button id="menuBtn" class="top-1 left-2 z-50 text-blue-900 cursor-pointer">
             <!-- Hamburger (☰) -->
              <svg id="hamburgerIcon" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <rect x="3" y="6"  width="18" height="2.5" rx="1.25" />
               <rect x="3" y="11" width="14" height="2.5" rx="1.25" />
               <rect x="3" y="16" width="10" height="2.5" rx="1.25" />
-            </svg>
-          </button>
-
-          <button aria-label="Search" class="text-gray-500">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </button>
         </article>

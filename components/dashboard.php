@@ -8,7 +8,7 @@
 
 </style>
 
-<header id="appHeader3"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
+<header id="appHeader3"  class="absolute md:mt-13 mt-10 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
 <section class="bg-gray-100 w-full px-4 sm:px-6 lg:px-8 py-10" id="home-right">
   <article class="max-w-7xl mt-10">
   <!-- Header KPIs -->

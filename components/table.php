@@ -8,11 +8,11 @@
   }
 </style>
 
-<header id="appHeader3" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out px-5">
+<header id="appHeader3" class="absolute md:mt-13 mt-10 transition-all duration-300 ease-in-out px-5">
   <section class="bg-gray-100 rounded-md hidden w-full mb-5" id="event-right">
 
     <!-- Header -->
-    <div class="md:flex md:justify-between md:px-8 ml-4 mr-4 mt-20 md:mb-10 mb-5">
+    <div class="md:flex md:justify-between md:px-8 ml-2 mr-2 mt-20 md:mb-10 mb-5">
       <div class="flex gap-4">
         <!-- ✅ Search -->
         <input type="search" placeholder="Search tables..."
@@ -157,7 +157,6 @@
           </a>
         </li>
         <?php endwhile; $stmt->close(); ?>
-
       </ul>
     </div>
   </section>
