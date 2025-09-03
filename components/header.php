@@ -30,7 +30,7 @@
             Data
           </li>
           <!-- TABLES -->
-          <button class="w-70 px-6 mt-3 py-3 flex items-center justify-start sidebar text-[#A7B6CC] hover:text-white">
+          <button class="w-70 px-6 mt-3 py-3 cursor-pointer flex items-center justify-start sidebar text-[#A7B6CC] hover:text-white">
             <div>
               <span class="select-none flex justify-center items-center gap-5" id="events">
                 <!-- icon -->

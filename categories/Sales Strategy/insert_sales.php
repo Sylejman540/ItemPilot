@@ -354,7 +354,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
               <img src="/ItemPilot/categories/Sales Strategy/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
-              <span class="italic text-gray-400">📎 None</span>
+              <span class="italic text-gray-400 ml-[5px]">📎 None</span>
             <?php endif; ?>
             <div class="w-1/10 flex items-center">
               <a href="/ItemPilot/categories/Sales Strategy/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"

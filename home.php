@@ -25,106 +25,92 @@ function fetch_all_assoc($conn, $sql, $types = '', $params = []) {
  * Fill missing daily dates with null (so Apex breaks lines if gaps exist)
  */
 function fillMissingDailyWithNull(array $rows): array {
-    if (empty($rows)) return [];
+  if (empty($rows)) return [];
+  $map = [];
+  foreach ($rows as $r) $map[$r['dt']] = isset($r['cnt']) ? (int)$r['cnt'] : null;
 
-    $map = [];
-    foreach ($rows as $r) {
-        $map[$r['dt']] = (int)$r['cnt'];
-    }
+  $startDate = $rows[0]['dt'];
+  $endDate   = $rows[count($rows)-1]['dt'];
 
-    $startDate = $rows[0]['dt'];
-    $endDate   = $rows[count($rows)-1]['dt'];
+  $out = [];
+  $current = new DateTime($startDate);
+  $end     = new DateTime($endDate);
 
-    $out = [];
-    $current = new DateTime($startDate);
-    $end     = new DateTime($endDate);
-
-    while ($current <= $end) {
-        $dt = $current->format('Y-m-d');
-        $out[] = [
-            'dt'  => $dt,
-            'cnt' => $map[$dt] ?? null
-        ];
-        $current->modify('+1 day');
-    }
-
-    return $out;
+  while ($current <= $end) {
+    $dt = $current->format('Y-m-d');
+    $out[] = ['dt' => $dt, 'cnt' => $map[$dt] ?? null];
+    $current->modify('+1 day');
+  }
+  return $out;
 }
 
 /**
  * Fill missing months with null (so no bar drawn for empty months)
  */
 function fillMissingMonthlyWithNull(array $rows): array {
-    if (empty($rows)) return [];
+  if (empty($rows)) return [];
+  $map = [];
+  foreach ($rows as $r) $map[$r['mth']] = isset($r['cnt']) ? (int)$r['cnt'] : null;
 
-    $map = [];
-    foreach ($rows as $r) {
-        $map[$r['mth']] = (int)$r['cnt'];
-    }
+  $startMonth = $rows[0]['mth'];
+  $endMonth   = $rows[count($rows)-1]['mth'];
 
-    $startMonth = $rows[0]['mth'];
-    $endMonth   = $rows[count($rows)-1]['mth'];
+  $out = [];
+  $current = new DateTime($startMonth . "-01");
+  $end     = new DateTime($endMonth . "-01");
 
-    $out = [];
-    $current = new DateTime($startMonth . "-01");
-    $end     = new DateTime($endMonth . "-01");
-
-    while ($current <= $end) {
-        $mth = $current->format('Y-m');
-        $out[] = [
-            'mth' => $mth,
-            'cnt' => $map[$mth] ?? null
-        ];
-        $current->modify('+1 month');
-    }
-
-    return $out;
+  while ($current <= $end) {
+    $mth = $current->format('Y-m');
+    $out[] = ['mth' => $mth, 'cnt' => $map[$mth] ?? null];
+    $current->modify('+1 month');
+  }
+  return $out;
 }
 
 /* ─────────── COMMON WHERE ─────────── */
 $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
 
 if ($tableId) {
-  $whereUni   = "WHERE u.user_id = ? AND u.table_id = ?";
-  $whereSales = "WHERE s.user_id = ? AND s.table_id = ?";
-  $wTypes     = "iiii";
-  $wArgs      = [$uid, $tableId, $uid, $tableId];
+  $whereUni       = "WHERE u.user_id = ? AND u.table_id = ?";
+  $whereSales     = "WHERE s.user_id = ? AND s.table_id = ?";
+  $whereGroceries = "WHERE g.user_id = ? AND g.table_id = ?";
 } else {
-  $whereUni   = "WHERE u.user_id = ?";
-  $whereSales = "WHERE s.user_id = ?";
-  $wTypes     = "ii";
-  $wArgs      = [$uid, $uid];
+  $whereUni       = "WHERE u.user_id = ?";
+  $whereSales     = "WHERE s.user_id = ?";
+  $whereGroceries = "WHERE g.user_id = ?";
 }
-
-/* ─────────── QUERIES FOR CHARTS ─────────── */
 
 /* ─────────── HEADER CARD METRICS ─────────── */
 
-// Total tables (from tables + sales_table)
+// Total tables (tables + sales_table + groceries_table)
 $totalTables = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
-      SELECT COUNT(*) as cnt FROM tables t WHERE t.user_id=? 
+      SELECT COUNT(*) as cnt FROM tables t           WHERE t.user_id=?
       UNION ALL
-      SELECT COUNT(*) as cnt FROM sales_table st WHERE st.user_id=? 
+      SELECT COUNT(*) as cnt FROM sales_table st     WHERE st.user_id=?
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM groceries_table gt WHERE gt.user_id=?
    ) as combined",
-  "ii", [$uid, $uid]
+  "iii", [$uid, $uid, $uid]
 );
 $totalTables = $totalTables[0]['total'] ?? 0;
 
-// Total records (from universal + sales_strategy)
+// Total records (universal + sales_strategy + groceries)
 $totalRecords = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
-      SELECT COUNT(*) as cnt FROM universal u WHERE u.user_id=? 
+      SELECT COUNT(*) as cnt FROM universal u        WHERE u.user_id=?
       UNION ALL
-      SELECT COUNT(*) as cnt FROM sales_strategy s WHERE s.user_id=? 
+      SELECT COUNT(*) as cnt FROM sales_strategy s   WHERE s.user_id=?
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM groceries g        WHERE g.user_id=?
    ) as combined",
-  "ii", [$uid, $uid]
+  "iii", [$uid, $uid, $uid]
 );
 $totalRecords = $totalRecords[0]['total'] ?? 0;
 
-// Active this month (new tables created in current month)
+// Active this month (new tables created this month; include groceries_table)
 $activeThisMonth = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
@@ -133,16 +119,19 @@ $activeThisMonth = fetch_all_assoc(
       UNION ALL
       SELECT COUNT(*) as cnt FROM sales_table st 
         WHERE st.user_id=? AND DATE_FORMAT(st.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM groceries_table gt
+        WHERE gt.user_id=? AND DATE_FORMAT(gt.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
    ) as combined",
-  "ii", [$uid, $uid]
+  "iii", [$uid, $uid, $uid]
 );
 $activeThisMonth = $activeThisMonth[0]['total'] ?? 0;
 
-// Completed tasks (status = 'Done')
+// Completed tasks (status='Done') — ONLY universal + sales_strategy
 $completedTasks = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
-      SELECT COUNT(*) as cnt FROM universal u WHERE u.user_id=? AND u.status='Done'
+      SELECT COUNT(*) as cnt FROM universal u      WHERE u.user_id=? AND u.status='Done'
       UNION ALL
       SELECT COUNT(*) as cnt FROM sales_strategy s WHERE s.user_id=? AND s.status='Done'
    ) as combined",
@@ -150,30 +139,44 @@ $completedTasks = fetch_all_assoc(
 );
 $completedTasks = $completedTasks[0]['total'] ?? 0;
 
+/* ─────────── CHART QUERIES ─────────── */
 
-// 1. Area → New Tables Created (tables + sales_table)
+// 1) Area → New Tables Created (tables + sales_table + groceries_table)
+if ($tableId) {
+  $typesArea = "iiiiii";
+  $argsArea  = [$uid,$tableId, $uid,$tableId, $uid,$tableId];
+  $tableFilter = "AND %s.table_id=?";
+} else {
+  $typesArea = "iii";
+  $argsArea  = [$uid, $uid, $uid];
+  $tableFilter = "";
+}
 $areaData = fetch_all_assoc(
   $conn,
   "SELECT dt, SUM(cnt) AS cnt
      FROM (
-       SELECT DATE(ut.created_at) AS dt, COUNT(*) AS cnt
-         FROM tables ut
-         WHERE ut.user_id=? " . ($tableId ? "AND ut.table_id=?" : "") . "
-         GROUP BY DATE(ut.created_at)
+       SELECT DATE(t.created_at) AS dt, COUNT(*) AS cnt
+         FROM tables t
+         WHERE t.user_id=? " . sprintf($tableFilter, 't') . "
+         GROUP BY DATE(t.created_at)
        UNION ALL
        SELECT DATE(st.created_at) AS dt, COUNT(*) AS cnt
          FROM sales_table st
-         WHERE st.user_id=? " . ($tableId ? "AND st.table_id=?" : "") . "
+         WHERE st.user_id=? " . sprintf($tableFilter, 'st') . "
          GROUP BY DATE(st.created_at)
+       UNION ALL
+       SELECT DATE(gt.created_at) AS dt, COUNT(*) AS cnt
+         FROM groceries_table gt
+         WHERE gt.user_id=? " . sprintf($tableFilter, 'gt') . "
+         GROUP BY DATE(gt.created_at)
      ) AS combined
    GROUP BY dt
    ORDER BY dt ASC",
-  $wTypes, $wArgs
+  $typesArea, $argsArea
 );
 
-// 2. Polar → Records Per Table (no need to merge further)
-$polarData = fetch_all_assoc(
-  $conn,
+// 2) Polar → Records Per Table (universal + sales_strategy + groceries)
+$polarSql = 
   "(SELECT t.table_title AS table_name, COUNT(u.id) AS cnt
      FROM universal u
      JOIN tables t ON t.table_id = u.table_id
@@ -184,13 +187,21 @@ $polarData = fetch_all_assoc(
      FROM sales_strategy s
      JOIN sales_table st ON st.table_id = s.table_id
      WHERE s.user_id=? " . ($tableId ? "AND s.table_id=?" : "") . "
-     GROUP BY st.table_title)",
-  $wTypes, $wArgs
-);
+     GROUP BY st.table_title)
+   UNION ALL
+   (SELECT gt.table_title AS table_name, COUNT(g.id) AS cnt
+     FROM groceries g
+     JOIN groceries_table gt ON gt.table_id = g.table_id
+     WHERE g.user_id=? " . ($tableId ? "AND g.table_id=?" : "") . "
+     GROUP BY gt.table_title)";
+if ($tableId) {
+  $polarData = fetch_all_assoc($conn, $polarSql, "iiiiii", [$uid,$tableId, $uid,$tableId, $uid,$tableId]);
+} else {
+  $polarData = fetch_all_assoc($conn, $polarSql, "iii", [$uid, $uid, $uid]);
+}
 
-// 3. Bar → Records Per Month (universal + sales_strategy)
-$barData = fetch_all_assoc(
-  $conn,
+// 3) Bar → Tables Per Month (tables + sales_table + groceries_table)
+$barSql =
   "SELECT mth, SUM(cnt) AS cnt
      FROM (
        SELECT DATE_FORMAT(t.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
@@ -202,15 +213,28 @@ $barData = fetch_all_assoc(
          FROM sales_table st
          WHERE st.user_id=? " . ($tableId ? "AND st.table_id=?" : "") . "
          GROUP BY mth
+       UNION ALL
+       SELECT DATE_FORMAT(gt.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
+         FROM groceries_table gt
+         WHERE gt.user_id=? " . ($tableId ? "AND gt.table_id=?" : "") . "
+         GROUP BY mth
      ) AS combined
    GROUP BY mth
-   ORDER BY mth ASC",
-  $wTypes, $wArgs
-);
+   ORDER BY mth ASC";
+if ($tableId) {
+  $barData = fetch_all_assoc($conn, $barSql, "iiiiii", [$uid,$tableId, $uid,$tableId, $uid,$tableId]);
+} else {
+  $barData = fetch_all_assoc($conn, $barSql, "iii", [$uid, $uid, $uid]);
+}
 
-
-// 4. Radar → Status Distribution (fine to keep UNION ALL)
-
+// 4) Radar → Status Distribution (ONLY universal + sales_strategy)
+if ($tableId) {
+  $radarTypes = "iiii";
+  $radarArgs  = [$uid,$tableId, $uid,$tableId];
+} else {
+  $radarTypes = "ii";
+  $radarArgs  = [$uid, $uid];
+}
 $radarData = fetch_all_assoc(
   $conn,
   "SELECT status, SUM(cnt) as cnt
@@ -226,10 +250,17 @@ $radarData = fetch_all_assoc(
      GROUP BY s.status
    ) merged
    GROUP BY status",
-  $wTypes, $wArgs
+  $radarTypes, $radarArgs
 );
 
-// 5. Gradient Line → Records Over Time (universal + sales_strategy)
+// 5) Line → Records Over Time (universal + sales_strategy + groceries)
+if ($tableId) { 
+  $lineTypes = "iiiiii"; 
+  $lineArgs  = [$uid,$tableId, $uid,$tableId, $uid,$tableId]; 
+} else { 
+  $lineTypes = "iii";    
+  $lineArgs  = [$uid, $uid, $uid]; 
+}
 $lineData = fetch_all_assoc(
   $conn,
   "SELECT dt, SUM(cnt) AS cnt
@@ -243,13 +274,25 @@ $lineData = fetch_all_assoc(
          FROM sales_strategy s
          $whereSales
          GROUP BY dt
+       UNION ALL
+       SELECT DATE(g.created_at) AS dt, COUNT(*) AS cnt
+         FROM groceries g
+         $whereGroceries
+         GROUP BY dt
      ) AS combined
    GROUP BY dt
    ORDER BY dt ASC",
-  $wTypes, $wArgs
+  $lineTypes, $lineArgs
 );
 
-// 6. Pie → To Do / In Progress / Done (fine to keep UNION ALL)
+// 6) Pie → To Do / In Progress / Done (ONLY universal + sales_strategy)
+if ($tableId) {
+  $pieTypes = "iiii";
+  $pieArgs  = [$uid,$tableId, $uid,$tableId];
+} else {
+  $pieTypes = "ii";
+  $pieArgs  = [$uid,$uid];
+}
 $pieData = fetch_all_assoc(
   $conn,
   "SELECT status, SUM(cnt) as cnt
@@ -265,28 +308,26 @@ $pieData = fetch_all_assoc(
      GROUP BY s.status
    ) merged
    GROUP BY status",
-  $wTypes, $wArgs
+  $pieTypes, $pieArgs
 );
 
-
-$statuses = ["To Do", "In Progress", "Done"]; // adjust if you have more
+/* ─────────── STATUS MAP (for Pie: only status-bearing tables) ─────────── */
+$statuses  = ["To Do", "In Progress", "Done"]; // adjust if you have more
 $statusMap = array_fill_keys($statuses, 0);
-
 foreach ($pieData as $row) {
   $status = $row['status'];
   $cnt = (int)$row['cnt'];
-  if (isset($statusMap[$status])) {
-    $statusMap[$status] = $cnt;
-  }
+  if (isset($statusMap[$status])) $statusMap[$status] = $cnt;
 }
 
-/* ─────────── FILL MISSING ─────────── */
+/* ─────────── FILL MISSING GAPS FOR CHART AXES ─────────── */
 $areaData = fillMissingDailyWithNull($areaData);
 $lineData = fillMissingDailyWithNull($lineData);
 $barData  = fillMissingMonthlyWithNull($barData);
 
-// ✅ Arrays ready for charts
+// ✅ Arrays ready for charts: $areaData, $polarData, $barData, $radarData, $lineData, $statusMap
 ?>
+
 <!DOCTYPE html>
 <html lang="en" class="overflow-x-hidden">
 <head>  
@@ -669,10 +710,10 @@ $barData  = fillMissingMonthlyWithNull($barData);
 
   const G_PATH = 'categories/Groceries%20Table/insert_groceries.php';
 
-  function loadGroceriesTable(tableId, page = 1) {
-    if (!tableId) return;
-    currentId = tableId;
-    fetch(`${G_PATH}?page=${page}&table_id=${tableId}`)
+  function loadGroceriesTable(groceryId, page = 1) {
+    if (!groceryId) return;
+    currentId = groceryId;
+    fetch(`${G_PATH}?page=${page}&table_id=${groceryId}`)
       .then(r => r.text())
       .then(html => {
         insightRight.innerHTML = html;
@@ -983,26 +1024,53 @@ $barData  = fillMissingMonthlyWithNull($barData);
   });
 
   // -------- dropdown open/close --------
-  $(function () {
-    const $arrowBtn = $('#tablesItem');
-    const $dd       = $('#dropdown');
-    const $chev     = $('#tablesItem .chev');
-    function open() {
+$(function () {
+  const $arrowBtn = $('#tablesItem');
+  const $dd       = $('#dropdown');
+  const $chev     = $('#tablesItem .chev');
+  const KEY       = 'tablesDropdownState:v1';
+
+  function open(skipAnim = false) {
+    if (skipAnim) {
+      $dd.stop(true,true).show().removeClass('hidden');
+    } else {
       if ($dd.is(':visible')) return;
-      $dd.stop(true,true).slideDown(160,()=> $dd.removeClass('hidden'));
-      $chev.addClass('rotate-90');
-      $arrowBtn.attr('aria-expanded','true');
+      $dd.stop(true,true).slideDown(160, () => $dd.removeClass('hidden'));
     }
-    function close() {
+    $chev.addClass('rotate-90');
+    $arrowBtn.attr('aria-expanded','true');
+    localStorage.setItem(KEY, 'open');
+  }
+
+  function close(skipAnim = false) {
+    if (skipAnim) {
+      $dd.stop(true,true).hide().addClass('hidden');
+    } else {
       if (!$dd.is(':visible')) return;
-      $dd.stop(true,true).slideUp(160,()=> $dd.addClass('hidden'));
-      $chev.removeClass('rotate-90');
-      $arrowBtn.attr('aria-expanded','false');
+      $dd.stop(true,true).slideUp(160, () => $dd.addClass('hidden'));
     }
-    $arrowBtn.on('click', e=>{ e.preventDefault(); e.stopPropagation(); $dd.is(':visible')?close():open(); });
-    $(document).on('click', e=>{ if(!$(e.target).closest('#dropdown,#tablesItem').length) close(); });
-    $(document).on('keydown', e=>{ if(e.key==='Escape') close(); });
+    $chev.removeClass('rotate-90');
+    $arrowBtn.attr('aria-expanded','false');
+    localStorage.setItem(KEY, 'closed');
+  }
+
+  $arrowBtn.on('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    $dd.is(':visible') ? close() : open();
   });
+
+  $(document).on('click', e => {
+    if (!$(e.target).closest('#dropdown,#tablesItem').length) close();
+  });
+
+  $(document).on('keydown', e => { if (e.key === 'Escape') close(); });
+
+  // Restore last state without animation
+  const saved = localStorage.getItem(KEY);
+  if (saved === 'open') open(true);
+  else close(true); // default closed
+});
+
 
   // -------- autoload --------
   const params = new URLSearchParams(window.location.search);
