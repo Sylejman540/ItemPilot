@@ -1,11 +1,10 @@
 <style>
   #appHeader3{
   top: 0;
-  left: var(--sbw);                    /* start after the sidebar */
-  right: 0;                            /* stretch to right edge */
-  width: auto;                         /* ignore any Tailwind w-* */
+  left: var(--sbw); 
+  right: 0;    
+  width: auto;              
 }
-
 </style>
 
 <header id="appHeader3"  class="absolute md:mt-13 mt-10 transition-all duration-300 ease-in-out"   style="padding-left: 1.25rem; padding-right: 1.25rem;">
@@ -69,9 +68,7 @@
       </svg>
     </div>
   </div>
-
 </div>
-
 
     </div>
     <!-- Row 1 -->

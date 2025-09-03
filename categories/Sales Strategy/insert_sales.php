@@ -212,6 +212,9 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" id="strategy">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[90rem]">
 
+    <input type="search" placeholder="Search tables..."
+          class="rounded-lg px-3 border bg-white border-gray-300 h-10 w-80 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+
       <?php
       // Prefill THEAD form
       $theadFetch = $conn->prepare("
