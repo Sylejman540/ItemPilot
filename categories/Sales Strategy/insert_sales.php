@@ -214,7 +214,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
     <!-- Search + live result count -->
     <div class="flex items-center gap-3 mb-3">
       <label for="rowSearch" class="sr-only">Search</label>
-      <input id="rowSearch" type="search" placeholder="Search sponsor, status, priority…" class="rounded-lg px-3 border border-gray-100 h-10 w-80">
+      <input id="rowSearch" type="search" placeholder="Search" class="rounded-lg px-3 border border-gray-200 h-10 w-80">
       <span id="resultCount" aria-live="polite" class="text-sm text-gray-500"></span>
     </div>
 
