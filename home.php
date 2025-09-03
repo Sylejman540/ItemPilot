@@ -1101,48 +1101,113 @@ $barData  = fillMissingMonthlyWithNull($barData);
 })();
 
 document.addEventListener("DOMContentLoaded", () => {
-  const searchInput = document.querySelector("input[type='search']");
-  const sortSelect  = document.querySelector("select");
-  const list        = document.querySelector("#event-right ul"); // the grid container
-  const cards       = Array.from(list.querySelectorAll("li"));
+  // Scope everything to #event-right so it won't touch table UI
+  const scope      = document.getElementById("event-right");
+  if (!scope) return;
+
+  const searchInput = scope.querySelector("input[type='search']");
+  const sortSelect  = scope.querySelector("select");
+  const list        = scope.querySelector("ul");
+  if (!searchInput || !sortSelect || !list) return;
+
+  const cards = Array.from(list.querySelectorAll("li"));
 
   function filterAndSort() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const sortBy = sortSelect.value;
+    const searchTerm = (searchInput.value || '').toLowerCase();
+    const sortBy     = (sortSelect.value || 'name');
 
-    // 1️⃣ Filter by name
     cards.forEach(card => {
-      const name = card.dataset.name || "";
-      if (name.includes(searchTerm)) {
-        card.style.display = "";
-      } else {
-        card.style.display = "none";
-      }
+      const name = (card.dataset.name || '').toLowerCase();
+      card.style.display = name.includes(searchTerm) ? "" : "none";
     });
 
-    // 2️⃣ Sort (only the visible ones)
-    const visibleCards = cards.filter(card => card.style.display !== "none");
-
+    const visibleCards = cards.filter(c => c.style.display !== "none");
     visibleCards.sort((a, b) => {
-      if (sortBy === "name") {
-        return (a.dataset.name > b.dataset.name) ? 1 : -1;
-      } else if (sortBy === "date") {
-        return b.dataset.date - a.dataset.date; // newest first
-      }
+      if (sortBy === "name")  return a.dataset.name.localeCompare(b.dataset.name);
+      if (sortBy === "date")  return (+b.dataset.date) - (+a.dataset.date);
       return 0;
     });
-
-    // 3️⃣ Re-append in sorted order
     visibleCards.forEach(card => list.appendChild(card));
   }
 
-  // Attach events
   searchInput.addEventListener("input", filterAndSort);
   sortSelect.addEventListener("change", filterAndSort);
-
-  // Run once on load
   filterAndSort();
 });
+
+(function ($) {
+  // Helpers that always read the CURRENT DOM (works after AJAX loads)
+  const $container   = () => $('#myTable');
+  const $rows        = () => $container().find('.strategy-row');
+  const $input       = () => $('#rowSearch');
+  const $count       = () => $('#resultCount');
+
+  function normalize(s) {
+    return String(s || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[-_./]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function canonicalize(s) {
+    return s
+      .replace(/\bto do\b/g, 'todo')
+      .replace(/\bin progress\b/g, 'inprogress');
+  }
+  function rowIndexText($row) {
+    // Read live values first; fall back to data-* if empty
+    const sponsor  = $row.find('input[name="executive_sponsor"]').val() || $row.data('sponsor')  || '';
+    const status   = $row.find('select[name="status"]').val()            || $row.data('status')   || '';
+    const priority = $row.find('input[name="priority"]').val()           || $row.data('priority') || '';
+    return canonicalize(normalize([sponsor, status, priority].join(' | ')));
+  }
+
+  function applyFilter(qRaw) {
+    const qNorm  = canonicalize(normalize(qRaw));
+    const tokens = qNorm ? qNorm.split(' ') : [];
+    let shown = 0;
+
+    $rows().each(function () {
+      const $row = $(this);
+      const idx  = rowIndexText($row);
+      const match = tokens.every(tok => idx.indexOf(tok) !== -1);
+      const visible = tokens.length === 0 ? true : match;
+      $row.toggle(visible);
+      if (visible) shown++;
+    });
+
+    // Update result count (if present in the injected HTML)
+    if ($count().length) {
+      $count().text(tokens.length ? `${shown} result${shown === 1 ? '' : 's'}` : '');
+    }
+  }
+
+  // Debounced delegated typing — works even if #rowSearch appears later
+  let t = null;
+  $(document).on('input', '#rowSearch', function () {
+    clearTimeout(t);
+    const q = $(this).val();
+    t = setTimeout(() => applyFilter(q), 200);
+  });
+
+  // Re-filter when any relevant field changes (delegated)
+  $(document).on('change input',
+    '#myTable select[name="status"], #myTable input[name="priority"], #myTable input[name="executive_sponsor"]',
+    function () { applyFilter($input().val() || ''); }
+  );
+
+  // Esc clears (delegated)
+  $(document).on('keydown', '#rowSearch', function (e) {
+    if (e.key === 'Escape') { $(this).val(''); applyFilter(''); }
+  });
+
+  // Allow other parts of the app to re-apply filter after AJAX loads
+  document.addEventListener('sales:loaded', () => applyFilter($input().val() || ''));
+
+  // If the search exists on initial load, run once
+  if ($input().length) applyFilter('');
+})(jQuery);
 </script>
 
 </body>
