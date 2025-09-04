@@ -708,12 +708,27 @@ $barData  = fillMissingMonthlyWithNull($barData);
     });
   }
 
+    function loadStrategy(salesId, page = 1) {
+    if (!salesId) return;
+    currentSalesId = salesId;
+    fetch(`categories/Sales%20Strategy/insert_sales.php?page=${page}&table_id=${salesId}`)
+      .then(r => r.text())
+      .then(html => {
+        insightRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (eventRight) eventRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        insightRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
   const G_PATH = 'categories/Groceries%20Table/insert_groceries.php';
 
   function loadGroceriesTable(groceryId, page = 1) {
     if (!groceryId) return;
     currentId = groceryId;
-    fetch(`${G_PATH}?page=${page}&table_id=${groceryId}`)
+    fetch(`categories/Groceries%20Table/insert_groceries.php`)
       .then(r => r.text())
       .then(html => {
         insightRight.innerHTML = html;
@@ -726,7 +741,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   }
 
   function newGroceriesTable(page = 1) {
-    fetch(`${G_PATH}?action=create_blank&page=${page}`)
+    fetch(`categories/Groceries%20Table/insert_groceries.php`)
       .then(r => r.text())
       .then(html => {
         insightRight.innerHTML = html;
@@ -1267,6 +1282,77 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Esc clears (delegated)
   $(document).on('keydown', '#rowSearch', function (e) {
+    if (e.key === 'Escape') { $(this).val(''); applyFilter(''); }
+  });
+
+  // Allow other parts of the app to re-apply filter after AJAX loads
+  document.addEventListener('sales:loaded', () => applyFilter($input().val() || ''));
+
+  // If the search exists on initial load, run once
+  if ($input().length) applyFilter('');
+})(jQuery);
+
+(function ($) {
+  // Helpers that always read the CURRENT DOM (works after AJAX loads)
+  const $container   = () => $('#myTable1');
+  const $rows        = () => $container().find('.universal-row');
+  const $input       = () => $('#rowSearch1');
+  const $count       = () => $('#resultCount1');
+
+  function normalize(s) {
+    return String(s || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[-_./]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function canonicalize(s) {
+    return s
+      .replace(/\bto do\b/g, 'todo')
+      .replace(/\bin progress\b/g, 'inprogress');
+  }
+  function rowIndexText($row) {
+    const status   = $row.find('select[name="status"]').val()            || $row.data('status')   || '';
+    return canonicalize(normalize([status].join(' | ')));
+  }
+
+  function applyFilter(qRaw) {
+    const qNorm  = canonicalize(normalize(qRaw));
+    const tokens = qNorm ? qNorm.split(' ') : [];
+    let shown = 0;
+
+    $rows().each(function () {
+      const $row = $(this);
+      const idx  = rowIndexText($row);
+      const match = tokens.every(tok => idx.indexOf(tok) !== -1);
+      const visible = tokens.length === 0 ? true : match;
+      $row.toggle(visible);
+      if (visible) shown++;
+    });
+
+    // Update result count (if present in the injected HTML)
+    if ($count().length) {
+      $count().text(tokens.length ? `${shown} result${shown === 1 ? '' : 's'}` : '');
+    }
+  }
+
+  // Debounced delegated typing — works even if #rowSearch appears later
+  let t = null;
+  $(document).on('input', '#rowSearch1', function () {
+    clearTimeout(t);
+    const q = $(this).val();
+    t = setTimeout(() => applyFilter(q), 200);
+  });
+
+  // Re-filter when any relevant field changes (delegated)
+  $(document).on('change input',
+    '#myTable select[name="status"]',
+    function () { applyFilter($input().val() || ''); }
+  );
+
+  // Esc clears (delegated)
+  $(document).on('keydown', '#rowSearch1', function (e) {
     if (e.key === 'Escape') { $(this).val(''); applyFilter(''); }
   });
 

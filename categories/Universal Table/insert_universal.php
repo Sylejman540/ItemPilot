@@ -167,8 +167,16 @@ $first = $rows[0] ?? null;
     </button>
   </section>
 
-<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
+<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" id="myTable1">
   <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
+
+      <!-- Search + live result count -->
+    <div class="flex items-center gap-3 mb-3">
+      <label for="rowSearch1" class="sr-only">Search</label>
+      <input id="rowSearch1" type="search" placeholder="Search" class="rounded-lg px-3 border border-gray-200 h-10 w-80">
+      <span id="resultCount1" aria-live="polite" class="text-sm text-gray-500"></span>
+    </div>
+
 
     <?php
     // get the most recent row just to PREFILL inputs (not to update it)
@@ -219,7 +227,7 @@ $first = $rows[0] ?? null;
   <!-- TBODY -->
   <div class="w-full divide-y divide-gray-200">
     <?php if ($hasRecord): foreach ($rows as $r): ?>
-      <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm">
+      <form method="POST" action="/ItemPilot/categories/Universal Table/edit_tbody.php?id=<?= $r['id'] ?>" enctype="multipart/form-data" class="universal-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
           
         <input type="hidden" name="id" value="<?= $r['id'] ?>">
         <input type="hidden" name="title" value="<?= htmlspecialchars($tableTitle) ?>">
