@@ -520,15 +520,15 @@ $barData  = fillMissingMonthlyWithNull($barData);
 
   
 <div id="account" class="hidden inset-0 md:fixed absolute mt-14 md:ml-150 h-screen overflow-none md:ml-0 md:mr-0 ml-3 mr-3">
-  <div class="w-full max-w-md bg-white px-8 py-5 rounded-2xl shadow-md border border-gray-200">
-  <h1 class="text-3xl font-extrabold text-center text-[#263544] mb-4 mt-20">Manage Your Account</h1>
+  <div class="w-full max-w-md bg-white px-8 py-5 rounded-2xl border border-gray-200">
+  <h1 class="text-3xl font-extrabold text-center text-[#263544] mb-4 mt-10">Manage Your Account</h1>
 
     <form action="/ItemPilot/account/manage-account.php" method="POST" class="space-y-6">
       <!-- Name -->
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-1">Name</label>
         <input type="text" name="name" required
-               class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+               class="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                value="<?= htmlspecialchars($user['name'] ?? '') ?>">
       </div>
 
@@ -539,21 +539,21 @@ $barData  = fillMissingMonthlyWithNull($barData);
         <div>
           <label class="block text-sm text-gray-700 mb-1">Current Password</label>
           <input type="password" name="current_password"
-                 class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                 class="w-full border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
                  placeholder="Enter your current password">
         </div>
 
         <div>
           <label class="block text-sm text-gray-700 mb-1">New Password</label>
           <input type="password" name="new_password"
-                 class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                 class="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                  placeholder="At least 8 characters">
         </div>
 
         <div>
           <label class="block text-sm text-gray-700 mb-1">Confirm New Password</label>
           <input type="password" name="new_password_confirm"
-                 class="w-full border border-gray-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                 class="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
                  placeholder="Re-enter new password">
         </div>
       </fieldset>
@@ -561,7 +561,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
       <!-- Actions -->
       <div class="flex justify-between items-center">
         <button type="submit"
-                  class="bg-[#263544] cursor-pointer hover:bg-slate-800 text-white px-6 py-3 rounded-full font-semibold shadow-md transition">
+                  class="bg-[#263544] cursor-pointer hover:bg-slate-800 text-white px-6 py-3 rounded-full font-semibold transition">
           Save Changes
         </button>
 
@@ -708,27 +708,12 @@ $barData  = fillMissingMonthlyWithNull($barData);
     });
   }
 
-    function loadStrategy(salesId, page = 1) {
-    if (!salesId) return;
-    currentSalesId = salesId;
-    fetch(`categories/Sales%20Strategy/insert_sales.php?page=${page}&table_id=${salesId}`)
-      .then(r => r.text())
-      .then(html => {
-        insightRight.innerHTML = html;
-        if (homeRight)    homeRight.style.display = "none";
-        if (eventRight) eventRight.style.display = "none";
-        if (contactRight) contactRight.style.display = "none";
-        insightRight.style.display = "block";
-        currentPage = page;
-      });
-  }
-
   const G_PATH = 'categories/Groceries%20Table/insert_groceries.php';
 
   function loadGroceriesTable(groceryId, page = 1) {
     if (!groceryId) return;
     currentId = groceryId;
-    fetch(`categories/Groceries%20Table/insert_groceries.php`)
+    fetch(`${G_PATH}?page=${page}&table_id=${groceryId}`)
       .then(r => r.text())
       .then(html => {
         insightRight.innerHTML = html;
@@ -741,7 +726,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   }
 
   function newGroceriesTable(page = 1) {
-    fetch(`categories/Groceries%20Table/insert_groceries.php`)
+    fetch(`${G_PATH}?action=create_blank&page=${page}`)
       .then(r => r.text())
       .then(html => {
         insightRight.innerHTML = html;
