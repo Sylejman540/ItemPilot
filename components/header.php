@@ -109,7 +109,7 @@
                   $extraClass = 'js-football-link';
                 } else {
                   $dir = 'Universal%20Table';
-                  $extraClass = '';
+                  $extraClass = 'js-table-link';
                 }
             ?>
               <li class="flex justify-between mr-5 navitem hover:text-white text-[#A7B6CC]">

@@ -822,9 +822,9 @@ $barData  = fillMissingMonthlyWithNull($barData);
         if (src === "sales_table") {
           loadStrategy(tableId, 1);
         } else if(src === "groceries_table"){
-          loadGroceriesTable(groceryId, 1);
+          loadGroceriesTable(tableId, 1);
         } else if(src === "football_table"){
-          loadFootball(footballId, 1);
+          loadFootball(tableId, 1);
         }else {
           loadTable(tableId, 1);
         }
