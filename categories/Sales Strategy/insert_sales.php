@@ -407,7 +407,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
     <?php endif; ?>
   </div>
-        </main>
+</main>
 
 <!-- Add a new record -->
 <div id="addForm" class="min-h-screen flex items-center justify-center p-2 hidden relative mt-13">

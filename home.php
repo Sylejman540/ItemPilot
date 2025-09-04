@@ -610,6 +610,8 @@ $barData  = fillMissingMonthlyWithNull($barData);
   const sales        = document.getElementById("sales-strategy"); // sales template card
   const strategy     = document.getElementById("strategy");       // optional open strategy button
   const groceries    = document.getElementById("groceries");
+  const football     = document.getElementById("football");
+  const footballBtn = document.getElementById("club");
 
   let currentPage    = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
   let currentId      = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
@@ -758,11 +760,57 @@ $barData  = fillMissingMonthlyWithNull($barData);
     loadGroceriesTable(!Number.isNaN(idFromBtn) ? idFromBtn : currentId, currentPage || 1);
   });
 
+  // -------- FOOTBALL loaders --------
+  function loadFootball(footballId, page = 1) {
+    if (!footballId) return;
+    currentFootballId = footballId;
+    fetch(`categories/Football%20Table/insert_football.php?page=${page}&table_id=${footballId}`)
+      .then(r => r.text())
+      .then(html => {
+        insightRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (eventRight)   eventRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        insightRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  function newFootball(page = 1) {
+    fetch(`categories/Football%20Table/insert_football.php?action=create_blank&page=${page}`)
+      .then(r => r.text())
+      .then(html => {
+        insightRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (eventRight)   eventRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        insightRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  if (football && eventRight) {
+    football.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      newFootball(1);
+    });
+  }
+
+  if (footballBtn && eventRight) {
+    footballBtn.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      const idFromBtn = parseInt(footballBtn.dataset.tableId || "", 10);
+      loadFootball(!isNaN(idFromBtn) ? idFromBtn : currentFootballId, currentPage || 1);
+    });
+  }
+
 
   // -------- Dropdown delegation (detect src) --------
   if (dropdown && eventRight) {
     dropdown.addEventListener("click", e => {
-      const link = e.target.closest(".js-table-link, .js-strategy-link");
+      const link = e.target.closest(".js-table-link, .js-strategy-link, .js-groceries-link, .js-football-link");
       if (!link) return;
       e.preventDefault();
       document.getElementById("categories")?.classList.add("hidden");
@@ -773,7 +821,11 @@ $barData  = fillMissingMonthlyWithNull($barData);
       if (!isNaN(tableId)) {
         if (src === "sales_table") {
           loadStrategy(tableId, 1);
-        } else {
+        } else if(src === "groceries_table"){
+          loadGroceriesTable(groceryId, 1);
+        } else if(src === "football_table"){
+          loadFootball(footballId, 1);
+        }else {
           loadTable(tableId, 1);
         }
       }
@@ -985,6 +1037,10 @@ $barData  = fillMissingMonthlyWithNull($barData);
       const p   = parseInt(url.searchParams.get('page')) || 1;
       if (pg.closest('.strategy-section')) {
         loadStrategy(currentSalesId, p);
+      } else if(pg.closest('.grocery')){ 
+        loadGroceriesTable(currentId, p);
+      } else if(pg.closest('.football')){
+        loadFootball(currentFootballId, p);
       } else {
         loadTable(currentId, p);
       }
@@ -1082,7 +1138,9 @@ $(function () {
     if (tableType === "sales") {
       loadStrategy(tableIdFromUrl, currentPage);
     } else if (tableType === "groceries") {
-      loadGroceriesTable(tableIdFromUrl, currentPage);
+      loadGroceriesTable(tableIdFromUrl, currentPage); 
+    }else if(tableType === "football"){
+      loadFootball(tableIdFromUrl, currentPage);
     } else {
       loadTable(tableIdFromUrl, currentPage); // universal
     }

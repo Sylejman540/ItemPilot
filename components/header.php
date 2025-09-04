@@ -67,7 +67,7 @@
 
           <ul id="dropdown" class="hidden pl-8 space-y-1">
             <?php
-            // Combine all three into one list
+            // Combine all four into one list
             $sql = "
               SELECT table_id, table_title, 'tables' AS src
               FROM tables
@@ -80,10 +80,14 @@
               SELECT table_id, table_title, 'groceries_table' AS src
               FROM groceries_table
               WHERE user_id = ?
+              UNION ALL
+              SELECT table_id, table_title, 'football_table' AS src
+              FROM football_table
+              WHERE user_id = ?
               ORDER BY table_id ASC
             ";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param('iii', $uid, $uid, $uid);
+            $stmt->bind_param('iiii', $uid, $uid, $uid, $uid); // 👈 4 bindings now
             $stmt->execute();
             $res = $stmt->get_result();
 
@@ -100,6 +104,9 @@
                 } elseif ($src === 'groceries_table') {
                   $dir = 'Groceries%20Table';
                   $extraClass = 'js-groceries-link';
+                } elseif ($src === 'football_table') {
+                  $dir = 'Football%20Table';
+                  $extraClass = 'js-football-link';
                 } else {
                   $dir = 'Universal%20Table';
                   $extraClass = '';
@@ -117,12 +124,10 @@
                   onclick="return confirm('Are you sure you want to delete this entire table?');"
                   class="text-red-500 hover:text-red-700 mt-2">
                   <button class="text-gray-400 hover:text-red-500 transition mt-1">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                        fill="none" viewBox="0 0 24 24"
-                        stroke-width="1.8" stroke="currentColor"
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"
                         class="w-5 h-5">
-                      <path stroke-linecap="round"
-                            stroke-linejoin="round"
+                      <path stroke-linecap="round" stroke-linejoin="round"
                             d="M9 3h6m2 4H7l1 12h8l1-12z" />
                     </svg>
                   </button>
@@ -137,6 +142,7 @@
             endif;
             $stmt->close();
             ?>
+
           </ul>
 
           <!-- INSIGHTS -->
@@ -150,7 +156,7 @@
           </div>
 
           <!-- Tester -->
-          <div class="hidden" id="insight">Lol</div>
+          <div class="hidden" id="insight"></div>
 
           <!-- ===== USER ===== -->
           <li class="px-6 mt-6 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
