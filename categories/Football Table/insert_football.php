@@ -169,8 +169,14 @@ $rows  = $rows ?? [];   // already fetched above
     </button>
   </section>
 
-  <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
+  <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" class="myTable3">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
+
+      <div class="flex items-center gap-3 mb-3">
+        <label for="rowSearch3" class="sr-only">Search</label>
+        <input id="rowSearch3" type="search" placeholder="Search" class="rounded-lg px-3 border border-gray-200 h-10 w-80">
+        <span id="resultCount3" aria-live="polite" class="text-sm text-gray-500"></span>
+      </div>
 
       <?php
       // latest header labels for this table
@@ -228,7 +234,7 @@ $rows  = $rows ?? [];   // already fetched above
       <!-- TBODY (rows) -->
       <div class="w-full divide-y divide-gray-200">
         <?php if (!empty($rows)): foreach ($rows as $r): ?>
-          <form method="POST" action="/ItemPilot/categories/Football Table/insert_football.php" enctype="multipart/form-data" class="flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm">
+          <form method="POST" action="/ItemPilot/categories/Football Table/insert_football.php" enctype="multipart/form-data" class="football-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>>
 
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
             <input type="hidden" name="table_id" value="<?= (int)$tableId ?>">

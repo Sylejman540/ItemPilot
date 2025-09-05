@@ -502,7 +502,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   </header>
 
 <div id="success-message"
-     class="absolute top-20 left-1/2 transform -translate-x-1/2
+     class="fixed top-10 left-1/2 transform -translate-x-1/2
             px-6 py-3 rounded-lg shadow-lg text-sm font-medium
             transition-opacity duration-500
             <?php if (empty($_SESSION['flash'])): ?> hidden <?php endif; ?>
@@ -1009,7 +1009,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   });
 
   if (manageTab) manageTab.addEventListener("click", (e) => {
-    show(document.getElementById("account")); hide(homeRight); hide(contactRight); hide(insightRight);
+    show(document.getElementById("account")); hide(homeRight); hide(eventRight); hide(contactRight); hide(insightRight);
     requestAnimationFrame(resetScroll);
   })
 
@@ -1403,6 +1403,80 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener('sales:loaded', () => applyFilter($input().val() || ''));
 
   // If the search exists on initial load, run once
+  if ($input().length) applyFilter('');
+})(jQuery);
+
+(function ($) {
+  // ---- Same IDs/classes as your original ----
+  const $container = () => $('#myTable2');
+  const $rows      = () => $container().find('.groceries-row');
+  const $input     = () => $('#rowSearch2');
+  const $count     = () => $('#resultCount2');
+
+  function normalize(s) {
+    return String(s || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[-_./]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function canonicalize(s) {
+    // keep your mapping; ensure "meat/seafood" is searchable
+    return s.replace(/\bmeat\b/g, 'meat seafood');
+  }
+
+  // 🔧 FIX: read department from <select> and purchased from checkbox
+  function rowIndexText($row) {
+    const dept = $row.find('select[name="department"]').val()
+             || $row.data('department') || '';
+    const purchasedChecked = $row.find('input[name="purchased"]').is(':checked');
+    const purchasedText = purchasedChecked ? 'purchased' : 'not purchased';
+    return canonicalize(normalize([dept, purchasedText].join(' | ')));
+  }
+
+  function applyFilter(qRaw) {
+    const qNorm  = canonicalize(normalize(qRaw));
+    const tokens = qNorm ? qNorm.split(' ') : [];
+    let shown = 0;
+
+    $rows().each(function () {
+      const $row = $(this);
+      const idx  = rowIndexText($row);
+      const match = tokens.every(tok => idx.indexOf(tok) !== -1);
+      const visible = tokens.length === 0 ? true : match;
+      $row.toggle(visible);
+      if (visible) shown++;
+    });
+
+    if ($count().length) {
+      $count().text(tokens.length ? `${shown} result${shown === 1 ? '' : 's'}` : '');
+    }
+  }
+
+  // Debounced typing on the SAME search box id
+  let t = null;
+  $(document).on('input', '#rowSearch2', function () {
+    clearTimeout(t);
+    const q = $(this).val();
+    t = setTimeout(() => applyFilter(q), 200);
+  });
+
+  // Re-filter when these SAME fields change
+  $(document).on('change input',
+    '#myTable2 select[name="department"], #myTable2 input[name="purchased"]',
+    function () { applyFilter($input().val() || ''); }
+  );
+
+  // Esc clears
+  $(document).on('keydown', '#rowSearch2', function (e) {
+    if (e.key === 'Escape') { $(this).val(''); applyFilter(''); }
+  });
+
+  // Re-apply after your AJAX inject (use your event name)
+  document.addEventListener('groceries:loaded', () => applyFilter($input().val() || ''));
+
+  // Initial pass
   if ($input().length) applyFilter('');
 })(jQuery);
 </script>
