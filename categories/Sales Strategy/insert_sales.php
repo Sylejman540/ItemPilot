@@ -406,82 +406,139 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 </main>
 
 <!-- Add a new record -->
-<div id="addForm" class="min-h-screen flex items-center justify-center p-2 hidden relative mt-13">
-  <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-lg" id="signup">
-    <div class="flex justify-between">
-      <a href="#" data-close-add>
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="6" y1="6" x2="18" y2="18" />
-          <line x1="6" y1="18" x2="18" y2="6" />
-        </svg>
-      </a>
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+<!-- Add a new record (Modal) -->
+<div id="addForm1" class="fixed inset-0 z-50 hidden">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/40" data-close-add></div>
+
+  <!-- Modal panel -->
+  <div class="relative mx-auto mt-16 w-full max-w-md">
+    <div class="bg-white w-full p-5 rounded-2xl shadow-lg" id="signup">
+      <div class="flex justify-between">
+        <a href="#" data-close-add aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="6" y1="18" x2="18" y2="6" />
+          </svg>
+        </a>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor"
+             viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </div>
+
+      <!-- keep your existing <form> exactly as-is -->
+      <form action="/ItemPilot/categories/Sales Strategy/insert_sales.php"
+            method="POST" enctype="multipart/form-data" class="space-y-6" id="addSalesForm">
+        <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+
+        <h1 class="w-full px-4 py-2 text-center text-2xl">
+          <?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>
+        </h1>
+
+        <!-- Name -->
+        <div class="mt-5">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?>
+          </label>
+          <input type="text" name="linked_initiatives"
+                 placeholder="<?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?>"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['notes'] ?? 'Data per dorezim') ?>
+          </label>
+          <input type="text" name="notes"
+                 placeholder="<?= htmlspecialchars($thead['notes'] ?? 'Data per dorezim') ?>"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <!-- Executive sponsor -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?>
+          </label>
+          <input type="text" name="executive_sponsor"
+                 placeholder="<?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?>"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['status'] ?? 'Status') ?>
+          </label>
+          <select name="status"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="To Do">To Do</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
+        </div>
+
+        <!-- Complete -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?>
+          </label>
+          <input type="text" name="complete"
+                 placeholder="<?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?>"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <!-- Priority (Cmimi) -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?>
+          </label>
+          <input type="text" name="priority" id="priorityAdd"
+                 placeholder="<?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?>"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <!-- Owner (Cmimi i materialit) -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?>
+          </label>
+          <input type="text" name="owner" id="ownerAdd"
+                 placeholder="<?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?>"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <!-- Deadline (Fitimi) — auto-computed -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?>
+          </label>
+          <input type="text" name="deadline" id="deadlineAdd"
+                 placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?>"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <!-- Attachment -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($thead['attachment'] ?? 'Modeli') ?>
+          </label>
+          <input id="attachment_summary" type="file" name="attachment" accept="image/*" capture="environment"
+                 class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
+        </div>
+
+        <div>
+          <button type="submit"
+                  class="w-full py-3 bg-blue-500 hover:bg-blue-400 text-white font-semibold rounded-lg transition">
+            Create New Record
+          </button>
+        </div>
+      </form>
     </div>
-
-    <form action="/ItemPilot/categories/Sales Strategy/insert_sales.php" method="POST" enctype="multipart/form-data" class="space-y-6">
-      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-
-      <h1 class="w-full px-4 py-2 text-center text-2xl">
-        <?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>
-      </h1>
-
-      <div class="mt-5">
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?></label>
-        <input type="text" name="linked_initiatives" placeholder="<?= htmlspecialchars($thead['linked_initiatives'] ?? 'Name') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['notes'] ?? 'Data per dorezim') ?></label>
-        <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['notes'] ?? 'Data per dorezim') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?></label>
-        <input type="text" name="executive_sponsor" placeholder="<?= htmlspecialchars($thead['executive_sponsor'] ?? 'Shteti') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['status'] ?? 'Status') ?></label>
-        <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="To Do">To Do</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Done">Done</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?></label>
-        <input type="text" name="complete" placeholder="<?= htmlspecialchars($thead['complete'] ?? 'Mosha') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?></label>
-        <input type="text" name="priority" placeholder="<?= htmlspecialchars($thead['priority'] ?? 'Cmimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?></label>
-        <input type="text" name="owner" placeholder="<?= htmlspecialchars($thead['owner'] ?? 'Cmimi i materialit') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?></label>
-        <input type="text" name="deadline" placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Modeli') ?></label>
-        <input id="attachment_summary" type="file" name="attachment" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm  file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
-      </div>
-
-      <div>
-          <button type="submit" class="w-full py-3 bg-blue-500 hover:bg-blue-400 text-white font-semibold rounded-lg transition">
-          Create New Record
-        </button>
-      </div>
-    </form>
   </div>
 </div>
+
 
 </body>
 </html>

@@ -100,16 +100,16 @@
             data-status="Sales Strategy">
           <a href="<?= $href ?>" class="block p-5 space-y-3">
             <div class="flex items-center gap-3">
-              <img src="images/categories/sales.svg" alt="" class="w-10 h-10">
+              <img src="images/categories/dress.svg" alt="" class="w-10 h-10">
               <div>
                 <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
                 <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
-                <p class="text-xs text-gray-400">Placeholder for sales data</p>
+                <p class="text-xs text-gray-400">Placeholder for dress inventory & orders</p>
               </div>
             </div>
 
             <div class="flex justify-between items-center pt-3 border-t">
-              <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-700">Sales Strategy</span>
+              <span class="px-3 py-1 text-xs rounded-full bg-pink-100 text-pink-700">Dress Inventory & Orders</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
@@ -144,7 +144,7 @@
               <div>
                 <h3 class="font-semibold text-gray-800"><?= $title ?></h3>
                 <p class="text-sm text-gray-500"><?= $createdFmt ?></p>
-                <p class="text-xs text-gray-400">Placeholder for grocery items</p>
+                <p class="text-xs text-gray-400">Placeholder for grocery list</p>
               </div>
             </div>
 
@@ -188,7 +188,7 @@
             </div>
 
             <div class="flex justify-between items-center pt-3 border-t">
-              <span class="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Football Team</span>
+              <span class="px-3 py-1 text-xs rounded-full bg-red-100 text-red-800">Football Team</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>

@@ -1230,7 +1230,6 @@ $(function () {
 
 })();
 
-
 (function($){
   if (!window.jQuery) return;
 
@@ -1265,10 +1264,12 @@ $(function () {
       const hay = $cells.map((_,c)=>cellText($(c))).get().join(' ').toLowerCase();
       const match = q ? hay.includes(q.toLowerCase()) : true;
 
-      $r.toggleClass('row-dim', !match);
+      $r.toggleClass('hidden', !match);
       if (match) visible++;
 
-      $cells.each(function(){ highlightCell($(this), q); });
+      // only highlight visible matches
+      $cells.each(function(){ highlightCell($(this), match ? q : ''); });
+
     });
 
     if (countSel) $(countSel).text(visible ? `${visible} match${visible===1?'':'es'}` : 'No matches');
@@ -1287,6 +1288,8 @@ $(function () {
   // If rows/sections are injected later (AJAX/tabs), re-run once:
   // $('[data-rows]').each(function(){ runFilter($(this)); });
 })(jQuery);
+
+
 </script>
 
 </body>
