@@ -80,7 +80,7 @@
 
 
         <?php
-          // ---- SALES STRATEGY TABLES ----
+          // ---- DRESSES TABLE ----
           $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM dresses_table WHERE user_id = ? ORDER BY table_id ASC");
           $stmt->bind_param('i', $uid);
           $stmt->execute();
@@ -91,9 +91,9 @@
             $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Table', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
             $createdTs  = $row['created_at'] ? strtotime($row['created_at']) : 0;
-            $href       = "/ItemPilot/home.php?autoload=1&type=sales&table_id={$sid}";
+            $href       = "/ItemPilot/home.php?autoload=1&type=dresses&table_id={$sid}";
         ?>
-        <!-- Sales Card -->
+        <!-- Dresses Card -->
         <li class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200"
             data-name="<?= strtolower($title) ?>"
             data-date="<?= $createdTs ?>"

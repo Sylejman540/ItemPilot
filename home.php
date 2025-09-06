@@ -823,7 +823,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
       const src     = link.dataset.src;
 
       if (!isNaN(tableId)) {
-        if (src === "sales_table") {
+        if (src === "dresses_table") {
           loadStrategy(tableId, 1);
         } else if(src === "groceries_table"){
           loadGroceriesTable(tableId, 1);
@@ -1139,7 +1139,7 @@ $(function () {
   const tableType      = params.get("type");
 
   if (shouldAutoload && tableIdFromUrl) {
-    if (tableType === "sales") {
+    if (tableType === "dresses") {
       loadStrategy(tableIdFromUrl, currentPage);
     } else if (tableType === "groceries") {
       loadGroceriesTable(tableIdFromUrl, currentPage); 
@@ -1371,7 +1371,47 @@ $(function () {
     };
   }
 })();
-</script>
 
+(function () {
+  const form = document.querySelector('#addForm');
+  if (!form) return;
+
+  const price   = form.querySelector('[name="priority"]'); // Price
+  const cost    = form.querySelector('[name="owner"]');    // Material Cost
+  const profit  = form.querySelector('[name="deadline"]'); // Profit
+
+  function parseMoney(s) {
+    s = String(s || '');
+    const m = s.match(/-?\d+(?:[.,]\d+)?/);
+    return m ? parseFloat(m[0].replace(',', '.')) : 0;
+  }
+  function pickSymbol(a, b) {
+    for (const v of [a, b]) {
+      const m = String(v || '').match(/([$€£])/);
+      if (m) return m[1];
+    }
+    return ''; // no symbol
+  }
+  function formatMoney(n, a, b) {
+    const sym = pickSymbol(a, b);
+    return (sym ? sym : '') + n.toFixed(2);
+  }
+
+  function updateProfit() {
+    const a = price.value, b = cost.value;
+    if (!a && !b) { profit.value = ''; return; }
+    const p = parseMoney(a) - parseMoney(b);
+    profit.value = formatMoney(p, a, b);
+  }
+
+  ['input', 'change', 'blur', 'paste'].forEach(ev => {
+    price.addEventListener(ev, updateProfit);
+    cost.addEventListener(ev, updateProfit);
+  });
+
+  // initialize once
+  updateProfit();
+})();
+</script>
 </body>
 </html>

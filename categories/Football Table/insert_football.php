@@ -419,13 +419,11 @@ $rows  = $rows ?? [];   // already fetched above
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['position'] ?? 'Position') ?></label>
         <select name="position" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="Produce">GoalKeeper</option>
-          <option value="Bakery">Sweeper</option>
-          <option value="Dairy">Fullback</option>
-          <option value="Frozen">Frozen</option>
-          <option value="Meat/Seafood">Meat/Seafood</option>
-          <option value="Dry Goods">Dry Goods</option>
-          <option value="Household">Household</option>
+          <option value="GoalKeeper">GoalKeeper</option>
+          <option value="Sweeper">Sweeper</option>
+          <option value="FullBack">Fullback</option>
+          <option value="Midfielder">Midfielder</option>
+          <option value="Forward Striker">Forward Striker</option>
         </select>
       </div>
 

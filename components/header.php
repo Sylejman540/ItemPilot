@@ -98,8 +98,8 @@
                 $name = htmlspecialchars($row['table_title'] ?? '', ENT_QUOTES, 'UTF-8');
 
                 // Map src -> folder name (URL-encoded spaces)
-                if ($src === 'sales_table') {
-                  $dir = 'Sales%20Strategy';
+                if ($src === 'dresses_table') {
+                  $dir = 'Dresses';
                   $extraClass = 'js-strategy-link';
                 } elseif ($src === 'groceries_table') {
                   $dir = 'Groceries%20Table';
