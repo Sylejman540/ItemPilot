@@ -178,13 +178,13 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Sales Strategy</title>
+<title>Dresses</title>
 </head>
 <body>
 <header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem; padding-right:1.25rem;">
   <section class="flex mt-6 justify-between ml-3">
     <!-- Rename action to the title handler and encode the space -->
-    <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="flex gap-2">
+    <form action="/ItemPilot/categories/Dresses/edit.php" method="POST" class="flex gap-2">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <input
         type="text"
@@ -232,7 +232,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
     <!-- THEAD -->
     <div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
-      <form action="/ItemPilot/categories/Sales Strategy/edit_thead.php" method="post"
+      <form action="/ItemPilot/categories/Dresses/edit_thead.php" method="post"
             class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
 
         <input type="hidden" name="id" value="<?= (int)($headRow['id'] ?? 0) ?>">
@@ -283,7 +283,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
     <div class="md:w-full w-[88rem] divide-y divide-gray-200">
       <?php if ($hasRecord): foreach ($rows as $r): ?>
         <form method="POST"
-              action="/ItemPilot/categories/Sales Strategy/edit_tbody.php?id=<?= (int)$r['id'] ?>"
+              action="/ItemPilot/categories/Dresses/edit_tbody.php?id=<?= (int)$r['id'] ?>"
               enctype="multipart/form-data"
               class="sales-row flex items-center border-b gap-2 border-gray-200 hover:bg-gray-50 text-sm"
               data-sponsor="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
@@ -347,13 +347,13 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
           <div class="w-1/10 p-2 flex items-center" data-col="modeli">
             <?php if (!empty($r['attachment'])): ?>
-              <img src="/ItemPilot/categories/Sales Strategy/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
+              <img src="/ItemPilot/categories/Dresses/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
               <span class="italic text-gray-400 ml-[5px]">📎 None</span>
             <?php endif; ?>
             <div class="w-1/10 flex items-center">
-              <a href="/ItemPilot/categories/Sales Strategy/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
+              <a href="/ItemPilot/categories/Dresses/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
                  onclick="return confirm('Are you sure?')"
                  class="inline-block py-1 px-6 text-red-500 hover:bg-red-50 transition">
                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -378,14 +378,14 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
     <?php if ($totalPages > 1): ?>
       <div class="pagination strategy-section my-2 flex justify-start md:justify-center space-x-2">
         <?php if ($page > 1): ?>
-          <a href="insert_sales.php?page=<?= $page-1 ?>&table_id=<?= $salesId ?>"
+          <a href="insert_dresses.php?page=<?= $page-1 ?>&table_id=<?= $salesId ?>"
             class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
             « Prev
           </a>
         <?php endif; ?>
 
         <?php for ($i=1; $i<=$totalPages; $i++): ?>
-          <a href="insert_sales.php?page=<?= $i ?>&table_id=<?= $salesId ?>"
+          <a href="insert_dresses.php?page=<?= $i ?>&table_id=<?= $salesId ?>"
             class="px-3 py-1 border rounded transition
                     <?= $i===$page
                       ? 'bg-blue-600 text-white border-blue-600 font-semibold'
@@ -395,7 +395,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
         <?php endfor; ?>
 
         <?php if ($page < $totalPages): ?>
-          <a href="insert_sales.php?page=<?= $page+1 ?>&table_id=<?= $salesId ?>"
+          <a href="insert_dresses.php?page=<?= $page+1 ?>&table_id=<?= $salesId ?>"
             class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
             Next »
           </a>
@@ -405,9 +405,9 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
   </div>
 </main>
 
-<!-- Add a new record -->
-<!-- Add a new record (Modal) -->
-<div id="addForm1" class="fixed inset-0 z-50 hidden">
+<div id="addForm" class="fixed inset-0 z-50 hidden">
+<div class="w-full p-5 rounded-2xl shadow-lg overflow-y-auto" id="signup">
+
   <!-- Backdrop -->
   <div class="absolute inset-0 bg-black/40" data-close-add></div>
 
@@ -428,7 +428,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
       </div>
 
       <!-- keep your existing <form> exactly as-is -->
-      <form action="/ItemPilot/categories/Sales Strategy/insert_sales.php"
+      <form action="/ItemPilot/categories/Dresses/insert_dresses.php"
             method="POST" enctype="multipart/form-data" class="space-y-6" id="addSalesForm">
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
 
@@ -538,7 +538,5 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
     </div>
   </div>
 </div>
-
-
 </body>
 </html>

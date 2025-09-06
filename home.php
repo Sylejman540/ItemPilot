@@ -672,7 +672,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   function loadStrategy(salesId, page = 1) {
     if (!salesId) return;
     currentSalesId = salesId;
-    fetch(`categories/Sales%20Strategy/insert_sales.php?page=${page}&table_id=${salesId}`)
+    fetch(`categories/Dresses/insert_dresses.php?page=${page}&table_id=${salesId}`)
       .then(r => r.text())
       .then(html => {
         insightRight.innerHTML = html;
@@ -685,7 +685,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   }
 
   function newStrategy(page = 1) {
-    fetch(`categories/Sales%20Strategy/insert_sales.php?action=create_blank&page=${page}`)
+    fetch(`categories/Dresses/insert_dresses.php?action=create_blank&page=${page}`)
       .then(r => r.text())
       .then(html => {
         insightRight.innerHTML = html;
@@ -1082,7 +1082,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
       e.target.form?.submit();
     }
   });
-
+  
   // -------- dropdown open/close --------
 $(function () {
   const $arrowBtn = $('#tablesItem');
