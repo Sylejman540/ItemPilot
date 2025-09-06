@@ -1289,7 +1289,88 @@ $(function () {
   // $('[data-rows]').each(function(){ runFilter($(this)); });
 })(jQuery);
 
+(function () {
+  // parse numbers from "$20", "20$", "20.50", "20,50", etc.
+  function toNumber(v){
+    const s = String(v || '').replace(/\s/g,'');
+    const m = s.match(/-?\d+(?:[.,]\d+)?/);
+    return m ? parseFloat(m[0].replace(',', '.')) : 0;
+  }
+  // pick currency + whether it’s prefix ($20) or suffix (20$). Default: "$" suffix.
+  function currencyInfo(sample){
+    const s = String(sample || '').trim();
+    const lead = s.match(/^([$€£])/);
+    const tail = s.match(/([$€£])$/);
+    if (lead) return { sym: lead[1], pos: 'prefix' };
+    if (tail) return { sym: tail[1], pos: 'suffix' };
+    return { sym: '$', pos: 'suffix' };
+  }
+  function fmt(n, a='', b=''){
+    const r = Math.round(n * 100) / 100;
+    const str = Number.isInteger(r) ? r.toFixed(0) : r.toFixed(2);
+    const {sym,pos} = currencyInfo(a) || currencyInfo(b);
+    return pos === 'prefix' ? (sym + str) : (str.replace(/\.00$/,'') + sym);
+  }
 
+  function wireAddModal(form){
+    const pri = form.querySelector('#priorityAdd') || form.querySelector('input[name="priority"]');
+    const own = form.querySelector('#ownerAdd')    || form.querySelector('input[name="owner"]');
+    const fit = form.querySelector('#deadlineAdd'); // hidden input
+    if (!pri || !own || !fit) return;
+
+    const recalc = () => {
+      const p = toNumber(pri.value);
+      const o = toNumber(own.value);
+      fit.value = (p || o) ? fmt(p - o, pri.value, own.value) : '';
+    };
+    ['input','change'].forEach(ev => {
+      pri.addEventListener(ev, recalc);
+      own.addEventListener(ev, recalc);
+    });
+    form.addEventListener('submit', recalc);
+    recalc();
+  }
+
+  function wireRow(row){
+    const pri = row.querySelector('input[name="priority"]');
+    const own = row.querySelector('input[name="owner"]');
+    const fit = row.querySelector('input[name="deadline"]'); // read-only
+    if (!pri || !own || !fit) return;
+
+    const recalc = () => {
+      const p = toNumber(pri.value);
+      const o = toNumber(own.value);
+      fit.value = (p || o) ? fmt(p - o, pri.value, own.value) : '';
+    };
+    ['input','change'].forEach(ev => {
+      pri.addEventListener(ev, recalc);
+      own.addEventListener(ev, recalc);
+    });
+    // ensure correct on initial render
+    recalc();
+  }
+
+  function wire(root){
+    const addForm = root.querySelector('#addSalesForm');
+    if (addForm) wireAddModal(addForm);
+    root.querySelectorAll('.sales-row').forEach(wireRow);
+  }
+
+  // Run now
+  wire(document);
+
+  // Expose for AJAX-injected content:
+  window.initProfitCalc = function(root=document){ wire(root); };
+
+  // If you already use initSalesEnhancements(root), call us from there:
+  if (typeof window.initSalesEnhancements === 'function') {
+    const oldEnh = window.initSalesEnhancements;
+    window.initSalesEnhancements = function(root=document){
+      oldEnh(root);
+      wire(root);
+    };
+  }
+})();
 </script>
 
 </body>
