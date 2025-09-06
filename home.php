@@ -502,20 +502,21 @@ $barData  = fillMissingMonthlyWithNull($barData);
   </header>
 
 <div id="success-message"
-     class="fixed top-10 left-1/2 transform -translate-x-1/2
+     class="fixed top-20 md:left-1/2 md:ml-0 ml-20 transform md:-translate-x-1/2
             px-6 py-3 rounded-lg shadow-lg text-sm font-medium
             transition-opacity duration-500
             <?php if (empty($_SESSION['flash'])): ?> hidden <?php endif; ?>
             <?php if (!empty($_SESSION['flash']) && str_starts_with($_SESSION['flash'], '✅')): ?>
-              text-green-800 bg-green-100 border border-green-300
+              text-zinc-800 bg-zinc-50 border border-zinc-200
             <?php else: ?>
-              text-red-800 bg-red-100 border border-red-300
+              text-red-800 bg-red-50 border border-red-200
             <?php endif; ?>">
   <?php if (!empty($_SESSION['flash'])): ?>
     <?= htmlspecialchars($_SESSION['flash']) ?>
     <?php unset($_SESSION['flash']); ?>
   <?php endif; ?>
 </div>
+
 
 
   
