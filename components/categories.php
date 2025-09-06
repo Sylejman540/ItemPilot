@@ -57,13 +57,13 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
     </article>
 
-    <!-- Blog Editorial Calendar -->
+    <!-- Football Club -->
     <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-pointer rounded-md" id="football">
         <div class="bg-red-400 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/football.svg" alt="" class="w-6 h-6">
         </div>
         <div class="grid">
-          <h1 class="text-lg">Soccer Club</h1>
+          <h1 class="text-lg">Football Club</h1>
           <p class="text-sm text-gray-500">Manage and organize your club..</p>
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"  d="M9 5l7 7-7 7" /></svg>
