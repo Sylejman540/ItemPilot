@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Pagination logic
-$limit = 5;
+$limit = 10;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
@@ -167,16 +167,14 @@ $first = $rows[0] ?? null;
     </button>
   </section>
 
-<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" id="myTable1">
+<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
   <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
-      <!-- Search + live result count -->
-    <div class="flex items-center gap-3 mb-3">
-      <label for="rowSearch1" class="sr-only">Search</label>
-      <input id="rowSearch1" type="search" placeholder="Search" class="rounded-lg px-3 border border-gray-200 h-10 w-80">
-      <span id="resultCount1" aria-live="polite" class="text-sm text-gray-500"></span>
+    <!-- Search + live result count -->
+    <div class="mb-3">
+      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+      <span id="countU" class="ml-2 text-xs text-gray-600"></span>
     </div>
-
 
     <?php
     // get the most recent row just to PREFILL inputs (not to update it)
@@ -234,19 +232,19 @@ $first = $rows[0] ?? null;
         <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
         <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary']) ?>">
 
-        <div class="w-1/5 p-2 text-gray-600">
+        <div class="w-1/5 p-2 text-gray-600" data-col="name">
           <input type="text" name="name" value="<?= htmlspecialchars($r['name']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
         </div>
 
-        <div class="w-1/5 p-2 text-gray-600">
+        <div class="w-1/5 p-2 text-gray-600" data-col="notes">
           <input type="text" name="notes" value="<?= htmlspecialchars($r['notes']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
         </div>
 
-        <div class="w-1/5 p-2 text-gray-600">
+        <div class="w-1/5 p-2 text-gray-600" data-col="assignee">
           <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee']) ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
         </div>
 
-        <div class="w-30 px-3 py-1 text-xs font-semibold">
+        <div class="w-30 px-3 py-1 text-xs font-semibold" data-col="status">
           <?php
             $statusColors = [
               'To Do'       => 'bg-red-100 text-red-800',
@@ -261,7 +259,7 @@ $first = $rows[0] ?? null;
             <option value="Done"        <?= $r['status'] === 'Done' ? 'selected' : '' ?>>Done</option>
           </select>
         </div>
-        <div class="w-1/5 p-2 flex items-center gap-3 ml-19">
+        <div class="w-1/5 p-2 flex items-center gap-3 ml-19" data-col="attachnment">
           <?php if ($r['attachment_summary']): ?>
             <!-- Show uploaded attachment -->
             <img 
@@ -428,5 +426,6 @@ $first = $rows[0] ?? null;
   appearance: none; 
 }
 </style>
+
 </body>
 </html>

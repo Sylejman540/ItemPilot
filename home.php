@@ -595,6 +595,9 @@ $barData  = fillMissingMonthlyWithNull($barData);
   position: fixed;      /* freeze body so it doesn't shift */
   width: 100%;          /* prevent content shift */
 }
+.row-dim{opacity:.45}
+.cell-hit{background:rgba(59,130,246,.06);box-shadow:0 0 0 2px rgba(59,130,246,.15) inset;border-radius:.5rem}
+.ctrl-hit{outline:2px solid rgba(59,130,246,.45);background:rgba(59,130,246,.06)}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -1227,258 +1230,62 @@ $(function () {
 
 })();
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Scope everything to #event-right so it won't touch table UI
-  const scope      = document.getElementById("event-right");
-  if (!scope) return;
 
-  const searchInput = scope.querySelector("input[type='search']");
-  const sortSelect  = scope.querySelector("select");
-  const list        = scope.querySelector("ul");
-  if (!searchInput || !sortSelect || !list) return;
+(function($){
+  if (!window.jQuery) return;
 
-  const cards = Array.from(list.querySelectorAll("li"));
+  function cellText($cell){
+    const $ctrl = $cell.find('input,textarea,select');
+    return $ctrl.length ? String($ctrl.val() ?? '') : String($cell.text() ?? '');
+  }
+  function highlightCell($cell, q){
+    const $ctrl = $cell.find('input,textarea,select');
+    const t = cellText($cell).toLowerCase();
+    const hit = q && t.includes(q.toLowerCase());
+    $cell.removeClass('cell-hit'); $ctrl.removeClass('ctrl-hit');
+    if (!q) return;
+    if (hit) ($ctrl.length ? $ctrl.addClass('ctrl-hit') : $cell.addClass('cell-hit'));
+  }
 
-  function filterAndSort() {
-    const searchTerm = (searchInput.value || '').toLowerCase();
-    const sortBy     = (sortSelect.value || 'name');
+  function runFilter($input){
+    const rowsSel  = $input.data('rows');
+    const countSel = $input.data('count');
+    const scopeSel = $input.data('scope');
+    const $scope   = scopeSel ? $(scopeSel) : $(document);
+    const $rows    = $scope.find(rowsSel);
 
-    cards.forEach(card => {
-      const name = (card.dataset.name || '').toLowerCase();
-      card.style.display = name.includes(searchTerm) ? "" : "none";
+    if (!$rows.length) return; // nothing to do for this input yet
+
+    const q = String($input.val() ?? '').trim();
+    let visible = 0;
+
+    $rows.each(function(){
+      const $r = $(this);
+      const $cells = $r.find('[data-col]');
+      const hay = $cells.map((_,c)=>cellText($(c))).get().join(' ').toLowerCase();
+      const match = q ? hay.includes(q.toLowerCase()) : true;
+
+      $r.toggleClass('row-dim', !match);
+      if (match) visible++;
+
+      $cells.each(function(){ highlightCell($(this), q); });
     });
 
-    const visibleCards = cards.filter(c => c.style.display !== "none");
-    visibleCards.sort((a, b) => {
-      if (sortBy === "name")  return a.dataset.name.localeCompare(b.dataset.name);
-      if (sortBy === "date")  return (+b.dataset.date) - (+a.dataset.date);
-      return 0;
-    });
-    visibleCards.forEach(card => list.appendChild(card));
+    if (countSel) $(countSel).text(visible ? `${visible} match${visible===1?'':'es'}` : 'No matches');
   }
 
-  searchInput.addEventListener("input", filterAndSort);
-  sortSelect.addEventListener("change", filterAndSort);
-  filterAndSort();
-});
-
-(function ($) {
-  // Helpers that always read the CURRENT DOM (works after AJAX loads)
-  const $container   = () => $('#myTable');
-  const $rows        = () => $container().find('.strategy-row');
-  const $input       = () => $('#rowSearch');
-  const $count       = () => $('#resultCount');
-
-  function normalize(s) {
-    return String(s || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[-_./]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-  function canonicalize(s) {
-    return s
-      .replace(/\bto do\b/g, 'todo')
-      .replace(/\bin progress\b/g, 'inprogress');
-  }
-  function rowIndexText($row) {
-    // Read live values first; fall back to data-* if empty
-    const sponsor  = $row.find('input[name="executive_sponsor"]').val() || $row.data('sponsor')  || '';
-    const status   = $row.find('select[name="status"]').val()            || $row.data('status')   || '';
-    const priority = $row.find('input[name="priority"]').val()           || $row.data('priority') || '';
-    return canonicalize(normalize([sponsor, status, priority].join(' | ')));
-  }
-
-  function applyFilter(qRaw) {
-    const qNorm  = canonicalize(normalize(qRaw));
-    const tokens = qNorm ? qNorm.split(' ') : [];
-    let shown = 0;
-
-    $rows().each(function () {
-      const $row = $(this);
-      const idx  = rowIndexText($row);
-      const match = tokens.every(tok => idx.indexOf(tok) !== -1);
-      const visible = tokens.length === 0 ? true : match;
-      $row.toggle(visible);
-      if (visible) shown++;
-    });
-
-    // Update result count (if present in the injected HTML)
-    if ($count().length) {
-      $count().text(tokens.length ? `${shown} result${shown === 1 ? '' : 's'}` : '');
-    }
-  }
-
-  // Debounced delegated typing — works even if #rowSearch appears later
-  let t = null;
-  $(document).on('input', '#rowSearch', function () {
-    clearTimeout(t);
-    const q = $(this).val();
-    t = setTimeout(() => applyFilter(q), 200);
+  // One handler for all search inputs that declare data-rows
+  $(document).on('input', '[data-rows]', function(){
+    runFilter($(this));
   });
 
-  // Re-filter when any relevant field changes (delegated)
-  $(document).on('change input',
-    '#myTable select[name="status"], #myTable input[name="priority"], #myTable input[name="executive_sponsor"]',
-    function () { applyFilter($input().val() || ''); }
-  );
-
-  // Esc clears (delegated)
-  $(document).on('keydown', '#rowSearch', function (e) {
-    if (e.key === 'Escape') { $(this).val(''); applyFilter(''); }
+  // Initial render after DOM ready
+  $(function(){
+    $('[data-rows]').each(function(){ runFilter($(this)); });
   });
 
-  // Allow other parts of the app to re-apply filter after AJAX loads
-  document.addEventListener('sales:loaded', () => applyFilter($input().val() || ''));
-
-  // If the search exists on initial load, run once
-  if ($input().length) applyFilter('');
-})(jQuery);
-
-(function ($) {
-  // Helpers that always read the CURRENT DOM (works after AJAX loads)
-  const $container   = () => $('#myTable1');
-  const $rows        = () => $container().find('.universal-row');
-  const $input       = () => $('#rowSearch1');
-  const $count       = () => $('#resultCount1');
-
-  function normalize(s) {
-    return String(s || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[-_./]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-  function canonicalize(s) {
-    return s
-      .replace(/\bto do\b/g, 'todo')
-      .replace(/\bin progress\b/g, 'inprogress');
-  }
-  function rowIndexText($row) {
-    const status   = $row.find('select[name="status"]').val()            || $row.data('status')   || '';
-    return canonicalize(normalize([status].join(' | ')));
-  }
-
-  function applyFilter(qRaw) {
-    const qNorm  = canonicalize(normalize(qRaw));
-    const tokens = qNorm ? qNorm.split(' ') : [];
-    let shown = 0;
-
-    $rows().each(function () {
-      const $row = $(this);
-      const idx  = rowIndexText($row);
-      const match = tokens.every(tok => idx.indexOf(tok) !== -1);
-      const visible = tokens.length === 0 ? true : match;
-      $row.toggle(visible);
-      if (visible) shown++;
-    });
-
-    // Update result count (if present in the injected HTML)
-    if ($count().length) {
-      $count().text(tokens.length ? `${shown} result${shown === 1 ? '' : 's'}` : '');
-    }
-  }
-
-  // Debounced delegated typing — works even if #rowSearch appears later
-  let t = null;
-  $(document).on('input', '#rowSearch1', function () {
-    clearTimeout(t);
-    const q = $(this).val();
-    t = setTimeout(() => applyFilter(q), 200);
-  });
-
-  // Re-filter when any relevant field changes (delegated)
-  $(document).on('change input',
-    '#myTable select[name="status"]',
-    function () { applyFilter($input().val() || ''); }
-  );
-
-  // Esc clears (delegated)
-  $(document).on('keydown', '#rowSearch1', function (e) {
-    if (e.key === 'Escape') { $(this).val(''); applyFilter(''); }
-  });
-
-  // Allow other parts of the app to re-apply filter after AJAX loads
-  document.addEventListener('sales:loaded', () => applyFilter($input().val() || ''));
-
-  // If the search exists on initial load, run once
-  if ($input().length) applyFilter('');
-})(jQuery);
-
-(function ($) {
-  // ---- Same IDs/classes as your original ----
-  const $container = () => $('#myTable2');
-  const $rows      = () => $container().find('.groceries-row');
-  const $input     = () => $('#rowSearch2');
-  const $count     = () => $('#resultCount2');
-
-  function normalize(s) {
-    return String(s || '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[-_./]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-  function canonicalize(s) {
-    // keep your mapping; ensure "meat/seafood" is searchable
-    return s.replace(/\bmeat\b/g, 'meat seafood');
-  }
-
-  // 🔧 FIX: read department from <select> and purchased from checkbox
-  function rowIndexText($row) {
-    const dept = $row.find('select[name="department"]').val()
-             || $row.data('department') || '';
-    const purchasedChecked = $row.find('input[name="purchased"]').is(':checked');
-    const purchasedText = purchasedChecked ? 'purchased' : 'not purchased';
-    return canonicalize(normalize([dept, purchasedText].join(' | ')));
-  }
-
-  function applyFilter(qRaw) {
-    const qNorm  = canonicalize(normalize(qRaw));
-    const tokens = qNorm ? qNorm.split(' ') : [];
-    let shown = 0;
-
-    $rows().each(function () {
-      const $row = $(this);
-      const idx  = rowIndexText($row);
-      const match = tokens.every(tok => idx.indexOf(tok) !== -1);
-      const visible = tokens.length === 0 ? true : match;
-      $row.toggle(visible);
-      if (visible) shown++;
-    });
-
-    if ($count().length) {
-      $count().text(tokens.length ? `${shown} result${shown === 1 ? '' : 's'}` : '');
-    }
-  }
-
-  // Debounced typing on the SAME search box id
-  let t = null;
-  $(document).on('input', '#rowSearch2', function () {
-    clearTimeout(t);
-    const q = $(this).val();
-    t = setTimeout(() => applyFilter(q), 200);
-  });
-
-  // Re-filter when these SAME fields change
-  $(document).on('change input',
-    '#myTable2 select[name="department"], #myTable2 input[name="purchased"]',
-    function () { applyFilter($input().val() || ''); }
-  );
-
-  // Esc clears
-  $(document).on('keydown', '#rowSearch2', function (e) {
-    if (e.key === 'Escape') { $(this).val(''); applyFilter(''); }
-  });
-
-  // Re-apply after your AJAX inject (use your event name)
-  document.addEventListener('groceries:loaded', () => applyFilter($input().val() || ''));
-
-  // Initial pass
-  if ($input().length) applyFilter('');
+  // If rows/sections are injected later (AJAX/tabs), re-run once:
+  // $('[data-rows]').each(function(){ runFilter($(this)); });
 })(jQuery);
 </script>
 

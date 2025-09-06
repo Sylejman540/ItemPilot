@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 /* ---------------------------
    Pagination + data fetch
 ----------------------------*/
-$limit  = 5;
+$limit  = 10;
 $page   = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
@@ -181,10 +181,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 <title>Sales Strategy</title>
 </head>
 <body>
-
-<div id="sales-right"></div>
-
-<header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
+<header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem; padding-right:1.25rem;">
   <section class="flex mt-6 justify-between ml-3">
     <!-- Rename action to the title handler and encode the space -->
     <form action="/ItemPilot/categories/Sales%20Strategy/edit.php" method="POST" class="flex gap-2">
@@ -208,15 +205,14 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
   </section>
 
 
-<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" id="myTable">
+<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
   <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[90rem]">
 
-    <!-- Search + live result count -->
-    <div class="flex items-center gap-3 mb-3">
-      <label for="rowSearch" class="sr-only">Search</label>
-      <input id="rowSearch" type="search" placeholder="Search" class="rounded-lg px-3 border border-gray-200 h-10 w-80">
-      <span id="resultCount" aria-live="polite" class="text-sm text-gray-500"></span>
+    <div class="mb-3">
+      <input id="rowSearchS" type="search" placeholder="Search rows…" data-rows=".sales-row" data-count="#countS" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+      <span id="countS" class="ml-2 text-xs text-gray-600"></span>
     </div>
+
 
     <?php
     // Prefill THEAD form
@@ -289,7 +285,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
         <form method="POST"
               action="/ItemPilot/categories/Sales Strategy/edit_tbody.php?id=<?= (int)$r['id'] ?>"
               enctype="multipart/form-data"
-              class="strategy-row flex items-center border-b gap-2 border-gray-200 hover:bg-gray-50 text-sm"
+              class="sales-row flex items-center border-b gap-2 border-gray-200 hover:bg-gray-50 text-sm"
               data-sponsor="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
               data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
               data-priority="<?= htmlspecialchars($r['priority'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
@@ -298,22 +294,22 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <div class="w-1/10 p-2 text-gray-600">
+          <div class="w-1/10 p-2 text-gray-600" data-col="linked_initiatives">
             <input type="text" name="linked_initiatives" value="<?= htmlspecialchars($r['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600">
+          <div class="w-1/10 p-2 text-gray-600" data-col="notes">
             <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600">
+          <div class="w-1/10 p-2 text-gray-600" data-col="executive_sponsor">
             <input type="text" name="executive_sponsor" value="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600 text-xs font-semibold">
+          <div class="w-1/10 p-2 text-gray-600 text-xs font-semibold" data-col="status">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-red-100 text-red-800',
@@ -329,27 +325,27 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
             </select>
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600">
+          <div class="w-1/10 p-2 text-gray-600" data-col="complete">
             <input type="text" name="complete" value="<?= htmlspecialchars($r['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600">
+          <div class="w-1/10 p-2 text-gray-600" data-col="priority">
             <input type="text" name="priority" value="<?= htmlspecialchars($r['priority'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600">
+          <div class="w-1/10 p-2 text-gray-600" data-col="owner">
             <input type="text" name="owner" value="<?= htmlspecialchars($r['owner'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600 whitespace-normal break-words">
+          <div class="w-1/10 p-2 text-gray-600 whitespace-normal break-words" data-col="deadline">
             <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 flex items-center">
+          <div class="w-1/10 p-2 flex items-center" data-col="modeli">
             <?php if (!empty($r['attachment'])): ?>
               <img src="/ItemPilot/categories/Sales Strategy/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">

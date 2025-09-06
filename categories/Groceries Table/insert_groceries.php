@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Pagination logic
-$limit = 5;
+$limit = 10;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
@@ -169,15 +169,15 @@ $rows  = $rows ?? [];   // already fetched above
     </button>
   </section>
 
-  <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" id="myTable2">
+  <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
-        <!-- Search + live result count -->
-      <div class="flex items-center gap-3 mb-3">
-        <label for="rowSearch2" class="sr-only">Search</label>
-        <input id="rowSearch2" type="search" placeholder="Search" class="rounded-lg px-3 border border-gray-200 h-10 w-80">
-        <span id="resultCount2" aria-live="polite" class="text-sm text-gray-500"></span>
+      <!-- Search + live result count -->
+      <div class="mb-3">
+        <input id="rowSearchG" type="search" placeholder="Search rows…" data-rows=".groceries-row" data-count="#countG" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+        <span id="countG" class="ml-2 text-xs text-gray-600"></span>
       </div>
+
 
       <?php
       // latest header labels for this table
@@ -246,7 +246,7 @@ $rows  = $rows ?? [];   // already fetched above
             <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
             <!-- Photo -->
-          <div class="w-1/7 p-2 text-gray-600">
+          <div class="w-1/7 p-2 text-gray-600" data-col="photo">
           <?php if ($r['photo']): ?>
             <!-- Show uploaded attachment -->
             <img src="/ItemPilot/categories/Groceries Table/uploads/<?= htmlspecialchars($r['photo']) ?>"  class="w-16 h-10 rounded-md"  alt="Attachment">
@@ -257,12 +257,12 @@ $rows  = $rows ?? [];   // already fetched above
             </div>
 
             <!-- Brand/Flavor -->
-            <div class="w-1/7 p-2 text-gray-600">
+            <div class="w-1/7 p-2 text-gray-600" data-col="brand/flavor">
               <input type="text" name="brand_flavor" value="<?= htmlspecialchars($r['brand_flavor'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
             <!-- Quantity -->
-            <div class="w-1/7 p-2 text-gray-600">
+            <div class="w-1/7 p-2 text-gray-600" data-col="quantity">
               <input type="text" name="quantity" value="<?= htmlspecialchars($r['quantity'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
@@ -284,7 +284,7 @@ $rows  = $rows ?? [];   // already fetched above
 
             $deptClass = $deptColors[$r['department'] ?? ''] ?? 'bg-white text-gray-900';
             ?>
-            <div class="w-30 p-2 text-gray-600 text-xs font-semibold ">
+            <div class="w-30 p-2 text-gray-600 text-xs font-semibold" data-col="department">
               <select  data-autosave="1"   name="department"
                       style="appearance:none;"
                       class="w-full px-2 py-1 rounded-xl status--autosave1 <?= $deptClass ?>">
@@ -297,7 +297,7 @@ $rows  = $rows ?? [];   // already fetched above
             </div>
 
             <!-- Purchased -->
-            <div class="w-1/7 p-2 text-gray-600">
+            <div class="w-1/7 p-2 text-gray-600" data-col="purchased">
               <label class="inline-flex items-center gap-2 ml-2">
                 <input type="checkbox" name="purchased" value="1" <?= !empty($r['purchased']) ? 'checked' : '' ?> />
                 <span>Purchased</span>
@@ -305,7 +305,7 @@ $rows  = $rows ?? [];   // already fetched above
             </div>
 
             <!-- Notes -->
-            <div class="w-1/7 p-2 text-gray-600">
+            <div class="w-1/7 p-2 text-gray-600" data-col="notes">
               <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
             
@@ -425,11 +425,15 @@ $rows  = $rows ?? [];   // already fetched above
 
       <!-- Department -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($labels['department'], ENT_QUOTES, 'UTF-8') ?></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['department'] ?? 'Department') ?></label>
         <select name="department" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <?php foreach ($DEPTS as $opt): ?>
-            <option value="<?= $opt ?>"><?= $opt ?></option>
-          <?php endforeach; ?>
+          <option value="Produce">Produce</option>
+          <option value="Bakery">Bakery</option>
+          <option value="Dairy">Dairy</option>
+          <option value="Frozen">Frozen</option>
+          <option value="Meat/Seafood">Meat/Seafood</option>
+          <option value="Dry Goods">Dry Goods</option>
+          <option value="Household">Household</option>
         </select>
       </div>
 

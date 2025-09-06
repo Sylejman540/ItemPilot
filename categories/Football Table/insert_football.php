@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Pagination logic
-$limit = 5;
+$limit = 10;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
@@ -169,13 +169,12 @@ $rows  = $rows ?? [];   // already fetched above
     </button>
   </section>
 
-  <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" class="myTable3">
+  <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
-      <div class="flex items-center gap-3 mb-3">
-        <label for="rowSearch3" class="sr-only">Search</label>
-        <input id="rowSearch3" type="search" placeholder="Search" class="rounded-lg px-3 border border-gray-200 h-10 w-80">
-        <span id="resultCount3" aria-live="polite" class="text-sm text-gray-500"></span>
+      <div class="mb-3">
+                <input id="rowSearchF" type="search" placeholder="Search rows…" data-rows=".football-row" data-count="#countF" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96">
+        <span id="countF" class="ml-2 text-xs text-gray-600"></span>
       </div>
 
       <?php
@@ -234,72 +233,81 @@ $rows  = $rows ?? [];   // already fetched above
       <!-- TBODY (rows) -->
       <div class="w-full divide-y divide-gray-200">
         <?php if (!empty($rows)): foreach ($rows as $r): ?>
-          <form method="POST" action="/ItemPilot/categories/Football Table/insert_football.php" enctype="multipart/form-data" class="football-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>>
+          <form id="row-<?= (int)$r['id'] ?>" method="POST" action="/ItemPilot/categories/Football Table/insert_football.php" enctype="multipart/form-data" class="football-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-            <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-            <input type="hidden" name="table_id" value="<?= (int)$tableId ?>">
-            <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+          <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+          <input type="hidden" name="table_id" value="<?= (int)$tableId ?>">
+          <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-            <!-- Photo -->
-          <div class="w-1/7 p-2 text-gray-600">
-          <?php if ($r['photo']): ?>
-            <!-- Show uploaded attachment -->
-            <img src="/ItemPilot/categories/Groceries Table/uploads/<?= htmlspecialchars($r['photo']) ?>"  class="w-16 h-10 rounded-md"  alt="Attachment">
+          <!-- Photo -->
+          <div class="w-1/7 p-2 text-gray-600" data-col="photo">
+            <?php if ($r['photo']): ?>
+              <!-- Show uploaded attachment -->
+              <img src="/ItemPilot/categories/Groceries Table/uploads/<?= htmlspecialchars($r['photo']) ?>"
+                  class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
               <!-- Show 'None' when no attachment -->
               <span class="italic text-gray-400 ml-2">📎 None</span>
             <?php endif; ?>
-            </div>
+          </div>
 
-            <!-- Full Name -->
-            <div class="w-1/7 p-2 text-gray-600">
-              <input type="text" name="full_name" value="<?= htmlspecialchars($r['full_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-            </div>
+          <!-- Full Name -->
+          <div class="w-1/7 p-2 text-gray-600" data-col="name">
+            <input type="text" name="full_name"
+                  value="<?= htmlspecialchars($r['full_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          </div>
 
-            <!-- Position -->
-            <?php
-            $DEPTS = [
-              'GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'
-            ];
+          <!-- Position -->
+          <?php
+          $DEPTS = [
+            'GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'
+          ];
 
-            $deptColors = [
-              'GoalKeeper'          => 'bg-green-100 text-green-800',
-              'Sweeper'           => 'bg-yellow-100 text-yellow-800',
-              'Fullback'            => 'bg-blue-100 text-blue-800',
-              'Midfielder'           => 'bg-cyan-100 text-cyan-800',
-              'Forward Striker'     => 'bg-rose-100 text-rose-800',
-            ];
+          $deptColors = [
+            'GoalKeeper'        => 'bg-green-100 text-green-800',
+            'Sweeper'           => 'bg-yellow-100 text-yellow-800',
+            'Fullback'          => 'bg-blue-100 text-blue-800',
+            'Midfielder'        => 'bg-cyan-100 text-cyan-800',
+            'Forward Striker'   => 'bg-rose-100 text-rose-800',
+          ];
 
-            $deptClass = $deptColors[$r['position'] ?? ''] ?? 'bg-white text-gray-900';
-            ?>
-            <div class="w-30 p-2 text-gray-600 text-xs font-semibold ">
-              <select  data-autosave="1"   name="position"
-                      style="appearance:none;"
-                      class="w-full px-2 py-1 rounded-xl status--autosave2 <?= $deptClass ?>">
-                <?php foreach ($DEPTS as $opt): ?>
-                  <option value="<?= $opt ?>" <?= (($r['position'] ?? '') === $opt) ? 'selected' : '' ?>>
-                    <?= $opt ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            
-            <!-- Home Address -->
-            <div class="w-1/7 p-2 text-gray-600">
-              <input type="text" name="home_address" value="<?= htmlspecialchars($r['home_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-            </div>
+          $deptClass = $deptColors[$r['position'] ?? ''] ?? 'bg-white text-gray-900';
+          ?>
+          <div class="w-30 p-2 text-gray-600 text-xs font-semibold" data-col="position">
+            <select data-autosave="1" name="position" style="appearance:none;"
+                    class="w-full px-2 py-1 rounded-xl status--autosave2 <?= $deptClass ?>">
+              <?php foreach ($DEPTS as $opt): ?>
+                <option value="<?= $opt ?>" <?= (($r['position'] ?? '') === $opt) ? 'selected' : '' ?>>
+                  <?= $opt ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
 
-            <!-- Email Address -->
-            <div class="w-1/7 p-2 text-gray-600">
-              <input type="text" name="email_address" value="<?= htmlspecialchars($r['email_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-            </div>
+          <!-- Home Address -->
+          <div class="w-1/7 p-2 text-gray-600" data-col="address">
+            <input type="text" name="home_address"
+                  value="<?= htmlspecialchars($r['home_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          </div>
 
-            <!-- Notes -->
-            <div class="w-1/7 p-2 text-gray-600">
-              <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-            </div>
-            
-             <div class="ml-auto flex items-center">
+          <!-- Email Address -->
+          <div class="w-1/7 p-2 text-gray-600" data-col="email">
+            <input type="text" name="email_address"
+                  value="<?= htmlspecialchars($r['email_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          </div>
+
+          <!-- Notes -->
+          <div class="w-1/7 p-2 text-gray-600" data-col="notes">
+            <input type="text" name="notes"
+                  value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          </div>
+
+                    <!-- Delete action -->
+          <div class="ml-auto flex items-center">
             <a 
               href="/ItemPilot/categories/Football Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"
               onclick="return confirm('Are you sure?')"
@@ -314,7 +322,7 @@ $rows  = $rows ?? [];   // already fetched above
               </svg>
             </a>
           </div>
-          </form>
+        </form>
         <?php endforeach; else: ?>
           <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
         <?php endif; ?>
@@ -409,11 +417,15 @@ $rows  = $rows ?? [];   // already fetched above
 
       <!-- Position -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($labels['position'], ENT_QUOTES, 'UTF-8') ?></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['position'] ?? 'Position') ?></label>
         <select name="position" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <?php foreach ($DEPTS as $opt): ?>
-            <option value="<?= $opt ?>"><?= $opt ?></option>
-          <?php endforeach; ?>
+          <option value="Produce">GoalKeeper</option>
+          <option value="Bakery">Sweeper</option>
+          <option value="Dairy">Fullback</option>
+          <option value="Frozen">Frozen</option>
+          <option value="Meat/Seafood">Meat/Seafood</option>
+          <option value="Dry Goods">Dry Goods</option>
+          <option value="Household">Household</option>
         </select>
       </div>
 
