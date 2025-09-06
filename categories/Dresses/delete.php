@@ -7,7 +7,7 @@ if (! isset($_GET['id'])) {
 $id = (int) $_GET['id'];
 $table_id = (int) ($_GET['table_id'] ?? 0);
 
-$stmt = $conn->prepare("DELETE FROM sales_strategy WHERE id = ? AND table_id = ?");
+$stmt = $conn->prepare("DELETE FROM dresses WHERE id = ? AND table_id = ?");
 if (! $stmt) {
   die("Prepare failed: " . $conn->error);
 }

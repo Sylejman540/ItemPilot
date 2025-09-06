@@ -6,19 +6,19 @@ if (! isset($_GET['table_id'])) {
 }
 $table_id = (int) $_GET['table_id'];
 
-// 1) Delete all rows in sales_strategy for this table_id
-$stmt = $conn->prepare("DELETE FROM `sales_strategy` WHERE table_id = ?");
+// 1) Delete all rows in dresses for this table_id
+$stmt = $conn->prepare("DELETE FROM `dresses` WHERE table_id = ?");
 if (! $stmt) {
-  die("Prepare failed (sales_strategy): " . $conn->error);
+  die("Prepare failed (dresses): " . $conn->error);
 }
 $stmt->bind_param('i', $table_id);
 if (! $stmt->execute()) {
-  die("Execute failed (sales_strategy): " . $stmt->error);
+  die("Execute failed (dresses): " . $stmt->error);
 }
 $stmt->close();
 
 // 2) Delete the table itself
-$stmt = $conn->prepare("DELETE FROM `sales_table` WHERE table_id = ?");
+$stmt = $conn->prepare("DELETE FROM `dresses_table` WHERE table_id = ?");
 if (! $stmt) {
   die("Prepare failed (tables): " . $conn->error);
 }

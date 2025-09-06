@@ -27,7 +27,7 @@ if ($table_id <= 0) {
   exit('Missing or invalid table_id');
 }
 
-$sql = "INSERT INTO sales_strategy_thead (linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+$sql = "INSERT INTO dresses_thead (linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
 if (!$stmt) { http_response_code(500); exit('Prepare failed: ' . $conn->error); }
 

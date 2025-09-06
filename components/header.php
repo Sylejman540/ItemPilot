@@ -73,8 +73,8 @@
               FROM tables
               WHERE user_id = ?
               UNION ALL
-              SELECT table_id, table_title, 'sales_table' AS src
-              FROM sales_table
+              SELECT table_id, table_title, 'dresses_table' AS src
+              FROM dresses_table
               WHERE user_id = ?
               UNION ALL
               SELECT table_id, table_title, 'groceries_table' AS src

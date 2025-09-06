@@ -15,8 +15,8 @@ $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
    Resolve current table_id
 ----------------------------*/
 if ($action === 'create_blank') {
-    // Create a new sales_table row for this user
-    $stmt = $conn->prepare("INSERT INTO sales_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
+    // Create a new dresses_table row for this user
+    $stmt = $conn->prepare("INSERT INTO dresses_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
     $stmt->bind_param('i', $uid);
     $stmt->execute();
     $table_id = (int)$conn->insert_id;
@@ -30,7 +30,7 @@ if ($action === 'create_blank') {
     $table_id = (int)($_SESSION['current_sales_table_id'] ?? 0);
 
     if ($table_id <= 0) {
-        $q = $conn->prepare("SELECT table_id FROM sales_table WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+        $q = $conn->prepare("SELECT table_id FROM dresses_table WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
         $q->bind_param('i', $uid);
         $q->execute();
         $q->bind_result($latestId);
@@ -39,7 +39,7 @@ if ($action === 'create_blank') {
         $table_id = (int)$latestId;
     }
     if ($table_id <= 0) {
-        $stmt = $conn->prepare("INSERT INTO sales_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
+        $stmt = $conn->prepare("INSERT INTO dresses_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
         $stmt->bind_param('i', $uid);
         $stmt->execute();
         $table_id = (int)$conn->insert_id;
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($id)) {
         $stmt = $conn->prepare("
-          INSERT INTO sales_strategy
+          INSERT INTO dresses
             (linked_initiatives, notes, executive_sponsor, status, complete, priority, owner, deadline, attachment, table_id, user_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
     } else {
         $stmt = $conn->prepare("
-          UPDATE sales_strategy
+          UPDATE dresses
              SET linked_initiatives = ?,
                  notes              = ?,
                  executive_sponsor  = ?,
@@ -125,7 +125,7 @@ if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
 $countStmt = $conn->prepare("
-  SELECT COUNT(*) FROM sales_strategy WHERE user_id = ? AND table_id = ?
+  SELECT COUNT(*) FROM dresses WHERE user_id = ? AND table_id = ?
 ");
 $countStmt->bind_param('ii', $uid, $table_id);
 $countStmt->execute();
@@ -137,7 +137,7 @@ $totalPages = (int)ceil($totalRows / $limit);
 
 $dataStmt = $conn->prepare("
   SELECT id, linked_initiatives, notes, executive_sponsor, status, complete, priority, owner, deadline, attachment
-    FROM sales_strategy
+    FROM dresses
    WHERE user_id = ? AND table_id = ?
 ORDER BY id ASC
    LIMIT ? OFFSET ?
@@ -154,7 +154,7 @@ $hasRecord = count($rows) > 0;
 ----------------------------*/
 $theadStmt = $conn->prepare("
   SELECT linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment
-    FROM sales_strategy_thead
+    FROM dresses_thead
    WHERE user_id = ? AND table_id = ?
 ORDER BY id DESC
    LIMIT 1
@@ -166,7 +166,7 @@ $theadStmt->close();
 
 /* For title */
 /* For title */
-$titleStmt = $conn->prepare("SELECT table_id, table_title FROM sales_table WHERE user_id = ? AND table_id = ? LIMIT 1");
+$titleStmt = $conn->prepare("SELECT table_id, table_title FROM dresses_table WHERE user_id = ? AND table_id = ? LIMIT 1");
 $titleStmt->bind_param('ii', $uid, $table_id);
 $titleStmt->execute();
 $titleRes = $titleStmt->get_result();
@@ -218,7 +218,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
     // Prefill THEAD form
     $theadFetch = $conn->prepare("
       SELECT id, table_id, linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment
-        FROM sales_strategy_thead
+        FROM dresses_thead
        WHERE user_id = ? AND table_id = ?
        ORDER BY id DESC
        LIMIT 1
@@ -465,7 +465,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?></label>
-          <input type="text" name="deadline" placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 hidden"/>
+          <input type="text" name="deadline" placeholder="<?= htmlspecialchars($thead['deadline'] ?? 'Fitimi') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
         </div>
 
         <div>

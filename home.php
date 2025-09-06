@@ -88,7 +88,7 @@ $totalTables = fetch_all_assoc(
   "SELECT SUM(cnt) as total FROM (
       SELECT COUNT(*) as cnt FROM tables t           WHERE t.user_id=?
       UNION ALL
-      SELECT COUNT(*) as cnt FROM sales_table st     WHERE st.user_id=?
+      SELECT COUNT(*) as cnt FROM dresses_table st     WHERE st.user_id=?
       UNION ALL
       SELECT COUNT(*) as cnt FROM groceries_table gt WHERE gt.user_id=?
    ) as combined",
@@ -102,7 +102,7 @@ $totalRecords = fetch_all_assoc(
   "SELECT SUM(cnt) as total FROM (
       SELECT COUNT(*) as cnt FROM universal u        WHERE u.user_id=?
       UNION ALL
-      SELECT COUNT(*) as cnt FROM sales_strategy s   WHERE s.user_id=?
+      SELECT COUNT(*) as cnt FROM dresses s   WHERE s.user_id=?
       UNION ALL
       SELECT COUNT(*) as cnt FROM groceries g        WHERE g.user_id=?
    ) as combined",
@@ -117,7 +117,7 @@ $activeThisMonth = fetch_all_assoc(
       SELECT COUNT(*) as cnt FROM tables t 
         WHERE t.user_id=? AND DATE_FORMAT(t.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
       UNION ALL
-      SELECT COUNT(*) as cnt FROM sales_table st 
+      SELECT COUNT(*) as cnt FROM dresses_table st 
         WHERE st.user_id=? AND DATE_FORMAT(st.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
       UNION ALL
       SELECT COUNT(*) as cnt FROM groceries_table gt
@@ -133,7 +133,7 @@ $completedTasks = fetch_all_assoc(
   "SELECT SUM(cnt) as total FROM (
       SELECT COUNT(*) as cnt FROM universal u      WHERE u.user_id=? AND u.status='Done'
       UNION ALL
-      SELECT COUNT(*) as cnt FROM sales_strategy s WHERE s.user_id=? AND s.status='Done'
+      SELECT COUNT(*) as cnt FROM dresses s WHERE s.user_id=? AND s.status='Done'
    ) as combined",
   "ii", [$uid, $uid]
 );
@@ -161,7 +161,7 @@ $areaData = fetch_all_assoc(
          GROUP BY DATE(t.created_at)
        UNION ALL
        SELECT DATE(st.created_at) AS dt, COUNT(*) AS cnt
-         FROM sales_table st
+         FROM dresses_table st
          WHERE st.user_id=? " . sprintf($tableFilter, 'st') . "
          GROUP BY DATE(st.created_at)
        UNION ALL
@@ -184,8 +184,8 @@ $polarSql =
      GROUP BY t.table_title)
    UNION ALL
    (SELECT st.table_title AS table_name, COUNT(s.id) AS cnt
-     FROM sales_strategy s
-     JOIN sales_table st ON st.table_id = s.table_id
+     FROM dresses s
+     JOIN dresses_table st ON st.table_id = s.table_id
      WHERE s.user_id=? " . ($tableId ? "AND s.table_id=?" : "") . "
      GROUP BY st.table_title)
    UNION ALL
@@ -210,7 +210,7 @@ $barSql =
          GROUP BY mth
        UNION ALL
        SELECT DATE_FORMAT(st.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
-         FROM sales_table st
+         FROM dresses_table st
          WHERE st.user_id=? " . ($tableId ? "AND st.table_id=?" : "") . "
          GROUP BY mth
        UNION ALL
@@ -245,7 +245,7 @@ $radarData = fetch_all_assoc(
      GROUP BY u.status
      UNION ALL
      SELECT s.status as status, COUNT(*) as cnt
-     FROM sales_strategy s
+     FROM dresses s
      $whereSales
      GROUP BY s.status
    ) merged
@@ -271,7 +271,7 @@ $lineData = fetch_all_assoc(
          GROUP BY dt
        UNION ALL
        SELECT DATE(s.created_at) AS dt, COUNT(*) AS cnt
-         FROM sales_strategy s
+         FROM dresses s
          $whereSales
          GROUP BY dt
        UNION ALL
@@ -303,7 +303,7 @@ $pieData = fetch_all_assoc(
      GROUP BY u.status
      UNION ALL
      SELECT s.status as status, COUNT(*) as cnt 
-     FROM sales_strategy s
+     FROM dresses s
      $whereSales
      GROUP BY s.status
    ) merged
@@ -611,7 +611,7 @@ $barData  = fillMissingMonthlyWithNull($barData);
   const blank        = document.getElementById("blank");        // "Create New" button
   const universal    = document.getElementById("universal");    // optional "Open current table" button
   const dropdown     = document.getElementById("dropdown");     // the tables list (UL)
-  const sales        = document.getElementById("sales-strategy"); // sales template card
+  const sales        = document.getElementById("sales-strategy");  // sales template card
   const strategy     = document.getElementById("strategy");       // optional open strategy button
   const groceries    = document.getElementById("groceries");
   const football     = document.getElementById("football");

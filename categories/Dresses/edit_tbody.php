@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $deadline = $_POST['deadline'] ?? '';
   $table_id = $_POST['table_id'] ?? 0;
 
-  $sql = "UPDATE sales_strategy SET linked_initiatives = ?, executive_sponsor = ?, status = ?, complete = ?, notes = ?, priority = ?, owner = ?, deadline = ? WHERE id = ? AND table_id = ?";
+  $sql = "UPDATE dresses SET linked_initiatives = ?, executive_sponsor = ?, status = ?, complete = ?, notes = ?, priority = ?, owner = ?, deadline = ? WHERE id = ? AND table_id = ?";
   $stmt = $conn->prepare($sql);
   $stmt->bind_param('ssssssssii', $linked_initiatives, $executive_sponsor, $status, $complete, $notes, $priority, $owner, $deadline, $id, $table_id);
   if ($stmt->execute()) {
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 
-$stmt = $conn->prepare("SELECT linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline FROM sales_strategy WHERE id = ? AND table_id = ?");
+$stmt = $conn->prepare("SELECT linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline FROM dresses WHERE id = ? AND table_id = ?");
 $stmt->bind_param('ii', $id, $table_id);
 $stmt->execute();
 $stmt->bind_result($linked_initiatives, $executive_sponsor, $status, $complete, $notes, $priority, $owner, $deadline);

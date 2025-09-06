@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // GET: fetch current title (scoped)
-$stmt = $conn->prepare("SELECT table_title FROM sales_table WHERE table_id = ? AND user_id = ?");
+$stmt = $conn->prepare("SELECT table_title FROM dresses_table WHERE table_id = ? AND user_id = ?");
 $stmt->bind_param('ii', $table_id, $uid);
 $stmt->execute();
 $stmt->bind_result($table_title);

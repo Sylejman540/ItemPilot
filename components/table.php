@@ -81,7 +81,7 @@
 
         <?php
           // ---- SALES STRATEGY TABLES ----
-          $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM sales_table WHERE user_id = ? ORDER BY table_id ASC");
+          $stmt = $conn->prepare("SELECT table_id, table_title, created_at FROM dresses_table WHERE user_id = ? ORDER BY table_id ASC");
           $stmt->bind_param('i', $uid);
           $stmt->execute();
           $res = $stmt->get_result();
