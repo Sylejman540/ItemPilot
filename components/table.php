@@ -227,7 +227,7 @@
             </div>
 
             <div class="flex justify-between items-center pt-3 border-t">
-              <span class="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Applicant Tracking</span>
+              <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Applicant Tracking</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>

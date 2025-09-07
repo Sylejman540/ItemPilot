@@ -228,12 +228,12 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
   </section>
 
 
-<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
-  <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[90rem]">
+<main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden" id="applicantsSection">
+  <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[94rem]">
 
     <div class="mb-3">
-      <input id="rowSearchS" type="search" placeholder="Search rows…" data-rows=".sales-row" data-count="#countS" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
-      <span id="countS" class="ml-2 text-xs text-gray-600"></span>
+      <input type="search" placeholder="Search applicants…" data-rows=".applicant-row" data-count="#countA" data-scope="#applicantsSection" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+      <span id="countA" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
 
@@ -288,7 +288,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
             <input name="interviewer" value="<?= htmlspecialchars($headRow['interviewer'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Interviewer" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
           <div class="w-1/12 p-2">
-            <input name="interview_score" value="<?= htmlspecialchars($headRow['interview_score'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="interview score" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            <input name="interview_score" value="<?= htmlspecialchars($headRow['interview_score'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Interview Score" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
           <div class="w-1/12 p-2">
             <input name="notes" value="<?= htmlspecialchars($headRow['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
@@ -298,7 +298,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
     </div>
 
     <!-- TBODY -->
-    <div class="md:w-full w-[88rem] divide-y divide-gray-200">
+    <div class="md:w-full w-[92rem] divide-y divide-gray-200">
       <?php if ($hasRecord): foreach ($rows as $r): ?>
         <form method="POST" action="/ItemPilot/categories/Applicants Table/edit_tbody.php?id=<?= (int)$r['id'] ?>" enctype="multipart/form-data" class="applicant-row flex items-center border-b gap-2 border-gray-200 hover:bg-gray-50 text-sm">
 
@@ -310,8 +310,22 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
             <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/12 p-2 text-gray-600" data-col="stage">
-            <input type="text" name="stage" value="<?= htmlspecialchars($r['stage'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          <div class="w-1/12 p-2 text-gray-600 text-xs font-semibold" data-col="stage">
+            <?php
+              $statusColors = [
+                'No hire'       => 'bg-red-100 text-red-800',
+                'Interviewing'  => 'bg-yellow-100 text-yellow-800',
+                'Hire'        => 'bg-green-100 text-green-800',
+                'Decision needed'        => 'bg-gray-100 text-gray-800',
+              ];
+              $colorClass = $statusColors[$r['stage'] ?? ''] ?? 'bg-white text-gray-900';
+            ?>
+            <select name="stage" data-autosave="1" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave1 <?= $colorClass ?>">
+              <option value="No hire"       <?= ($r['stage'] ?? '') === 'No hire' ? 'selected' : '' ?>>No hire</option>
+              <option value="Interviewing" <?= ($r['stage'] ?? '') === 'Interviewing' ? 'selected' : '' ?>>Interviewing</option>
+              <option value="Hire"        <?= ($r['stage'] ?? '') === 'Hire' ? 'selected' : '' ?>>Hire</option>
+              <option value="Decision needed"        <?= ($r['stage'] ?? '') === 'Decision needed' ? 'selected' : '' ?>>Decision needed</option>
+            </select>
           </div>
 
           <div class="w-1/12 p-2 text-gray-600" data-col="applying_for">
@@ -343,11 +357,27 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
           </div>
 
           <div class="w-1/12 p-2 text-gray-600 whitespace-normal break-words" data-col="interviewer">
-            <input type="text" name="interviewer" value="<?= htmlspecialchars($r['interviewer'] ?? '', ENT_QUOTES, 'UTF-8') ?>" readonly  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            <input type="text" name="interviewer" value="<?= htmlspecialchars($r['interviewer'] ?? '', ENT_QUOTES, 'UTF-8') ?>"  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/12 p-2 text-gray-600 whitespace-normal break-words" data-col="interview_score">
-            <input type="text" name="interview_score" value="<?= htmlspecialchars($r['interview_score'] ?? '', ENT_QUOTES, 'UTF-8') ?>" readonly  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          <div class="w-1/12 p-2 text-gray-600 text-xs font-semibold" data-col="interview_score">
+            <?php
+              $statusColors1 = [
+                'Failed'       => 'bg-red-100 text-red-800',
+                'Probably no hire'  => 'bg-yellow-100 text-yellow-800',
+                'Worth consideration'        => 'bg-blue-100 text-blue-800',
+                'Good candidate'        => 'bg-green-100 text-green-800',
+                'Hire this person'        => 'bg-gray-100 text-gray-800',
+              ];
+              $colorClass1 = $statusColors1[$r['interview_score'] ?? ''] ?? 'bg-white text-gray-900';
+            ?>
+            <select name="interview_score" data-autosave="1" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave <?= $colorClass1 ?>">
+              <option value="Failed"       <?= ($r['interview_score'] ?? '') === 'Failed' ? 'selected' : '' ?>>Failed</option>
+              <option value="Probably no hire" <?= ($r['interview_score'] ?? '') === 'Probably no hire' ? 'selected' : '' ?>>Probably no hire</option>
+              <option value="Worth consideration"        <?= ($r['interview_score'] ?? '') === 'Worth consideration' ? 'selected' : '' ?>>Worth consideration</option>
+              <option value="Good candidate"        <?= ($r['interview_score'] ?? '') === 'Good candidate' ? 'selected' : '' ?>>Good candidate</option>
+              <option value="Hire this person"        <?= ($r['interview_score'] ?? '') === 'Hire this person' ? 'selected' : '' ?>>Hire this person</option>
+            </select>
           </div>
 
           <div class="w-1/12 p-2 text-gray-600 whitespace-normal break-words" data-col="notes">
@@ -429,10 +459,15 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
           <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['name'] ?? 'Name') ?></label>
           <input type="text" name="name" placeholder="<?= htmlspecialchars($thead['name'] ?? 'Name') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
         </div>
-
+        
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['stage'] ?? 'Stage') ?></label>
-          <input type="text" name="stage" placeholder="<?= htmlspecialchars($thead['stage'] ?? 'Stage') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          <select name="stage" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="No hire">No hire</option>
+            <option value="Interviewing">Interviewing</option>
+            <option value="Hire">Hire</option>
+            <option value="Decision needed">Decision needed</option>
+          </select>
         </div>
 
         <div>
@@ -456,13 +491,19 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['interview_date'] ?? 'Material Cost') ?></label>
-          <input type="text" name="interview_date" placeholder="<?= htmlspecialchars($thead['interview_date'] ?? 'Material Cost') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['interview_date'] ?? 'Interview Date') ?></label>
+          <input type="text" name="interview_date" placeholder="<?= htmlspecialchars($thead['interview_date'] ?? 'Interview Date') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['interview_score'] ?? 'Profit') ?></label>
-          <input type="text" name="interview_score" placeholder="<?= htmlspecialchars($thead['interview_score'] ?? 'Profit') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['interview_score'] ?? 'Interview Score') ?></label>
+          <select name="interview_score" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Failed">Failed</option>
+            <option value="Probably no hire">Probably no hire</option>
+            <option value="Worth consideration">Worth consideration</option>
+            <option value="Good candidate">Good candidate</option>
+            <option value="Hire this person">Hire this person</option>
+          </select>
         </div>
 
         <div>

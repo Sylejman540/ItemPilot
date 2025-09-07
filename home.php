@@ -71,46 +71,58 @@ function fillMissingMonthlyWithNull(array $rows): array {
 $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : null;
 
 if ($tableId) {
-  $whereUni       = "WHERE u.user_id = ? AND u.table_id = ?";
-  $whereSales     = "WHERE s.user_id = ? AND s.table_id = ?";
-  $whereGroceries = "WHERE g.user_id = ? AND g.table_id = ?";
+  $whereUni         = "WHERE u.user_id = ? AND u.table_id = ?";
+  $whereSales       = "WHERE s.user_id = ? AND s.table_id = ?";
+  $whereGroceries   = "WHERE g.user_id = ? AND g.table_id = ?";
+  $whereFootball    = "WHERE f.user_id = ? AND f.table_id = ?";
+  $whereApplicants  = "WHERE a.user_id = ? AND a.table_id = ?";
 } else {
-  $whereUni       = "WHERE u.user_id = ?";
-  $whereSales     = "WHERE s.user_id = ?";
-  $whereGroceries = "WHERE g.user_id = ?";
+  $whereUni         = "WHERE u.user_id = ?";
+  $whereSales       = "WHERE s.user_id = ?";
+  $whereGroceries   = "WHERE g.user_id = ?";
+  $whereFootball    = "WHERE f.user_id = ?";
+  $whereApplicants  = "WHERE a.user_id = ?";
 }
 
 /* ─────────── HEADER CARD METRICS ─────────── */
 
-// Total tables (tables + sales_table + groceries_table)
+/* Total tables (tables + dresses_table + groceries_table + football_table + applicants_table) */
 $totalTables = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
-      SELECT COUNT(*) as cnt FROM tables t           WHERE t.user_id=?
+      SELECT COUNT(*) as cnt FROM tables t             WHERE t.user_id=?
       UNION ALL
       SELECT COUNT(*) as cnt FROM dresses_table st     WHERE st.user_id=?
       UNION ALL
-      SELECT COUNT(*) as cnt FROM groceries_table gt WHERE gt.user_id=?
+      SELECT COUNT(*) as cnt FROM groceries_table gt   WHERE gt.user_id=?
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM football_table ft    WHERE ft.user_id=?
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM applicants_table atb WHERE atb.user_id=?
    ) as combined",
-  "iii", [$uid, $uid, $uid]
+  "iiiii", [$uid, $uid, $uid, $uid, $uid]
 );
 $totalTables = $totalTables[0]['total'] ?? 0;
 
-// Total records (universal + sales_strategy + groceries)
+/* Total records (universal + dresses + groceries + football + applicants) */
 $totalRecords = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
-      SELECT COUNT(*) as cnt FROM universal u        WHERE u.user_id=?
+      SELECT COUNT(*) as cnt FROM universal u   WHERE u.user_id=?
       UNION ALL
-      SELECT COUNT(*) as cnt FROM dresses s   WHERE s.user_id=?
+      SELECT COUNT(*) as cnt FROM dresses s     WHERE s.user_id=?
       UNION ALL
-      SELECT COUNT(*) as cnt FROM groceries g        WHERE g.user_id=?
+      SELECT COUNT(*) as cnt FROM groceries g   WHERE g.user_id=?
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM football f    WHERE f.user_id=?
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM applicants a  WHERE a.user_id=?
    ) as combined",
-  "iii", [$uid, $uid, $uid]
+  "iiiii", [$uid, $uid, $uid, $uid, $uid]
 );
 $totalRecords = $totalRecords[0]['total'] ?? 0;
 
-// Active this month (new tables created this month; include groceries_table)
+/* Active this month (new tables created this month; include football_table + applicants_table) */
 $activeThisMonth = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
@@ -122,18 +134,24 @@ $activeThisMonth = fetch_all_assoc(
       UNION ALL
       SELECT COUNT(*) as cnt FROM groceries_table gt
         WHERE gt.user_id=? AND DATE_FORMAT(gt.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM football_table ft
+        WHERE ft.user_id=? AND DATE_FORMAT(ft.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+      UNION ALL
+      SELECT COUNT(*) as cnt FROM applicants_table atb
+        WHERE atb.user_id=? AND DATE_FORMAT(atb.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
    ) as combined",
-  "iii", [$uid, $uid, $uid]
+  "iiiii", [$uid, $uid, $uid, $uid, $uid]
 );
 $activeThisMonth = $activeThisMonth[0]['total'] ?? 0;
 
-// Completed tasks (status='Done') — ONLY universal + sales_strategy
+/* Completed tasks — ONLY universal + dresses (football/applicants have no status) */
 $completedTasks = fetch_all_assoc(
   $conn,
   "SELECT SUM(cnt) as total FROM (
-      SELECT COUNT(*) as cnt FROM universal u      WHERE u.user_id=? AND u.status='Done'
+      SELECT COUNT(*) as cnt FROM universal u WHERE u.user_id=? AND u.status='Done'
       UNION ALL
-      SELECT COUNT(*) as cnt FROM dresses s WHERE s.user_id=? AND s.status='Done'
+      SELECT COUNT(*) as cnt FROM dresses s   WHERE s.user_id=? AND s.status='Done'
    ) as combined",
   "ii", [$uid, $uid]
 );
@@ -141,14 +159,15 @@ $completedTasks = $completedTasks[0]['total'] ?? 0;
 
 /* ─────────── CHART QUERIES ─────────── */
 
-// 1) Area → New Tables Created (tables + sales_table + groceries_table)
+/* 1) Area → New Tables Created (tables + dresses_table + groceries_table + football_table + applicants_table) */
 if ($tableId) {
-  $typesArea = "iiiiii";
-  $argsArea  = [$uid,$tableId, $uid,$tableId, $uid,$tableId];
+  // 5 tables × (user_id, table_id)
+  $typesArea   = "iiiiiiiiii";
+  $argsArea    = [$uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId];
   $tableFilter = "AND %s.table_id=?";
 } else {
-  $typesArea = "iii";
-  $argsArea  = [$uid, $uid, $uid];
+  $typesArea   = "iiiii"; // 5 user_ids
+  $argsArea    = [$uid, $uid, $uid, $uid, $uid];
   $tableFilter = "";
 }
 $areaData = fetch_all_assoc(
@@ -169,13 +188,23 @@ $areaData = fetch_all_assoc(
          FROM groceries_table gt
          WHERE gt.user_id=? " . sprintf($tableFilter, 'gt') . "
          GROUP BY DATE(gt.created_at)
+       UNION ALL
+       SELECT DATE(ft.created_at) AS dt, COUNT(*) AS cnt
+         FROM football_table ft
+         WHERE ft.user_id=? " . sprintf($tableFilter, 'ft') . "
+         GROUP BY DATE(ft.created_at)
+       UNION ALL
+       SELECT DATE(atb.created_at) AS dt, COUNT(*) AS cnt
+         FROM applicants_table atb
+         WHERE atb.user_id=? " . sprintf($tableFilter, 'atb') . "
+         GROUP BY DATE(atb.created_at)
      ) AS combined
    GROUP BY dt
    ORDER BY dt ASC",
   $typesArea, $argsArea
 );
 
-// 2) Polar → Records Per Table (universal + sales_strategy + groceries)
+/* 2) Polar → Records Per Table (universal + dresses + groceries + football + applicants) */
 $polarSql = 
   "(SELECT t.table_title AS table_name, COUNT(u.id) AS cnt
      FROM universal u
@@ -193,18 +222,34 @@ $polarSql =
      FROM groceries g
      JOIN groceries_table gt ON gt.table_id = g.table_id
      WHERE g.user_id=? " . ($tableId ? "AND g.table_id=?" : "") . "
-     GROUP BY gt.table_title)";
+     GROUP BY gt.table_title)
+   UNION ALL
+   (SELECT ftb.table_title AS table_name, COUNT(f.id) AS cnt
+     FROM football f
+     JOIN football_table ftb ON ftb.table_id = f.table_id
+     WHERE f.user_id=? " . ($tableId ? "AND f.table_id=?" : "") . "
+     GROUP BY ftb.table_title)
+   UNION ALL
+   (SELECT atb.table_title AS table_name, COUNT(a.id) AS cnt
+     FROM applicants a
+     JOIN applicants_table atb ON atb.table_id = a.table_id
+     WHERE a.user_id=? " . ($tableId ? "AND a.table_id=?" : "") . "
+     GROUP BY atb.table_title)";
 if ($tableId) {
-  $polarData = fetch_all_assoc($conn, $polarSql, "iiiiii", [$uid,$tableId, $uid,$tableId, $uid,$tableId]);
+  $polarData = fetch_all_assoc(
+    $conn, $polarSql,
+    "iiiiiiiiii",
+    [$uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId]
+  );
 } else {
-  $polarData = fetch_all_assoc($conn, $polarSql, "iii", [$uid, $uid, $uid]);
+  $polarData = fetch_all_assoc($conn, $polarSql, "iiiii", [$uid, $uid, $uid, $uid, $uid]);
 }
 
-// 3) Bar → Tables Per Month (tables + sales_table + groceries_table)
+/* 3) Bar → Tables Per Month (tables + dresses_table + groceries_table + football_table + applicants_table) */
 $barSql =
   "SELECT mth, SUM(cnt) AS cnt
      FROM (
-       SELECT DATE_FORMAT(t.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
+       SELECT DATE_FORMAT(t.created_at,  '%Y-%m') AS mth, COUNT(*) AS cnt
          FROM tables t
          WHERE t.user_id=? " . ($tableId ? "AND t.table_id=?" : "") . "
          GROUP BY mth
@@ -218,16 +263,30 @@ $barSql =
          FROM groceries_table gt
          WHERE gt.user_id=? " . ($tableId ? "AND gt.table_id=?" : "") . "
          GROUP BY mth
+       UNION ALL
+       SELECT DATE_FORMAT(ft.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
+         FROM football_table ft
+         WHERE ft.user_id=? " . ($tableId ? "AND ft.table_id=?" : "") . "
+         GROUP BY mth
+       UNION ALL
+       SELECT DATE_FORMAT(atb.created_at, '%Y-%m') AS mth, COUNT(*) AS cnt
+         FROM applicants_table atb
+         WHERE atb.user_id=? " . ($tableId ? "AND atb.table_id=?" : "") . "
+         GROUP BY mth
      ) AS combined
    GROUP BY mth
    ORDER BY mth ASC";
 if ($tableId) {
-  $barData = fetch_all_assoc($conn, $barSql, "iiiiii", [$uid,$tableId, $uid,$tableId, $uid,$tableId]);
+  $barData = fetch_all_assoc(
+    $conn, $barSql,
+    "iiiiiiiiii",
+    [$uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId]
+  );
 } else {
-  $barData = fetch_all_assoc($conn, $barSql, "iii", [$uid, $uid, $uid]);
+  $barData = fetch_all_assoc($conn, $barSql, "iiiii", [$uid, $uid, $uid, $uid, $uid]);
 }
 
-// 4) Radar → Status Distribution (ONLY universal + sales_strategy)
+/* 4) Radar → Status Distribution (ONLY universal + dresses; football/applicants excluded) */
 if ($tableId) {
   $radarTypes = "iiii";
   $radarArgs  = [$uid,$tableId, $uid,$tableId];
@@ -253,13 +312,13 @@ $radarData = fetch_all_assoc(
   $radarTypes, $radarArgs
 );
 
-// 5) Line → Records Over Time (universal + sales_strategy + groceries)
+/* 5) Line → Records Over Time (universal + dresses + groceries + football + applicants) */
 if ($tableId) { 
-  $lineTypes = "iiiiii"; 
-  $lineArgs  = [$uid,$tableId, $uid,$tableId, $uid,$tableId]; 
+  $lineTypes = "iiiiiiiiii";
+  $lineArgs  = [$uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId]; 
 } else { 
-  $lineTypes = "iii";    
-  $lineArgs  = [$uid, $uid, $uid]; 
+  $lineTypes = "iiiii";    
+  $lineArgs  = [$uid, $uid, $uid, $uid, $uid]; 
 }
 $lineData = fetch_all_assoc(
   $conn,
@@ -279,13 +338,23 @@ $lineData = fetch_all_assoc(
          FROM groceries g
          $whereGroceries
          GROUP BY dt
+       UNION ALL
+       SELECT DATE(f.created_at) AS dt, COUNT(*) AS cnt
+         FROM football f
+         $whereFootball
+         GROUP BY dt
+       UNION ALL
+       SELECT DATE(a.created_at) AS dt, COUNT(*) AS cnt
+         FROM applicants a
+         $whereApplicants
+         GROUP BY dt
      ) AS combined
    GROUP BY dt
    ORDER BY dt ASC",
   $lineTypes, $lineArgs
 );
 
-// 6) Pie → To Do / In Progress / Done (ONLY universal + sales_strategy)
+/* 6) Pie → To Do / In Progress / Done (ONLY universal + dresses; football/applicants excluded) */
 if ($tableId) {
   $pieTypes = "iiii";
   $pieArgs  = [$uid,$tableId, $uid,$tableId];
@@ -312,7 +381,7 @@ $pieData = fetch_all_assoc(
 );
 
 /* ─────────── STATUS MAP (for Pie: only status-bearing tables) ─────────── */
-$statuses  = ["To Do", "In Progress", "Done"]; // adjust if you have more
+$statuses  = ["To Do", "In Progress", "Done"];
 $statusMap = array_fill_keys($statuses, 0);
 foreach ($pieData as $row) {
   $status = $row['status'];
@@ -327,7 +396,6 @@ $barData  = fillMissingMonthlyWithNull($barData);
 
 // ✅ Arrays ready for charts: $areaData, $polarData, $barData, $radarData, $lineData, $statusMap
 ?>
-
 <!DOCTYPE html>
 <html lang="en" class="overflow-x-hidden">
 <head>  
@@ -1283,64 +1351,85 @@ $(function () {
 
 })();
 
-(function($){
+
+(function ($) {
   if (!window.jQuery) return;
 
-  function cellText($cell){
+  // --- utils ---
+  const debounce = (fn, ms = 120) => {
+    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(null, args), ms); };
+  };
+
+  const cellText = ($cell) => {
     const $ctrl = $cell.find('input,textarea,select');
     return $ctrl.length ? String($ctrl.val() ?? '') : String($cell.text() ?? '');
-  }
-  function highlightCell($cell, q){
+  };
+
+  const highlightCell = ($cell, q) => {
     const $ctrl = $cell.find('input,textarea,select');
     const t = cellText($cell).toLowerCase();
     const hit = q && t.includes(q.toLowerCase());
     $cell.removeClass('cell-hit'); $ctrl.removeClass('ctrl-hit');
     if (!q) return;
     if (hit) ($ctrl.length ? $ctrl.addClass('ctrl-hit') : $cell.addClass('cell-hit'));
-  }
+  };
 
-  function runFilter($input){
+  const runFilter = ($input) => {
     const rowsSel  = $input.data('rows');
     const countSel = $input.data('count');
     const scopeSel = $input.data('scope');
     const $scope   = scopeSel ? $(scopeSel) : $(document);
     const $rows    = $scope.find(rowsSel);
 
-    if (!$rows.length) return; // nothing to do for this input yet
+    if (!$rows.length) { if (countSel) $(countSel).text(''); return; }
 
     const q = String($input.val() ?? '').trim();
     let visible = 0;
 
-    $rows.each(function(){
+    $rows.each(function () {
       const $r = $(this);
       const $cells = $r.find('[data-col]');
-      const hay = $cells.map((_,c)=>cellText($(c))).get().join(' ').toLowerCase();
+      const hay = $cells.map((_, c) => cellText($(c))).get().join(' ').toLowerCase();
       const match = q ? hay.includes(q.toLowerCase()) : true;
 
       $r.toggleClass('hidden', !match);
       if (match) visible++;
 
-      // only highlight visible matches
-      $cells.each(function(){ highlightCell($(this), match ? q : ''); });
-
+      // highlight only visible rows
+      $cells.each(function () { highlightCell($(this), match ? q : ''); });
     });
 
-    if (countSel) $(countSel).text(visible ? `${visible} match${visible===1?'':'es'}` : 'No matches');
-  }
+    if (countSel) $(countSel).text(q ? (visible ? `${visible} match${visible === 1 ? '' : 'es'}` : 'No matches') : '');
+  };
 
-  // One handler for all search inputs that declare data-rows
-  $(document).on('input', '[data-rows]', function(){
-    runFilter($(this));
+  const runFilterDebounced = debounce(runFilter, 80);
+
+  // expose helpers
+  window.TableSearch = {
+    run($input) { runFilter($input); },
+    refreshAll() { $('[data-rows]').each(function(){ runFilter($(this)); }); }
+  };
+
+  // events
+  $(document).on('input', '[data-rows]', function () { runFilterDebounced($(this)); });
+
+  // ESC to clear input & reset
+  $(document).on('keydown', '[data-rows]', function (e) {
+    if (e.key === 'Escape') {
+      $(this).val('');
+      runFilter($(this));
+      e.stopPropagation();
+    }
   });
 
-  // Initial render after DOM ready
-  $(function(){
-    $('[data-rows]').each(function(){ runFilter($(this)); });
-  });
+  // initial pass
+  $(function(){ window.TableSearch.refreshAll(); });
 
-  // If rows/sections are injected later (AJAX/tabs), re-run once:
-  // $('[data-rows]').each(function(){ runFilter($(this)); });
-})(jQuery);
+  // re-run when DOM mutates (e.g., rows added via AJAX)
+  const obs = new MutationObserver(debounce(() => window.TableSearch.refreshAll(), 120));
+  obs.observe(document.documentElement || document.body, { childList: true, subtree: true });
+
+})(window.jQuery);
 
 (function () {
   // parse numbers from "$20", "20$", "20.50", "20,50", etc.
