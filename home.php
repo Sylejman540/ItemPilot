@@ -1355,78 +1355,132 @@ $(function () {
 (function ($) {
   if (!window.jQuery) return;
 
-  // --- utils ---
-  const debounce = (fn, ms = 120) => {
-    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(null, args), ms); };
-  };
-
-  const cellText = ($cell) => {
-    const $ctrl = $cell.find('input,textarea,select');
-    return $ctrl.length ? String($ctrl.val() ?? '') : String($cell.text() ?? '');
-  };
-
+  // ------------ helpers you already have ------------
+  const debounce = (fn, ms = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  const cellText = ($cell) => { const $c = $cell.find('input,textarea,select'); return $c.length ? String($c.val() ?? '') : String($cell.text() ?? ''); };
   const highlightCell = ($cell, q) => {
-    const $ctrl = $cell.find('input,textarea,select');
+    const $c = $cell.find('input,textarea,select');
     const t = cellText($cell).toLowerCase();
     const hit = q && t.includes(q.toLowerCase());
-    $cell.removeClass('cell-hit'); $ctrl.removeClass('ctrl-hit');
+    $cell.removeClass('cell-hit'); $c.removeClass('ctrl-hit');
     if (!q) return;
-    if (hit) ($ctrl.length ? $ctrl.addClass('ctrl-hit') : $cell.addClass('cell-hit'));
+    if (hit) ($c.length ? $c.addClass('ctrl-hit') : $cell.addClass('cell-hit'));
   };
 
-  const runFilter = ($input) => {
+  // ------------ NEW: load & merge rows from other pages ------------
+  // We dedupe by the hidden input [name="id"] inside each row <form>.
+  function rowId($row) {
+    const v = $row.find('input[name=id]').val();
+    return v ? String(v) : null;
+  }
+
+  function collectExistingIds($container, rowsSel) {
+    const ids = new Set();
+    $container.find(rowsSel).each(function () {
+      const id = rowId($(this));
+      if (id) ids.add(id);
+    });
+    return ids;
+  }
+
+  // Fetch all pagination pages found in $scope and append missing rows into $container.
+  async function loadAllPages($scope, rowsSel, $container) {
+    // If we already loaded once for this scope, skip
+    if ($scope.data('allPagesLoaded')) return;
+
+    const $pag = $scope.find('.pagination a[href]');
+    if (!$pag.length) { $scope.data('allPagesLoaded', true); return; }
+
+    const urls = [...new Set($pag.map((_, a) => a.href).get())]; // unique
+
+    const existing = collectExistingIds($container, rowsSel);
+
+    // Fetch pages sequentially (simpler & avoids flooding the server)
+    for (const url of urls) {
+      try {
+        const html = await fetch(url, { credentials: 'same-origin' }).then(r => r.text());
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+        const nodes = doc.querySelectorAll(rowsSel);
+        nodes.forEach(node => {
+          const $row = $(node);
+          const id = rowId($row);
+          if (!id || existing.has(id)) return;
+          existing.add(id);
+          // Append to the same container that holds current page rows
+          $container.append($row);
+        });
+      } catch (e) {
+        // swallow and continue; we still filter what we have
+        console.error('Failed to fetch page', url, e);
+      }
+    }
+
+    // Mark as loaded so we don't re-fetch
+    $scope.data('allPagesLoaded', true);
+  }
+
+  // ------------ your existing filter (unchanged) ------------
+  function runFilter($input) {
     const rowsSel  = $input.data('rows');
     const countSel = $input.data('count');
     const scopeSel = $input.data('scope');
     const $scope   = scopeSel ? $(scopeSel) : $(document);
     const $rows    = $scope.find(rowsSel);
-
     if (!$rows.length) { if (countSel) $(countSel).text(''); return; }
 
     const q = String($input.val() ?? '').trim();
     let visible = 0;
 
-    $rows.each(function () {
-      const $r = $(this);
-      const $cells = $r.find('[data-col]');
-      const hay = $cells.map((_, c) => cellText($(c))).get().join(' ').toLowerCase();
-      const match = q ? hay.includes(q.toLowerCase()) : true;
+    // find the container that actually holds the rows
+    // (go up from the first row to a stable parent; adjust if you have a known container)
+    const $container = $scope.find('.md\\:w-full.divide-y'); // example
 
-      $r.toggleClass('hidden', !match);
-      if (match) visible++;
 
-      // highlight only visible rows
-      $cells.each(function () { highlightCell($(this), match ? q : ''); });
+    // If there is a query, first make sure we loaded rows from other pages
+    // (only the first time we search; load once per scope).
+    // We only await the loader when q is non-empty to avoid unnecessary fetches.
+    const maybeLoad = q ? loadAllPages($scope, rowsSel, $container) : Promise.resolve();
+
+    Promise.resolve(maybeLoad).then(() => {
+      // Re-query after possible appends
+      const $allRows = $scope.find(rowsSel);
+
+      $allRows.each(function () {
+        const $r = $(this);
+        const $cells = $r.find('[data-col]');
+        const hay = $cells.map((_, c) => cellText($(c))).get().join(' ').toLowerCase();
+        const match = q ? hay.includes(q.toLowerCase()) : true;
+
+        $r.toggleClass('hidden', !match);
+        if (match) visible++;
+
+        $cells.each(function () { highlightCell($(this), match ? q : ''); });
+      });
+
+      if (countSel) $(countSel).text(q ? (visible ? `${visible} match${visible === 1 ? '' : 'es'}` : 'No matches') : '');
+      // Optionally hide pagination when searching
+      $scope.find('.pagination').toggleClass('hidden', !!q);
     });
+  }
 
-    if (countSel) $(countSel).text(q ? (visible ? `${visible} match${visible === 1 ? '' : 'es'}` : 'No matches') : '');
-  };
+  const runFilterDebounced = debounce(runFilter, 120);
 
-  const runFilterDebounced = debounce(runFilter, 80);
-
-  // expose helpers
+  // public API
   window.TableSearch = {
     run($input) { runFilter($input); },
-    refreshAll() { $('[data-rows]').each(function(){ runFilter($(this)); }); }
+    refreshAll() { $('[data-rows]').each(function () { runFilter($(this)); }); }
   };
 
   // events
   $(document).on('input', '[data-rows]', function () { runFilterDebounced($(this)); });
 
-  // ESC to clear input & reset
   $(document).on('keydown', '[data-rows]', function (e) {
-    if (e.key === 'Escape') {
-      $(this).val('');
-      runFilter($(this));
-      e.stopPropagation();
-    }
+    if (e.key === 'Escape') { $(this).val(''); runFilter($(this)); e.stopPropagation(); }
   });
 
-  // initial pass
-  $(function(){ window.TableSearch.refreshAll(); });
+  $(function () { window.TableSearch.refreshAll(); });
 
-  // re-run when DOM mutates (e.g., rows added via AJAX)
-  const obs = new MutationObserver(debounce(() => window.TableSearch.refreshAll(), 120));
+  const obs = new MutationObserver(debounce(() => window.TableSearch.refreshAll(), 150));
   obs.observe(document.documentElement || document.body, { childList: true, subtree: true });
 
 })(window.jQuery);

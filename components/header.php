@@ -34,16 +34,7 @@
             <div>
               <span class="select-none flex justify-center items-center gap-5" id="events">
                 <!-- icon -->
-                <svg
-                  class="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                 <span>Tables</span>
               </span>
             </div>

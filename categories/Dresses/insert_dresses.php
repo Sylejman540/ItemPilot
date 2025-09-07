@@ -192,7 +192,6 @@ $thead = $theadStmt->get_result()->fetch_assoc();
 $theadStmt->close();
 
 /* For title */
-/* For title */
 $titleStmt = $conn->prepare("SELECT table_id, table_title FROM dresses_table WHERE user_id = ? AND table_id = ? LIMIT 1");
 $titleStmt->bind_param('ii', $uid, $table_id);
 $titleStmt->execute();
