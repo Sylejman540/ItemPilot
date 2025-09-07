@@ -236,26 +236,78 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
   <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[90rem]">
 
     <div class="mb-3">
-      <input id="rowSearchS" type="search" placeholder="Search rows…" data-rows=".sales-row" data-count="#countS" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+      <input id="rowSearchS" type="search" placeholder="Search rows…" data-rows=".sales-row" data-count="#countS" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
       <span id="countS" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
 
     <?php
-    // Prefill THEAD form
-    $theadFetch = $conn->prepare("
-      SELECT id, table_id, linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment
+      // Ensure a THEAD row exists for this Dresses table; insert defaults if missing
+      $theadFetch = $conn->prepare("
+        SELECT id, table_id, linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment
         FROM dresses_thead
-       WHERE user_id = ? AND table_id = ?
-       ORDER BY id DESC
-       LIMIT 1
-    ");
-    $theadFetch->bind_param('ii', $uid, $table_id);
-    $theadFetch->execute();
-    $res = $theadFetch->get_result();
-    $headRow = $res && $res->num_rows ? $res->fetch_assoc() : ['id'=>0,'table_id'=>$table_id];
-    $theadFetch->close();
-    ?>
+        WHERE user_id = ? AND table_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+      ");
+      $theadFetch->bind_param('ii', $uid, $table_id);
+      $theadFetch->execute();
+      $res = $theadFetch->get_result();
+
+      if ($res && $res->num_rows) {
+        $headRow = $res->fetch_assoc();
+      } else {
+        // Defaults to insert (match your placeholders)
+        $defaults = [
+          'linked_initiatives' => 'Name',
+          'executive_sponsor'  => 'Country',
+          'status'             => 'Status',
+          'complete'           => 'Age',
+          'notes'              => 'Delivery date',
+          'priority'           => 'Price',
+          'owner'              => 'Material cost',
+          'deadline'           => 'Profit',
+          'attachment'         => 'Model',
+        ];
+
+        $ins = $conn->prepare("
+          INSERT INTO dresses_thead
+            (user_id, table_id, linked_initiatives, executive_sponsor, status, complete, notes, priority, owner, deadline, attachment)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        ");
+        $ins->bind_param(
+          'iisssssssss',
+          $uid, $table_id,
+          $defaults['linked_initiatives'],
+          $defaults['executive_sponsor'],
+          $defaults['status'],
+          $defaults['complete'],
+          $defaults['notes'],
+          $defaults['priority'],
+          $defaults['owner'],
+          $defaults['deadline'],
+          $defaults['attachment']
+        );
+        $ins->execute();
+        $newId = (int)$conn->insert_id;
+        $ins->close();
+
+        $headRow = [
+          'id'                  => $newId,
+          'table_id'            => $table_id,
+          'linked_initiatives'  => $defaults['linked_initiatives'],
+          'executive_sponsor'   => $defaults['executive_sponsor'],
+          'status'              => $defaults['status'],
+          'complete'            => $defaults['complete'],
+          'notes'               => $defaults['notes'],
+          'priority'            => $defaults['priority'],
+          'owner'               => $defaults['owner'],
+          'deadline'            => $defaults['deadline'],
+          'attachment'          => $defaults['attachment'],
+        ];
+      }
+      $theadFetch->close();
+      ?>
 
     <!-- THEAD -->
     <div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">

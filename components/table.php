@@ -37,6 +37,7 @@
     <!-- Tables Card -->
     <div class="md:ml-10 md:mr-10 ml-4 mr-4">
       <!-- Table List -->
+      <?php $totalCards = 0; ?>
       <ul class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         <?php
@@ -47,6 +48,7 @@
           $res = $stmt->get_result();
 
           while ($row = $res->fetch_assoc()):
+            $totalCards++;
             $tid        = (int)$row['table_id'];
             $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Table', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
@@ -68,7 +70,7 @@
               </div>
             </div>
 
-            <div class="flex justify-between items-center pt-3 border-t">
+            <div class="flex justify-between items-center pt-3 border-t border-gray-300">
               <span class="px-3 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">Blank Base</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -87,6 +89,7 @@
           $res = $stmt->get_result();
 
           while ($row = $res->fetch_assoc()):
+            $totalCards++;
             $sid        = (int)$row['table_id'];
             $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Table', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
@@ -108,7 +111,7 @@
               </div>
             </div>
 
-            <div class="flex justify-between items-center pt-3 border-t">
+            <div class="flex justify-between items-center pt-3 border-t border-gray-300">
               <span class="px-3 py-1 text-xs rounded-full bg-pink-100 text-pink-700">Dress Inventory & Orders</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -127,6 +130,7 @@
           $res = $stmt->get_result();
 
           while ($row = $res->fetch_assoc()):
+            $totalCards++;
             $gid        = (int)$row['table_id'];
             $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Table', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
@@ -148,7 +152,7 @@
               </div>
             </div>
 
-            <div class="flex justify-between items-center pt-3 border-t">
+            <div class="flex justify-between items-center pt-3 border-t border-gray-300">
               <span class="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Grocery List</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -166,6 +170,7 @@
           $res = $stmt->get_result();
 
           while ($row = $res->fetch_assoc()):
+            $totalCards++;
             $gid        = (int)$row['table_id'];
             $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Table', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
@@ -187,7 +192,7 @@
               </div>
             </div>
 
-            <div class="flex justify-between items-center pt-3 border-t">
+            <div class="flex justify-between items-center pt-3 border-t border-gray-300">
               <span class="px-3 py-1 text-xs rounded-full bg-red-100 text-red-800">Football Team</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -205,6 +210,7 @@
           $res = $stmt->get_result();
 
           while ($row = $res->fetch_assoc()):
+            $totalCards++;
             $gid        = (int)$row['table_id'];
             $title      = htmlspecialchars($row['table_title'] ?? 'Untitled Table', ENT_QUOTES, 'UTF-8');
             $createdFmt = $row['created_at'] ? date('M j, Y · H:i', strtotime($row['created_at'])) : '—';
@@ -226,7 +232,7 @@
               </div>
             </div>
 
-            <div class="flex justify-between items-center pt-3 border-t">
+            <div class="flex justify-between items-center pt-3 border-t border-gray-300">
               <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Applicant Tracking</span>
               <button class="text-gray-400 hover:text-gray-600 transition">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -235,6 +241,14 @@
           </a>
         </li>
         <?php endwhile; $stmt->close(); ?>
+        <?php if ($totalCards === 0): ?>
+          <li class="col-span-full">
+            <div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-600">
+              <p class="mb-4">You don’t have any tables yet.</p>
+              <span class="text-sm font-bold">Click the button above `Choose a template`</span>
+            </div>
+          </li>
+        <?php endif; ?>
       </ul>
     </div>
   </section>

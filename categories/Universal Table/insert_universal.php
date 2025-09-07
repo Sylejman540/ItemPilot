@@ -172,7 +172,7 @@ $first = $rows[0] ?? null;
 
     <!-- Search + live result count -->
     <div class="mb-3">
-      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
       <span id="countU" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
@@ -202,7 +202,7 @@ $first = $rows[0] ?? null;
       <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
       <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
 
-      <div class="flex text-xs md:text-xs font-bold text-gray-900 uppercase">
+      <div class="flex text-xs md:text-xs font-bold text-gray-900">
         <div class="w-1/5 p-2">
           <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>

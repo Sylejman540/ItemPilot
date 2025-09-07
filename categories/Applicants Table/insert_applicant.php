@@ -206,7 +206,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
 <header id="appHeader"  class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left: 1.25rem; padding-right: 1.25rem;">
   <section class="flex mt-6 justify-between ml-3">
     <!-- Rename action to the title handler and encode the space -->
-    <form action="/ItemPilot/categories/Applicants Table/edit.php" method="POST" class="flex gap-2">
+    <form action="/ItemPilot/categories/Applicants%20Table/edit.php" method="POST" class="flex gap-2">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <input
         type="text"
@@ -231,31 +231,87 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
   <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[94rem]">
 
     <div class="mb-3">
-      <input type="search" placeholder="Search applicants…" data-rows=".applicant-row" data-count="#countA" data-scope="#applicantsSection" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+      <input type="search" placeholder="Search applicants…" data-rows=".applicant-row" data-count="#countA" data-scope="#applicantsSection" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
       <span id="countA" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
-
     <?php
-    // Prefill THEAD form
+    // Prefill THEAD form (ensure a row exists; insert defaults if missing)
     $theadFetch = $conn->prepare("
       SELECT id, table_id, name, stage, applying_for, attachment, email_address, phone,
-             interview_date, interviewer, interview_score, notes
-        FROM applicants_thead
-       WHERE user_id = ? AND table_id = ?
-       ORDER BY id DESC
-       LIMIT 1
+            interview_date, interviewer, interview_score, notes
+      FROM applicants_thead
+      WHERE user_id = ? AND table_id = ?
+      ORDER BY id DESC
+      LIMIT 1
     ");
     $theadFetch->bind_param('ii', $uid, $table_id);
     $theadFetch->execute();
     $res = $theadFetch->get_result();
-    $headRow = $res && $res->num_rows ? $res->fetch_assoc() : ['id'=>0,'table_id'=>$table_id];
+
+    if ($res && $res->num_rows) {
+      $headRow = $res->fetch_assoc();
+    } else {
+      // Defaults to insert (match your UI labels)
+      $defaults = [
+        'name'            => 'Name',
+        'stage'           => 'Stage',
+        'applying_for'    => 'Applying For',
+        'attachment'      => 'Attachment',
+        'email_address'   => 'Email Address',
+        'phone'           => 'Phone',
+        'interview_date'  => 'Interview Date',
+        'interviewer'     => 'Interviewer',
+        'interview_score' => 'Interview Score',
+        'notes'           => 'Notes',
+      ];
+
+      $ins = $conn->prepare("
+        INSERT INTO applicants_thead
+          (user_id, table_id, name, stage, applying_for, attachment, email_address, phone,
+          interview_date, interviewer, interview_score, notes)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+      ");
+      $ins->bind_param(
+        'iissssssssss', // 2 ints + 10 strings
+        $uid, $table_id,
+        $defaults['name'],
+        $defaults['stage'],
+        $defaults['applying_for'],
+        $defaults['attachment'],
+        $defaults['email_address'],
+        $defaults['phone'],
+        $defaults['interview_date'],
+        $defaults['interviewer'],
+        $defaults['interview_score'],
+        $defaults['notes']
+      );
+      $ins->execute();
+      $newId = (int)$conn->insert_id;
+      $ins->close();
+
+      $headRow = [
+        'id'              => $newId,
+        'table_id'        => $table_id,
+        'name'            => $defaults['name'],
+        'stage'           => $defaults['stage'],
+        'applying_for'    => $defaults['applying_for'],
+        'attachment'      => $defaults['attachment'],
+        'email_address'   => $defaults['email_address'],
+        'phone'           => $defaults['phone'],
+        'interview_date'  => $defaults['interview_date'],
+        'interviewer'     => $defaults['interviewer'],
+        'interview_score' => $defaults['interview_score'],
+        'notes'           => $defaults['notes'],
+      ];
+    }
     $theadFetch->close();
     ?>
 
+
     <!-- THEAD -->
     <div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
-      <form action="/ItemPilot/categories/Applicants Table/edit_thead.php" method="post"
+      <form action="/ItemPilot/categories/Applicants%20Table/edit_thead.php" method="post"
             class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
 
         <input type="hidden" name="id" value="<?= (int)($headRow['id'] ?? 0) ?>">
@@ -299,7 +355,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
     <!-- TBODY -->
     <div class="md:w-full w-[92rem] divide-y divide-gray-200">
       <?php if ($hasRecord): foreach ($rows as $r): ?>
-        <form method="POST" action="/ItemPilot/categories/Applicants Table/edit_tbody.php?id=<?= (int)$r['id'] ?>" enctype="multipart/form-data" class="applicant-row flex items-center border-b gap-2 border-gray-200 hover:bg-gray-50 text-sm">
+        <form method="POST" action="/ItemPilot/categories/Applicants%20Table/edit_tbody.php?id=<?= (int)$r['id'] ?>" enctype="multipart/form-data" class="applicant-row flex items-center border-b gap-2 border-gray-200 hover:bg-gray-50 text-sm">
 
           <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
@@ -332,8 +388,8 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
           </div>
 
           <div class="w-1/12 p-2 text-gray-600 text-xs font-semibold" data-col="attachment">
-            <?php if (!empty($r['attachment'])): ?>
-              <img src="/ItemPilot/categories/Applicants Table/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
+             <?php if (!empty($r['attachment'])): ?>
+              <img src="/ItemPilot/categories/Applicants%20Table/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
               <span class="italic text-gray-400 ml-[5px]">📎 None</span>
@@ -380,7 +436,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
           </div>
 
           <div class="w-1/12 p-2 text-gray-600 whitespace-normal break-words" data-col="notes">
-            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" readonly  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
           <div class="w-1/12 flex items-center">
@@ -447,7 +503,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
         </a>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
       </div>
-      <form action="/ItemPilot/categories/Applicants Table/insert_applicant.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+      <form action="/ItemPilot/categories/Applicants%20Table/insert_applicant.php" method="POST" enctype="multipart/form-data" class="space-y-6">
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
 
         <h1 class="w-full px-4 py-2 text-center text-2xl">
@@ -470,13 +526,13 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['applying_for'] ?? 'Country') ?></label>
-          <input type="text" name="applying_for" placeholder="<?= htmlspecialchars($thead['applying_for'] ?? 'Country') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['applying_for'] ?? 'Applying For') ?></label>
+          <input type="text" name="applying_for" placeholder="<?= htmlspecialchars($thead['applying_for'] ?? 'Applying For') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['attachment'] ?? 'Attachment') ?></label>
-          <input id="attachment_summary" type="file" name="attachment" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
+          <input id="attachment" type="file" name="attachment" accept="image/*" capture="environment" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
         </div>
 
         <div>
@@ -493,6 +549,12 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
           <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['interview_date'] ?? 'Interview Date') ?></label>
           <input type="text" name="interview_date" placeholder="<?= htmlspecialchars($thead['interview_date'] ?? 'Interview Date') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
         </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['interviewer'] ?? 'Interviewer') ?></label>
+          <input type="text" name="interviewer" placeholder="<?= htmlspecialchars($thead['interviewer'] ?? 'Interviewer') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['interview_score'] ?? 'Interview Score') ?></label>

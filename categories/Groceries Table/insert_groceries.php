@@ -129,6 +129,7 @@ $theadStmt->bind_param('i', $uid);
 $theadStmt->execute();
 $thead = $theadStmt->get_result()->fetch_assoc();
 $theadStmt->close();
+$tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -174,10 +175,9 @@ $rows  = $rows ?? [];   // already fetched above
 
       <!-- Search + live result count -->
       <div class="mb-3">
-        <input id="rowSearchG" type="search" placeholder="Search rows…" data-rows=".groceries-row" data-count="#countG" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96"/>
+        <input id="rowSearchG" type="search" placeholder="Search rows…" data-rows=".groceries-row" data-count="#countG" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
         <span id="countG" class="ml-2 text-xs text-gray-600"></span>
       </div>
-
 
       <?php
       // latest header labels for this table

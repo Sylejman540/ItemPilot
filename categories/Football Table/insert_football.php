@@ -173,7 +173,7 @@ $rows  = $rows ?? [];   // already fetched above
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
       <div class="mb-3">
-                <input id="rowSearchF" type="search" placeholder="Search rows…" data-rows=".football-row" data-count="#countF" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-96">
+        <input id="rowSearchF" type="search" placeholder="Search rows…" data-rows=".football-row" data-count="#countF" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96">
         <span id="countF" class="ml-2 text-xs text-gray-600"></span>
       </div>
 
@@ -243,7 +243,7 @@ $rows  = $rows ?? [];   // already fetched above
           <div class="w-1/7 p-2 text-gray-600" data-col="photo">
             <?php if ($r['photo']): ?>
               <!-- Show uploaded attachment -->
-              <img src="/ItemPilot/categories/Groceries Table/uploads/<?= htmlspecialchars($r['photo']) ?>"
+              <img src="/ItemPilot/categories/Football Table/uploads/<?= htmlspecialchars($r['photo']) ?>"
                   class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
               <!-- Show 'None' when no attachment -->
@@ -421,7 +421,7 @@ $rows  = $rows ?? [];   // already fetched above
         <select name="position" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="GoalKeeper">GoalKeeper</option>
           <option value="Sweeper">Sweeper</option>
-          <option value="FullBack">Fullback</option>
+          <option value="Fullback">Fullback</option>
           <option value="Midfielder">Midfielder</option>
           <option value="Forward Striker">Forward Striker</option>
         </select>
