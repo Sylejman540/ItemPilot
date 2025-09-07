@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // (happens when the row belongs to another user or title is unchanged)
   // $_SESSION['flash'] = $affected > 0 ? '✅ Title updated' : 'ℹ️ No changes';
 
-  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+  header("Location: /ItemPilot/home.php?autoload=1&type=football&table_id={$table_id}");
   exit;
 }
 

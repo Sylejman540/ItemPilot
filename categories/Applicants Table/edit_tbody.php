@@ -11,7 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $name               = trim($_POST['name'] ?? '');
   $stage              = trim($_POST['stage'] ?? '');
   $applying_for       = trim($_POST['applying_for'] ?? '');
-  $attachment         = trim($_POST['attachment'] ?? '');
   $email_address      = trim($_POST['email_address'] ?? '');
   $phone              = trim($_POST['phone'] ?? '');
   $interview_date     = trim($_POST['interview_date'] ?? '');
@@ -21,9 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $table_id           = trim($_POST['table_id'] ?? '');
   $table_id = $_POST['table_id'] ?? 0;
 
-  $sql = "UPDATE applicants SET name = ?, stage = ?, applying_for = ?, attachment = ?, email_address = ?, phone = ?, interview_date = ?, interviewer = ?, interview_score = ?, notes = ? WHERE id = ? AND table_id = ?";
+  $sql = "UPDATE applicants SET name = ?, stage = ?, applying_for = ?, email_address = ?, phone = ?, interview_date = ?, interviewer = ?, interview_score = ?, notes = ? WHERE id = ? AND table_id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param('ssssssssssii', $name, $stage, $applying_for, $attachment, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes, $id, $table_id);
+  $stmt->bind_param('sssssssssii', $name, $stage, $applying_for, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes, $id, $table_id);
   if ($stmt->execute()) {
   header("Location: /ItemPilot/home.php?autoload=1&type=applicant&table_id={$table_id}");
   exit;
@@ -33,10 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 
-$stmt = $conn->prepare("SELECT name, stage, applying_for, attachment, email_address, phone, interview_date, interviewer, interview_score, notes FROM applicants WHERE id = ? AND table_id = ?");
+$stmt = $conn->prepare("SELECT name, stage, applying_for, email_address, phone, interview_date, interviewer, interview_score, notes FROM applicants WHERE id = ? AND table_id = ?");
 $stmt->bind_param('ii', $id, $table_id);
 $stmt->execute();
-$stmt->bind_result( $name, $stage, $applying_for, $attachment, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes);
+$stmt->bind_result( $name, $stage, $applying_for, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes);
 if (! $stmt->fetch()) {
   die("Record #{$id} not found");
 }

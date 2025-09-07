@@ -176,47 +176,54 @@ $first = $rows[0] ?? null;
       <span id="countU" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
-    <?php
-    // get the most recent row just to PREFILL inputs (not to update it)
-    $stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
-      FROM universal_thead
-      WHERE user_id = ? AND table_id = ?
-      ORDER BY id DESC
-      LIMIT 1");
-    $stmt->bind_param('ii', $uid, $tableId);
-    $stmt->execute();
-    $res = $stmt->get_result();
+     <?php
+      // latest header labels for this table
+      $stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
+                                FROM universal_thead
+                               WHERE user_id = ? AND table_id = ?
+                            ORDER BY id DESC
+                               LIMIT 1");
+      $stmt->bind_param('ii', $uid, $tableId);
+      $stmt->execute();
+      $res = $stmt->get_result();
 
-    if ($res && $res->num_rows) {
-      $row = $res->fetch_assoc();   
-      $row['id'] = 0;      
-    } else {
-      $row = ['id'=>0, 'table_id'=>$tableId];
-    }
-    $stmt->close();
-    ?>
+      if ($res && $res->num_rows) {
+        $head = $res->fetch_assoc();
+      } else {
+        $head = [
+          'id' => 0,
+          'table_id' => $tableId,
+          'thead_name' => 'Name',
+          'thead_notes' => 'Notes',
+          'thead_assignee' => 'Assignee',
+          'thead_status' => 'Status',
+          'thead_attachment' => 'Attachment'
+        ];
+      }
+      $stmt->close();
+      ?>
 
   <div class="universal-table" id="ut-<?= (int)$tableId ?>" data-table-id="<?= (int)$tableId ?>">
     <form action="/ItemPilot/categories/Universal%20Table/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$tableId ?>">
 
-      <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
-      <input type="hidden" name="table_id" value="<?= (int)($row['table_id'] ?? $tableId) ?>">
+      <input type="hidden" name="id" value="<?= (int)$head['id'] ?>">
+      <input type="hidden" name="table_id" value="<?= (int)($head['table_id'] ?? $tableId) ?>">
 
       <div class="flex text-xs md:text-xs font-bold text-gray-900">
         <div class="w-1/5 p-2">
-          <input name="thead_name" value="<?= htmlspecialchars($row['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          <input name="thead_name" value="<?= htmlspecialchars($head['thead_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_notes" value="<?= htmlspecialchars($row['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          <input name="thead_notes" value="<?= htmlspecialchars($head['thead_notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2">
-          <input name="thead_assignee" value="<?= htmlspecialchars($row['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          <input name="thead_assignee" value="<?= htmlspecialchars($head['thead_assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-40 p-2">
-          <input name="thead_status" value="<?= htmlspecialchars($row['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          <input name="thead_status" value="<?= htmlspecialchars($head['thead_status'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
         <div class="w-1/5 p-2 ml-8">
-          <input name="thead_attachment" value="<?= htmlspecialchars($row['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          <input name="thead_attachment" value="<?= htmlspecialchars($head['thead_attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
       </div>
     </form>
