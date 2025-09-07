@@ -70,7 +70,7 @@
     </article>
 
     <!-- Applicant Tracker -->
-    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-not-allowed rounded-md">
+    <article class="flex justify-between items-center mb-4 hover:bg-gray-50 p-2 cursor-pointer rounded-md" id="applicant-tracker">
         <div class="bg-blue-200 rounded-sm px-3 py-2 flex items-center justify-center">
           <img src="images/categories/study.svg" alt="" class="w-6 h-6">
         </div>

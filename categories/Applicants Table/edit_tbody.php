@@ -21,9 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $table_id           = trim($_POST['table_id'] ?? '');
   $table_id = $_POST['table_id'] ?? 0;
 
-  $sql = "UPDATE applicants SET linked_initiatives = ?, executive_sponsor = ?, status = ?, complete = ?, notes = ?, priority = ?, owner = ?, deadline = ? WHERE id = ? AND table_id = ?";
+  $sql = "UPDATE applicants SET name = ?, stage = ?, applying_for = ?, attachment = ?, email_address = ?, phone = ?, interview_date = ?, interviewer = ?, interview_score = ?, notes = ? WHERE id = ? AND table_id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param('ssssssssii', $name, $stage, $applying_for, $attachment, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes, $id, $table_id);
+  $stmt->bind_param('ssssssssssii', $name, $stage, $applying_for, $attachment, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes, $id, $table_id);
   if ($stmt->execute()) {
   header("Location: /ItemPilot/home.php?autoload=1&type=applicant&table_id={$table_id}");
   exit;

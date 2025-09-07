@@ -6,14 +6,14 @@ if (! isset($_GET['table_id'])) {
 }
 $table_id = (int) $_GET['table_id'];
 
-// 1) Delete all rows in applicant for this table_id
-$stmt = $conn->prepare("DELETE FROM `applicant` WHERE table_id = ?");
+// 1) Delete all rows in applicants for this table_id
+$stmt = $conn->prepare("DELETE FROM `applicants` WHERE table_id = ?");
 if (! $stmt) {
-  die("Prepare failed (applicant): " . $conn->error);
+  die("Prepare failed (applicants): " . $conn->error);
 }
 $stmt->bind_param('i', $table_id);
 if (! $stmt->execute()) {
-  die("Execute failed (applicant): " . $stmt->error);
+  die("Execute failed (applicants): " . $stmt->error);
 }
 $stmt->close();
 

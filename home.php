@@ -615,7 +615,9 @@ $barData  = fillMissingMonthlyWithNull($barData);
   const strategy     = document.getElementById("strategy");       // optional open strategy button
   const groceries    = document.getElementById("groceries");
   const football     = document.getElementById("football");
-  const footballBtn = document.getElementById("club");
+  const footballBtn  = document.getElementById("club");
+  const applicant    = document.getElementById("applicant-tracker");
+  const applicantTracker = document.getElementById("applicant-tracker");
 
   let currentPage    = parseInt(new URLSearchParams(window.location.search).get("page")) || 1;
   let currentId      = parseInt(new URLSearchParams(window.location.search).get("table_id")) || null;
@@ -810,11 +812,56 @@ $barData  = fillMissingMonthlyWithNull($barData);
     });
   }
 
+  // -------- APPLICANT TRACKER loaders --------
+  function loadApplicant(applicantId, page = 1) {
+    if (!applicantId) return;
+    currentApplicantId = applicantId;
+    fetch(`categories/Applicants%20Table/insert_applicant.php?page=${page}&table_id=${applicantId}`)
+      .then(r => r.text())
+      .then(html => {
+        insightRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (eventRight) eventRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        insightRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  function newApplicant(page = 1) {
+    fetch(`categories/Applicants%20Table/insert_applicant.php?action=create_blank&page=${page}`)
+      .then(r => r.text())
+      .then(html => {
+        insightRight.innerHTML = html;
+        if (homeRight)    homeRight.style.display = "none";
+        if (eventRight) eventRight.style.display = "none";
+        if (contactRight) contactRight.style.display = "none";
+        insightRight.style.display = "block";
+        currentPage = page;
+      });
+  }
+
+  if (applicant && eventRight) {
+    applicant.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      newApplicant(1);
+    });
+  }
+
+  if (applicantTracker && eventRight) {
+    applicantTracker.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById("categories")?.classList.add("hidden");
+      const idFromBtn = parseInt(applicantTracker.dataset.tableId || "", 10);
+      loadApplicant(!isNaN(idFromBtn) ? idFromBtn : currentApplicantId, currentPage || 1);
+    });
+  }
 
   // -------- Dropdown delegation (detect src) --------
   if (dropdown && eventRight) {
     dropdown.addEventListener("click", e => {
-      const link = e.target.closest(".js-table-link, .js-strategy-link, .js-groceries-link, .js-football-link");
+      const link = e.target.closest(".js-table-link, .js-strategy-link, .js-groceries-link, .js-football-link, .js-applicants-link");
       if (!link) return;
       e.preventDefault();
       document.getElementById("categories")?.classList.add("hidden");
@@ -829,6 +876,8 @@ $barData  = fillMissingMonthlyWithNull($barData);
           loadGroceriesTable(tableId, 1);
         } else if(src === "football_table"){
           loadFootball(tableId, 1);
+        } else if(src === "applicants_table"){
+          loadApplicant(tableId, 1);
         }else {
           loadTable(tableId, 1);
         }
@@ -1045,6 +1094,8 @@ $barData  = fillMissingMonthlyWithNull($barData);
         loadGroceriesTable(currentId, p);
       } else if(pg.closest('.football')){
         loadFootball(currentFootballId, p);
+      } else if(pg.closest('.applicants')){
+        loadApplicant(currentApplicantId, p);
       } else {
         loadTable(currentId, p);
       }
@@ -1145,6 +1196,8 @@ $(function () {
       loadGroceriesTable(tableIdFromUrl, currentPage); 
     }else if(tableType === "football"){
       loadFootball(tableIdFromUrl, currentPage);
+    }else if(tableType === "applicant"){
+      loadApplicant(tableIdFromUrl, currentPage); 
     } else {
       loadTable(tableIdFromUrl, currentPage); // universal
     }

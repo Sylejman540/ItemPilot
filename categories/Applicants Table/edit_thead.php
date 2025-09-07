@@ -28,11 +28,11 @@ if ($table_id <= 0) {
   exit('Missing or invalid table_id');
 }
 
-$sql = "INSERT INTO applicants_thead (name, stage, applying_for, attachment, email_address, phone, interview_date, interviewer, interview_score, notes, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+$sql = "INSERT INTO applicants_thead (name, stage, applying_for, attachment, email_address, phone, interview_date, interviewer, interview_score, notes, user_id, table_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 $stmt = $conn->prepare($sql);
 if (!$stmt) { http_response_code(500); exit('Prepare failed: ' . $conn->error); }
 
-$stmt->bind_param('sssssssssii', $name, $stage, $applying_for, $attachment, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes, $uid, $table_id);
+$stmt->bind_param('ssssssssssii', $name, $stage, $applying_for, $attachment, $email_address, $phone, $interview_date, $interviewer, $interview_score, $notes, $uid, $table_id);
 
 if (!$stmt->execute()) {
   http_response_code(500);
