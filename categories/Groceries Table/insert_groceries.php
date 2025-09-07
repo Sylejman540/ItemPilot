@@ -129,7 +129,6 @@ $theadStmt->bind_param('i', $uid);
 $theadStmt->execute();
 $thead = $theadStmt->get_result()->fetch_assoc();
 $theadStmt->close();
-$tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
 ?>
 <!DOCTYPE html>
 <html lang="en">
