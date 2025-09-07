@@ -84,7 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // Normalized nullable values
   $interview_date_db  = ($interview_date === '') ? null : $interview_date;
-  $interview_score_db = ($interview_score === '') ? null : $interview_score;
 
   if ($id === '' || $id === null) {
     // INSERT
@@ -96,9 +95,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     $stmt->bind_param(
-      'iissssssssis',
+      'iissssssssss',
       $uid, $table_id, $name, $stage, $applying_for, $attachment, $email_address, $phone,
-      $interview_date_db, $interviewer, $interview_score_db, $notes
+      $interview_date_db, $interviewer, $interview_score, $notes
     );
 
   } else {
@@ -120,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param(
       'ssssssssssiii',
       $name, $stage, $applying_for, $attachment, $email_address, $phone,
-      $interview_date_db, $interviewer, $interview_score_db, $notes,
+      $interview_date_db, $interviewer, $interview_score, $notes,
       $id, $table_id, $uid
     );
   }
@@ -362,16 +361,16 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
 
           <div class="w-1/12 p-2 text-gray-600 text-xs font-semibold" data-col="interview_score">
             <?php
-              $statusColors1 = [
+              $statusColors = [
                 'Failed'       => 'bg-red-100 text-red-800',
                 'Probably no hire'  => 'bg-yellow-100 text-yellow-800',
                 'Worth consideration'        => 'bg-blue-100 text-blue-800',
                 'Good candidate'        => 'bg-green-100 text-green-800',
                 'Hire this person'        => 'bg-gray-100 text-gray-800',
               ];
-              $colorClass1 = $statusColors1[$r['interview_score'] ?? ''] ?? 'bg-white text-gray-900';
+              $colorClass = $statusColors[$r['interview_score'] ?? ''] ?? 'bg-white text-gray-900';
             ?>
-            <select name="interview_score" data-autosave="1" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave <?= $colorClass1 ?>">
+            <select name="interview_score" data-autosave="1" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave <?= $colorClass ?>">
               <option value="Failed"       <?= ($r['interview_score'] ?? '') === 'Failed' ? 'selected' : '' ?>>Failed</option>
               <option value="Probably no hire" <?= ($r['interview_score'] ?? '') === 'Probably no hire' ? 'selected' : '' ?>>Probably no hire</option>
               <option value="Worth consideration"        <?= ($r['interview_score'] ?? '') === 'Worth consideration' ? 'selected' : '' ?>>Worth consideration</option>
@@ -504,6 +503,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
             <option value="Good candidate">Good candidate</option>
             <option value="Hire this person">Hire this person</option>
           </select>
+
         </div>
 
         <div>
