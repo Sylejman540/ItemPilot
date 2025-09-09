@@ -211,40 +211,37 @@ $hasRecord = count($rows) > 0;
       </button>
     </div>
 
-    <form action="/ItemPilot/categories/Universal Table/add_fields.php" method="post" class="p-4">
-      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post" class="space-y-4">
+        <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
 
-      <!-- Name -->
-      <label for="column_name" class="block text-xs font-medium text-gray-700">Field name</label>
-      <div class="relative mt-1">
-        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-        <svg class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7H8m8 5H8m8 5H8"/>
-        </svg>
-        </span>
-        <input id="column_name" name="column_name" type="text" placeholder="e.g. Priority, Owner, ETA" class="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required/>
-      </div>
-      <p class="mt-1 text-[11px] text-gray-500">Use a short, clear label.</p>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Field name</label>
+          <input name="column_name" required
+                placeholder="e.g. Priority, Owner, ETA"
+                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500">
+        </div>
 
-      <!-- Optional: Type selector (send as column_type if your PHP handles it) -->
-      <div class="mt-3">
-        <label for="column_type" class="block text-xs font-medium text-gray-700">Field type</label>
-        <select id="column_type" name="column_type" class="mt-1 w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="text">Text</option>
-          <option value="number">Number</option>
-          <option value="date">Date</option>
-          <option value="select">Dropdown</option>
-          <option value="checkbox">Checkbox</option>
-        </select>
-        <p class="mt-1 text-[11px] text-gray-500">You can change formatting later.</p>
-      </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Field type</label>
+          <select name="column_type"
+                  class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500">
+            <option value="text">Text</option>
+            <option value="long_text">Long text</option>
+            <option value="number">Number</option>
+            <option value="integer">Integer</option>
+            <option value="date">Date</option>
+            <option value="checkbox">Checkbox</option>
+            <option value="file">File (path)</option>
+          </select>
+        </div>
 
-      <!-- Footer actions -->
-      <div class="mt-4 flex items-center gap-2">
-        <button type="submit" class="cursor-pointer inline-flex w-full justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500">Add field</button>
-        <button type="button" data-close-add id="cancelAddColumn" class="cursor-pointer inline-flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">Cancel</button>
-      </div>
-    </form>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close-add
+                  class="rounded-lg border px-4 py-2 text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button type="submit"
+                  class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-500">Add field</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -254,15 +251,15 @@ $hasRecord = count($rows) > 0;
             class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
         <div class="flex text-xs md:text-xs font-bold text-gray-900">
-          <div class="w-1/5 p-2">
+          <div class="p-2">
             <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/5 p-2">
+          <div class="p-2">
             <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/5 p-2">
+          <div class="p-2">
             <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
@@ -270,11 +267,34 @@ $hasRecord = count($rows) > 0;
             <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/5 p-2 ml-8">
-            <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>"
-                   placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          <div class="p-2 ml-8">
+            <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-        </div>
+
+<div class="p-2 flex flex gap-3">
+<?php
+$titleStmt = $conn->prepare("
+  SELECT id, field_key
+  FROM universal_fields
+  WHERE user_id = ? AND table_id = ?
+  ORDER BY sort_order ASC, id ASC
+");
+$titleStmt->bind_param('ii', $uid, $table_id);
+$titleStmt->execute();
+$res = $titleStmt->get_result();
+
+while ($row = $res->fetch_assoc()): ?>
+  <input
+    type="text"
+    name="field_key[]"
+    value="<?= htmlspecialchars($row['field_key'], ENT_QUOTES, 'UTF-8') ?>"
+    class=" px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+  />
+<?php endwhile;
+$titleStmt->close();
+?>
+</div>
+
       </form>
     </div>
 
@@ -291,17 +311,17 @@ $hasRecord = count($rows) > 0;
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <div class="w-1/5 p-1 text-gray-600" data-col="name">
+          <div class="p-1 text-gray-600" data-col="name">
             <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/5 p-1 text-gray-600" data-col="notes">
+          <div class="p-1 text-gray-600" data-col="notes">
             <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/5 p-1 text-gray-600" data-col="assignee">
+          <div class="p-1 text-gray-600" data-col="assignee">
             <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
@@ -322,7 +342,7 @@ $hasRecord = count($rows) > 0;
             </select>
           </div>
 
-          <div class="w-1/5 p-1 flex items-center gap-3 ml-19" data-col="attachment">
+          <div class="p-1 flex items-center gap-3 ml-19" data-col="attachment">
             <?php if (!empty($r['attachment_summary'])): ?>
               <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment_summary']) ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">

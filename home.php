@@ -1633,6 +1633,17 @@ document.body.addEventListener('click', e => {
   const closeAdd = e.target.closest('[data-close-add]');
   if (closeAdd) { pop.classList.add('hidden'); }
 });
+
+document.getElementById('addFieldBtn')?.addEventListener('click', function () {
+  const wrap = document.getElementById('fieldKeyContainer');
+  if (!wrap) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.name = 'field_key[]';
+  input.placeholder = 'Add field…';
+  input.className = 'w-full bg-transparent border border-gray-200 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition';
+  wrap.appendChild(input);
+});
 </script>
 </body>
 </html>

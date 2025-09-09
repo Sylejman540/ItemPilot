@@ -196,12 +196,12 @@ $hasRecord = count($rows) > 0;
         <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
           <div class="flex text-xs md:text-xs font-bold text-gray-900 uppercase">
-            <div class="w-1/7 p-2"><input name="photo"         value="<?= htmlspecialchars($head['photo'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Photo"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="full_name"     value="<?= htmlspecialchars($head['full_name'], ENT_QUOTES, 'UTF-8') ?>"     placeholder="Name"          class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-30  p-2"><input name="position"      value="<?= htmlspecialchars($head['position'], ENT_QUOTES, 'UTF-8') ?>"      placeholder="Position"      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="home_address"  value="<?= htmlspecialchars($head['home_address'], ENT_QUOTES, 'UTF-8') ?>"  placeholder="Home Address"  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="email_address" value="<?= htmlspecialchars($head['email_address'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Email Address" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="notes"         value="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Notes"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 px-2 md:py-[7px] py-2"><input name="photo"         value="<?= htmlspecialchars($head['photo'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Photo"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 px-2 md:py-[7px] py-2"><input name="full_name"     value="<?= htmlspecialchars($head['full_name'], ENT_QUOTES, 'UTF-8') ?>"     placeholder="Name"          class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-30  px-2 md:py-[7px] py-2"><input name="position"      value="<?= htmlspecialchars($head['position'], ENT_QUOTES, 'UTF-8') ?>"      placeholder="Position"      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 px-2 md:py-[7px] py-2"><input name="home_address"  value="<?= htmlspecialchars($head['home_address'], ENT_QUOTES, 'UTF-8') ?>"  placeholder="Home Address"  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 px-2 md:py-[7px] py-2"><input name="email_address" value="<?= htmlspecialchars($head['email_address'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Email Address" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 px-2 md:py-[7px] py-2"><input name="notes"         value="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Notes"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
           </div>
         </form>
       </div>
@@ -216,7 +216,7 @@ $hasRecord = count($rows) > 0;
             <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
             <!-- Photo -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="photo">
+            <div class="w-1/7 px-2 md:py-[7px] py-2 text-gray-600" data-col="photo">
               <?php if (!empty($r['photo'])): ?>
                 <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['photo']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
               <?php else: ?>
@@ -225,7 +225,7 @@ $hasRecord = count($rows) > 0;
             </div>
 
             <!-- Full Name -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="name">
+            <div class="w-1/7 px-2 md:py-[7px] py-2 text-gray-600" data-col="name">
               <input type="text" name="full_name" value="<?= htmlspecialchars($r['full_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
@@ -241,7 +241,7 @@ $hasRecord = count($rows) > 0;
               ];
               $posClass = $posColors[$r['position'] ?? ''] ?? 'bg-white text-gray-900';
             ?>
-            <div class="w-30 p-2 text-gray-600 text-xs font-semibold" data-col="position">
+            <div class="w-30 px-2 md:py-[7px] py-2 text-gray-600 text-xs font-semibold" data-col="position">
               <select data-autosave="1" name="position" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave2 <?= $posClass ?>">
                 <?php foreach ($POSITIONS as $opt): ?>
                   <option value="<?= $opt ?>" <?= (($r['position'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
@@ -250,24 +250,24 @@ $hasRecord = count($rows) > 0;
             </div>
 
             <!-- Home Address -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="address">
+            <div class="w-1/7 px-2 md:py-[7px] py-2 text-gray-600" data-col="address">
               <input type="text" name="home_address" value="<?= htmlspecialchars($r['home_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
             <!-- Email Address -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="email">
+            <div class="w-1/7 px-2 md:py-[7px] py-2 text-gray-600" data-col="email">
               <input type="text" name="email_address" value="<?= htmlspecialchars($r['email_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
             <!-- Notes -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="notes">
+            <div class="w-1/7 px-2 md:py-[7px] py-2 text-gray-600" data-col="notes">
               <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
             </div>
 
             <div class="ml-auto flex items-center">
               <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
                  onclick="return confirm('Are you sure?')"
-                 class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
+                 class="inline-block md:py-[7px] py-2 px-2 text-red-500 hover:bg-red-50 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
                 </svg>
