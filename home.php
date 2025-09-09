@@ -1631,7 +1631,7 @@ document.body.addEventListener('click', e => {
   const addBtn = e.target.closest('#addIcon');
   if (addBtn) { /* ... */ }
   const closeAdd = e.target.closest('[data-close-add]');
-  if (closeAdd) { /* ... */ }
+  if (closeAdd) { pop.classList.add('hidden'); }
 });
 </script>
 </body>
