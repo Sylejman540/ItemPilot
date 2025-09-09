@@ -317,39 +317,39 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
 
         <div class="flex text-xs gap-2 font-semibold text-black uppercase">
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="linked_initiatives" value="<?= htmlspecialchars($headRow['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="notes" value="<?= htmlspecialchars($headRow['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Delivery date" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="executive_sponsor" value="<?= htmlspecialchars($headRow['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Country" class="w-full bg-transparent whitespace-normal break-words border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="status" value="<?= htmlspecialchars($headRow['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="complete" value="<?= htmlspecialchars($headRow['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Age" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="priority" value="<?= htmlspecialchars($headRow['priority'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Price" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="owner" value="<?= htmlspecialchars($headRow['owner'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Material cost" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="deadline" value="<?= htmlspecialchars($headRow['deadline'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Profit" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-1/10 p-2">
+          <div class="w-1/10 p-2 py-1">
             <input name="attachment" value="<?= htmlspecialchars($headRow['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Model" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
@@ -372,22 +372,22 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <div class="w-1/10 p-2 text-gray-600" data-col="linked_initiatives">
+          <div class="w-1/10 p-2 py-1 text-gray-600" data-col="linked_initiatives">
             <input type="text" name="linked_initiatives" value="<?= htmlspecialchars($r['linked_initiatives'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600" data-col="notes">
+          <div class="w-1/10 p-2 py-1 text-gray-600" data-col="notes">
             <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600" data-col="executive_sponsor">
+          <div class="w-1/10 p-2 py-1 text-gray-600" data-col="executive_sponsor">
             <input type="text" name="executive_sponsor" value="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600 text-xs font-semibold" data-col="status">
+          <div class="w-1/10 p-2 py-1 text-gray-600 text-xs font-semibold" data-col="status">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-red-100 text-red-800',
@@ -396,33 +396,33 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Undefined Title';
               ];
               $colorClass = $statusColors[$r['status'] ?? ''] ?? 'bg-white text-gray-900';
             ?>
-            <select name="status" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave <?= $colorClass ?>">
+            <select name="status" data-autosave="1" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave <?= $colorClass ?>">
               <option value="To Do"       <?= ($r['status'] ?? '') === 'To Do' ? 'selected' : '' ?>>To Do</option>
               <option value="In Progress" <?= ($r['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
               <option value="Done"        <?= ($r['status'] ?? '') === 'Done' ? 'selected' : '' ?>>Done</option>
             </select>
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600" data-col="complete">
+          <div class="w-1/10 p-2 py-1 text-gray-600" data-col="complete">
             <input type="text" name="complete" value="<?= htmlspecialchars($r['complete'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600" data-col="priority">
+          <div class="w-1/10 p-2 py-1 text-gray-600" data-col="priority">
             <input type="text" name="priority" value="<?= htmlspecialchars($r['priority'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600" data-col="owner">
+          <div class="w-1/10 p-2 py-1 text-gray-600" data-col="owner">
             <input type="text" name="owner" value="<?= htmlspecialchars($r['owner'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 text-gray-600 whitespace-normal break-words" data-col="deadline" id="deadline_display">
+          <div class="w-1/10 p-2 py-1 text-gray-600 whitespace-normal break-words" data-col="deadline" id="deadline_display">
             <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES, 'UTF-8') ?>" readonly  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-1/10 p-2 flex items-center" data-col="modeli">
+          <div class="w-1/10 p-2 py-1 flex items-center" data-col="modeli">
             <?php if (!empty($r['attachment'])): ?>
               <img src="/ItemPilot/categories/Dresses/uploads/<?= htmlspecialchars($r['attachment'], ENT_QUOTES, 'UTF-8') ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">
