@@ -1,134 +1,162 @@
 <?php
 require_once __DIR__ . '/../../db.php';
 session_start();
+
 $uid = $_SESSION['user_id'] ?? 0;
+if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
-if ($uid <= 0) {
-    header("Location: register/login.php");
-    exit;
-}
+/* ---------- Config ---------- */
+$CATEGORY_URL = '/ItemPilot/categories/Football%20Table'; // encoded space
+$UPLOAD_DIR   = __DIR__ . '/uploads/';
+$UPLOAD_URL   = $CATEGORY_URL . '/uploads';
 
+/* ---------- Resolve table_id ---------- */
 $action   = $_GET['action'] ?? null;
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
-// Persist/resolve current table_id
 if ($action === 'create_blank') {
-    // always create new blank table   for this user
+  $stmt = $conn->prepare("INSERT INTO football_table (user_id, created_at) VALUES (?, NOW())");
+  $stmt->bind_param('i', $uid);
+  $stmt->execute();
+  $table_id = (int)$stmt->insert_id;
+  $stmt->close();
+  $_SESSION['current_table_id'] = $table_id;
+
+} elseif ($table_id > 0) {
+  $_SESSION['current_table_id'] = $table_id;
+
+} else {
+  $table_id = (int)($_SESSION['current_table_id'] ?? 0);
+
+  if ($table_id <= 0) {
+    $q = $conn->prepare("SELECT table_id FROM football_table WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+    $q->bind_param('i', $uid);
+    $q->execute(); $q->bind_result($latestId); $q->fetch(); $q->close();
+    $table_id = (int)$latestId;
+  }
+  if ($table_id <= 0) {
     $stmt = $conn->prepare("INSERT INTO football_table (user_id, created_at) VALUES (?, NOW())");
     $stmt->bind_param('i', $uid);
     $stmt->execute();
-    $table_id = (int)$conn->insert_id;
+    $table_id = (int)$stmt->insert_id;
     $stmt->close();
+  }
 
-    $_SESSION['current_table_id'] = $table_id;
-
-} elseif ($table_id > 0) {
-    // if passed in URL
-    $_SESSION['current_table_id'] = $table_id;
-
-} else {
-    // try session
-    $table_id = (int)($_SESSION['current_table_id'] ?? 0);
-
-    // fallback: latest table for this user
-    if ($table_id <= 0) {
-        $q = $conn->prepare("SELECT table_id FROM `football_table` WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
-        $q->bind_param('i', $uid);
-        $q->execute();
-        $q->bind_result($latestId);
-        $q->fetch();
-        $q->close();
-        $table_id = (int)$latestId;
-    }
-
-    // if still none, create first one
-    if ($table_id <= 0) {
-        $stmt = $conn->prepare("INSERT INTO football_table (user_id, created_at) VALUES (?, NOW())");
-        $stmt->bind_param('i', $uid);
-        $stmt->execute();
-        $table_id = (int)$conn->insert_id;
-        $stmt->close();
-    }
-
-    $_SESSION['current_table_id'] = $table_id;
+  $_SESSION['current_table_id'] = $table_id;
 }
 
-// Handle insert/update
+/* ---------- Create/Update row ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'] ?? '';
-    $full_name = $_POST['full_name'] ?? '';
-    $position = $_POST['position'] ?? '';
-    $home_address = $_POST['home_address'] ?? '';
-    $email_address = $_POST['email_address'] ?? '';
-    $notes = $_POST['notes'] ?? '';
-    $photo = null;
+  $id            = $_POST['id'] ?? '';
+  $full_name     = $_POST['full_name'] ?? '';
+  $position      = $_POST['position'] ?? '';
+  $home_address  = $_POST['home_address'] ?? '';
+  $email_address = $_POST['email_address'] ?? '';
+  $notes         = $_POST['notes'] ?? '';
+  $photo         = $_POST['existing_photo'] ?? '';
 
-    $photo = $_POST['existing_photo'] ?? '';
-
-    if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-        $tmp  = $_FILES['photo']['tmp_name'];
-        $orig = basename($_FILES['photo']['name']);
-        $uploadDir = __DIR__ . '/uploads/';
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-            die("Could not create uploads directory.");
-        }
-        $dest = $uploadDir . $orig;
-        if (!move_uploaded_file($tmp, $dest)) {
-            die("Failed to save uploaded file.");
-        }
-        $photo = $orig; // Only overwrite if upload is successful
+  if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+    if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
+      die("Could not create uploads directory.");
     }
-
-
-    // ensure types
-
-    if (empty($id)) {
-        $stmt = $conn->prepare("INSERT INTO football (photo, full_name, position, home_address, email_address, notes, table_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param('ssssssii', $photo, $full_name, $position, $home_address, $email_address, $notes, $table_id, $uid);
-    } else {
-        $stmt = $conn->prepare("UPDATE football SET photo = ?, full_name = ?, position = ?, home_address = ?, email_address = ?, notes = ? WHERE id = ? AND table_id = ? AND user_id = ?");
-        $stmt->bind_param('ssssssiii', $photo, $full_name, $position, $home_address, $email_address, $notes, $id, $table_id, $uid);
+    $tmp  = $_FILES['photo']['tmp_name'];
+    $orig = basename($_FILES['photo']['name']);
+    $dest = $UPLOAD_DIR . $orig;
+    if (!move_uploaded_file($tmp, $dest)) {
+      die("Failed to save uploaded file.");
     }
-    $stmt->execute();
-    $stmt->close();
+    $photo = $orig;
+  }
 
-    $returnPage = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-    header("Location: /ItemPilot/home.php?autoload=1&type=football&table_id={$table_id}");
-    exit;
+  if ($id === '' || $id === null) {
+    $stmt = $conn->prepare("
+      INSERT INTO football (photo, full_name, position, home_address, email_address, notes, table_id, user_id)
+      VALUES (?,?,?,?,?,?,?,?)
+    ");
+    $stmt->bind_param('ssssssii', $photo, $full_name, $position, $home_address, $email_address, $notes, $table_id, $uid);
+  } else {
+    $stmt = $conn->prepare("
+      UPDATE football
+         SET photo = ?, full_name = ?, position = ?, home_address = ?, email_address = ?, notes = ?
+       WHERE id = ? AND table_id = ? AND user_id = ?
+    ");
+    $stmt->bind_param('ssssssiii', $photo, $full_name, $position, $home_address, $email_address, $notes, $id, $table_id, $uid);
+  }
+  $stmt->execute(); $stmt->close();
+
+  header("Location: /ItemPilot/home.php?autoload=1&type=football&table_id={$table_id}");
+  exit;
 }
 
-// Pagination logic
-$limit = 10;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+/* ---------- Title ---------- */
+$stmt = $conn->prepare("SELECT table_title FROM football_table WHERE user_id = ? AND table_id = ? LIMIT 1");
+$stmt->bind_param('ii', $uid, $table_id);
+$stmt->execute();
+$res = $stmt->get_result();
+$rowTitle = $res && $res->num_rows ? $res->fetch_assoc() : ['table_title' => ''];
+$stmt->close();
+$tableTitle = $rowTitle['table_title'] ?? '';
+
+/* ---------- Ensure THEAD exists for this table ---------- */
+$stmt = $conn->prepare("
+  SELECT id, table_id, photo, full_name, position, home_address, email_address, notes
+    FROM football_thead
+   WHERE user_id = ? AND table_id = ?
+ORDER BY id DESC
+   LIMIT 1
+");
+$stmt->bind_param('ii', $uid, $table_id);
+$stmt->execute();
+$theadRes = $stmt->get_result();
+
+if ($theadRes && $theadRes->num_rows) {
+  $head = $theadRes->fetch_assoc();
+} else {
+  $head = [
+    'photo'         => 'Photo',
+    'full_name'     => 'Name',
+    'position'      => 'Position',
+    'home_address'  => 'Home Address',
+    'email_address' => 'Email Address',
+    'notes'         => 'Notes'
+  ];
+  $ins = $conn->prepare("
+    INSERT INTO football_thead
+      (user_id, table_id, photo, full_name, position, home_address, email_address, notes)
+    VALUES (?,?,?,?,?,?,?,?)
+  ");
+  $ins->bind_param('iissssss', $uid, $table_id,
+    $head['photo'], $head['full_name'], $head['position'],
+    $head['home_address'], $head['email_address'], $head['notes']
+  );
+  $ins->execute(); $ins->close();
+}
+$stmt->close();
+
+/* ---------- Pagination + data ---------- */
+$limit  = 10;
+$page   = (isset($_GET['page']) && is_numeric($_GET['page'])) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// Count total rows
 $countStmt = $conn->prepare("SELECT COUNT(*) FROM football WHERE user_id = ? AND table_id = ?");
 $countStmt->bind_param('ii', $uid, $table_id);
-$countStmt->execute();
-$countStmt->bind_result($totalRows);
-$countStmt->fetch();
-$countStmt->close();
+$countStmt->execute(); $countStmt->bind_result($totalRows); $countStmt->fetch(); $countStmt->close();
 
 $totalPages = (int)ceil($totalRows / $limit);
 
-// Fetch current page rows
-$dataStmt = $conn->prepare("SELECT id, photo, full_name, position, home_address, email_address, notes FROM football WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
+$dataStmt = $conn->prepare("
+  SELECT id, photo, full_name, position, home_address, email_address, notes
+    FROM football
+   WHERE user_id = ? AND table_id = ?
+ORDER BY id ASC
+   LIMIT ? OFFSET ?
+");
 $dataStmt->bind_param('iiii', $uid, $table_id, $limit, $offset);
 $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $dataStmt->close();
-
-// Determine record existence
 $hasRecord = count($rows) > 0;
-
-// Table head labels
-$theadStmt = $conn->prepare("SELECT * FROM football_thead WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-$theadStmt->bind_param('i', $uid);
-$theadStmt->execute();
-$thead = $theadStmt->get_result()->fetch_assoc();
-$theadStmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -137,30 +165,16 @@ $theadStmt->close();
 <title>Football</title>
 </head>
 <body>
-<?php
-$rows  = $rows ?? [];   // already fetched above
-?>
 
-<header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left: 1.25rem; padding-right: 1.25rem;">
+<header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
   <section class="flex mt-6 justify-between ml-3" id="randomHeader">
-    <?php
-    $tableId = filter_input(INPUT_GET, 'table_id', FILTER_VALIDATE_INT);
+    <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <input type="text" name="table_title"
+             value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>"
+             class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+    </form>
 
-    $stmt = $conn->prepare("SELECT table_id, table_title FROM football_table WHERE user_id = ? AND table_id = ? LIMIT 1");
-    $stmt->bind_param('ii', $uid, $tableId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-
-    if ($res && $res->num_rows) {
-      $rowTitle = $res->fetch_assoc(); ?>
-      <form method="POST" action="/ItemPilot/categories/Football Table/edit.php">
-        <input type="hidden" name="table_id" value="<?= (int)$rowTitle['table_id'] ?>">
-        <input type="text" name="table_title" value="<?= htmlspecialchars($rowTitle['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-      </form>
-    <?php
-    }
-    $stmt->close();
-    ?>
     <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-700 hover:bg-blue-800 py-[10px] cursor-pointer px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -177,247 +191,137 @@ $rows  = $rows ?? [];   // already fetched above
         <span id="countF" class="ml-2 text-xs text-gray-600"></span>
       </div>
 
-      <?php
-      // latest header labels for this table
-      $stmt = $conn->prepare("SELECT id, table_id, photo, full_name, position, home_address, email_address, notes FROM football_thead WHERE user_id = ? AND table_id = ? ORDER BY id DESC LIMIT 1");
-      $stmt->bind_param('ii', $uid, $tableId);
-      $stmt->execute();
-      $res = $stmt->get_result();
-
-      if ($res && $res->num_rows) {
-        $head = $res->fetch_assoc();
-      } else {
-        $head = [
-          'id' => 0,
-          'table_id' => $tableId,
-          'photo' => 'Photo',
-          'full_name' => 'Name',
-          'position' => 'Position',
-          'home_address' => 'Home Address',
-          'email_address' => 'Email Address',
-          'notes' => 'Notes'
-        ];
-      }
-      $stmt->close();
-      ?>
-
       <!-- THEAD (labels editor) -->
-      <div class="football-table" id="ut-<?= (int)$tableId ?>" data-table-id="<?= (int)$tableId ?>">
-        <form action="/ItemPilot/categories/Football Table/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$tableId ?>">
-          <input type="hidden" name="id" value="<?= (int)$head['id'] ?>">
-          <input type="hidden" name="table_id" value="<?= (int)$head['table_id'] ?>">
-
+      <div class="football-table" id="ft-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
+        <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
+          <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
           <div class="flex text-xs md:text-xs font-bold text-gray-900 uppercase">
-            <div class="w-1/7 p-2">
-              <input name="photo" value="<?= htmlspecialchars($head['photo'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Photo" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            </div>
-            <div class="w-1/7 p-2">
-              <input name="full_name" value="<?= htmlspecialchars($head['full_name'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            </div>
-            <div class="w-30 p-2">
-              <input name="position" value="<?= htmlspecialchars($head['position'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Position" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            </div>
-            <div class="w-1/7 p-2">
-              <input name="home_address" value="<?= htmlspecialchars($head['home_address'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Home Address" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            </div>
-            <div class="w-1/7 p-2">
-              <input name="email_address" value="<?= htmlspecialchars($head['email_address'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Email Address" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            </div>
-            <div class="w-1/7 p-2">
-              <input name="notes" value="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            </div>
+            <div class="w-1/7 p-2"><input name="photo"         value="<?= htmlspecialchars($head['photo'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Photo"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 p-2"><input name="full_name"     value="<?= htmlspecialchars($head['full_name'], ENT_QUOTES, 'UTF-8') ?>"     placeholder="Name"          class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-30  p-2"><input name="position"      value="<?= htmlspecialchars($head['position'], ENT_QUOTES, 'UTF-8') ?>"      placeholder="Position"      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 p-2"><input name="home_address"  value="<?= htmlspecialchars($head['home_address'], ENT_QUOTES, 'UTF-8') ?>"  placeholder="Home Address"  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 p-2"><input name="email_address" value="<?= htmlspecialchars($head['email_address'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Email Address" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+            <div class="w-1/7 p-2"><input name="notes"         value="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Notes"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
           </div>
         </form>
       </div>
 
       <!-- TBODY (rows) -->
       <div class="w-full divide-y divide-gray-200">
-        <?php if (!empty($rows)): foreach ($rows as $r): ?>
-          <form id="row-<?= (int)$r['id'] ?>" method="POST" action="/ItemPilot/categories/Football Table/insert_football.php" enctype="multipart/form-data" class="football-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+        <?php if ($hasRecord): foreach ($rows as $r): ?>
+          <form id="row-<?= (int)$r['id'] ?>" method="POST" action="<?= $CATEGORY_URL ?>/insert_football.php" enctype="multipart/form-data" class="football-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-          <input type="hidden" name="table_id" value="<?= (int)$tableId ?>">
-          <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+            <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+            <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <!-- Photo -->
-          <div class="w-1/7 p-2 text-gray-600" data-col="photo">
-            <?php if ($r['photo']): ?>
-              <!-- Show uploaded attachment -->
-              <img src="/ItemPilot/categories/Football Table/uploads/<?= htmlspecialchars($r['photo']) ?>"
-                  class="w-16 h-10 rounded-md" alt="Attachment">
-            <?php else: ?>
-              <!-- Show 'None' when no attachment -->
-              <span class="italic text-gray-400 ml-2">📎 None</span>
-            <?php endif; ?>
-          </div>
+            <!-- Photo -->
+            <div class="w-1/7 p-2 text-gray-600" data-col="photo">
+              <?php if (!empty($r['photo'])): ?>
+                <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['photo']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
+              <?php else: ?>
+                <span class="italic text-gray-400 ml-2">📎 None</span>
+              <?php endif; ?>
+            </div>
 
-          <!-- Full Name -->
-          <div class="w-1/7 p-2 text-gray-600" data-col="name">
-            <input type="text" name="full_name"
-                  value="<?= htmlspecialchars($r['full_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
+            <!-- Full Name -->
+            <div class="w-1/7 p-2 text-gray-600" data-col="name">
+              <input type="text" name="full_name" value="<?= htmlspecialchars($r['full_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
 
-          <!-- Position -->
-          <?php
-          $DEPTS = [
-            'GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'
-          ];
+            <!-- Position -->
+            <?php
+              $POSITIONS = ['GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'];
+              $posColors = [
+                'GoalKeeper'      => 'bg-green-100 text-green-800',
+                'Sweeper'         => 'bg-yellow-100 text-yellow-800',
+                'Fullback'        => 'bg-blue-100 text-blue-800',
+                'Midfielder'      => 'bg-cyan-100 text-cyan-800',
+                'Forward Striker' => 'bg-rose-100 text-rose-800',
+              ];
+              $posClass = $posColors[$r['position'] ?? ''] ?? 'bg-white text-gray-900';
+            ?>
+            <div class="w-30 p-2 text-gray-600 text-xs font-semibold" data-col="position">
+              <select data-autosave="1" name="position" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave2 <?= $posClass ?>">
+                <?php foreach ($POSITIONS as $opt): ?>
+                  <option value="<?= $opt ?>" <?= (($r['position'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
 
-          $deptColors = [
-            'GoalKeeper'        => 'bg-green-100 text-green-800',
-            'Sweeper'           => 'bg-yellow-100 text-yellow-800',
-            'Fullback'          => 'bg-blue-100 text-blue-800',
-            'Midfielder'        => 'bg-cyan-100 text-cyan-800',
-            'Forward Striker'   => 'bg-rose-100 text-rose-800',
-          ];
+            <!-- Home Address -->
+            <div class="w-1/7 p-2 text-gray-600" data-col="address">
+              <input type="text" name="home_address" value="<?= htmlspecialchars($r['home_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
 
-          $deptClass = $deptColors[$r['position'] ?? ''] ?? 'bg-white text-gray-900';
-          ?>
-          <div class="w-30 p-2 text-gray-600 text-xs font-semibold" data-col="position">
-            <select data-autosave="1" name="position" style="appearance:none;"
-                    class="w-full px-2 py-1 rounded-xl status--autosave2 <?= $deptClass ?>">
-              <?php foreach ($DEPTS as $opt): ?>
-                <option value="<?= $opt ?>" <?= (($r['position'] ?? '') === $opt) ? 'selected' : '' ?>>
-                  <?= $opt ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
+            <!-- Email Address -->
+            <div class="w-1/7 p-2 text-gray-600" data-col="email">
+              <input type="text" name="email_address" value="<?= htmlspecialchars($r['email_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
 
-          <!-- Home Address -->
-          <div class="w-1/7 p-2 text-gray-600" data-col="address">
-            <input type="text" name="home_address"
-                  value="<?= htmlspecialchars($r['home_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
+            <!-- Notes -->
+            <div class="w-1/7 p-2 text-gray-600" data-col="notes">
+              <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            </div>
 
-          <!-- Email Address -->
-          <div class="w-1/7 p-2 text-gray-600" data-col="email">
-            <input type="text" name="email_address"
-                  value="<?= htmlspecialchars($r['email_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
-
-          <!-- Notes -->
-          <div class="w-1/7 p-2 text-gray-600" data-col="notes">
-            <input type="text" name="notes"
-                  value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
-
-                    <!-- Delete action -->
-          <div class="ml-auto flex items-center">
-            <a 
-              href="/ItemPilot/categories/Football Table/delete.php?id=<?= $r['id'] ?>&table_id=<?= (int)($row['table_id'] ?? $tableId) ?>"
-              onclick="return confirm('Are you sure?')"
-              class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" viewBox="0 0 24 24" 
-                  stroke-width="1.8" stroke="currentColor" 
-                  class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
-                <path stroke-linecap="round" 
-                      stroke-linejoin="round" 
-                      d="M9 3h6m2 4H7l1 12h8l1-12z" />
-              </svg>
-            </a>
-          </div>
-        </form>
+            <div class="ml-auto flex items-center">
+              <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
+                 onclick="return confirm('Are you sure?')"
+                 class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
+                </svg>
+              </a>
+            </div>
+          </form>
         <?php endforeach; else: ?>
           <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
         <?php endif; ?>
       </div>
 
       <?php if ($totalPages > 1): ?>
-      <div class="pagination football my-2 flex justify-start md:justify-center space-x-2">
-        <?php if ($page > 1): ?>
-          <a href="insert_football.php?page=<?= $page-1 ?>&table_id=<?= $footballId ?>"
-            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
-            « Prev
-          </a>
-        <?php endif; ?>
-
-        <?php for ($i=1; $i<=$totalPages; $i++): ?>
-          <a href="insert_football.php?page=<?= $i ?>&table_id=<?= $footballId ?>"
-            class="px-3 py-1 border rounded transition
-                    <?= $i===$page
-                      ? 'bg-blue-600 text-white border-blue-600 font-semibold'
-                      : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>">
-            <?= $i ?>
-          </a>
-        <?php endfor; ?>
-
-        <?php if ($page < $totalPages): ?>
-          <a href="insert_football.php?page=<?= $page+1 ?>&table_id=<?= $footballId ?>"
-            class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
-            Next »
-          </a>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
+        <div class="pagination football my-2 flex justify-start md:justify-center space-x-2">
+          <?php if ($page > 1): ?>
+            <a href="insert_football.php?page=<?= $page-1 ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">« Prev</a>
+          <?php endif; ?>
+          <?php for ($i=1; $i<=$totalPages; $i++): ?>
+            <a href="insert_football.php?page=<?= $i ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded transition <?= $i===$page ? 'bg-blue-600 text-white border-blue-600 font-semibold' : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>"><?= $i ?></a>
+          <?php endfor; ?>
+          <?php if ($page < $totalPages): ?>
+            <a href="insert_football.php?page=<?= $page+1 ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">Next »</a>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
     </div>
   </main>
 </header>
 
-<!-- Add a new record -->
+<!-- Add New Record -->
 <div id="addForm" class="min-h-screen flex items-center justify-center p-2 hidden relative mt-13">
   <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-lg" id="signup">
     <div class="flex justify-between">
       <a href="#" data-close-add>
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="6" y1="6" x2="18" y2="18" />
-          <line x1="6" y1="18" x2="18" y2="6" />
-        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
       </a>
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
 
-    <?php
-      // show title
-      $stmt = $conn->prepare("SELECT table_id, table_title FROM football_table WHERE user_id = ? AND table_id = ? LIMIT 1");
-      $stmt->bind_param('ii', $uid, $tableId);
-      $stmt->execute();
-      $res = $stmt->get_result();
-      $titleRow = $res && $res->num_rows ? $res->fetch_assoc() : ['table_id' => $tableId, 'table_title' => ''];
-      $stmt->close();
+    <form action="<?= $CATEGORY_URL ?>/insert_football.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <h1 class="w-full px-4 py-2 text-center text-2xl"><?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?></h1>
 
-      // label defaults for the add form
-      $stmt = $conn->prepare("SELECT id, table_id, photo, full_name, position, home_address, email_address, notes
-  FROM football_thead
-                               WHERE user_id = ? AND table_id = ?
-                            ORDER BY id DESC
-                               LIMIT 1");
-      $stmt->bind_param('ii', $uid, $tableId);
-      $stmt->execute();
-      $res = $stmt->get_result();
-      $labels = $res && $res->num_rows
-        ? $res->fetch_assoc()
-        : ['photo'=>'Photo','full_name'=>'Name','position'=>'Position','home_address'=>'Home Address','email_address'=>'Email Address','notes'=>'Notes'];
-      $stmt->close();
-    ?>
-
-    <form action="/ItemPilot/categories/Football Table/insert_football.php" method="POST" enctype="multipart/form-data" class="space-y-6">
-      <input type="hidden" name="table_id" value="<?= (int)$titleRow['table_id'] ?>">
-
-      <h1 class="w-full px-4 py-2 text-center text-2xl">
-        <?= htmlspecialchars($titleRow['table_title'] ?? '', ENT_QUOTES, 'UTF-8') ?>
-      </h1>
-
-      <!-- Photo -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($labels['photo'], ENT_QUOTES, 'UTF-8') ?></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($head['photo'], ENT_QUOTES, 'UTF-8') ?></label>
         <input id="photo" type="file" name="photo" accept="image/*" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
-      <!-- Full Name -->
       <div class="mt-5">
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($labels['full_name'], ENT_QUOTES, 'UTF-8') ?></label>
-        <input type="text" name="full_name" placeholder="<?= htmlspecialchars($labels['full_name'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($head['full_name'], ENT_QUOTES, 'UTF-8') ?></label>
+        <input type="text" name="full_name" placeholder="<?= htmlspecialchars($head['full_name'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
-      <!-- Position -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['position'] ?? 'Position') ?></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($head['position'], ENT_QUOTES, 'UTF-8') ?></label>
         <select name="position" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="GoalKeeper">GoalKeeper</option>
           <option value="Sweeper">Sweeper</option>
@@ -427,22 +331,19 @@ $rows  = $rows ?? [];   // already fetched above
         </select>
       </div>
 
-      <!-- Home Address -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($labels['home_address'], ENT_QUOTES, 'UTF-8') ?></label>
-        <input type="text" name="home_address" placeholder="<?= htmlspecialchars($labels['home_address'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($head['home_address'], ENT_QUOTES, 'UTF-8') ?></label>
+        <input type="text" name="home_address" placeholder="<?= htmlspecialchars($head['home_address'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
-      <!-- Email Address -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($labels['email_address'], ENT_QUOTES, 'UTF-8') ?></label>
-        <input type="text" name="email_address" placeholder="<?= htmlspecialchars($labels['email_address'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($head['email_address'], ENT_QUOTES, 'UTF-8') ?></label>
+        <input type="text" name="email_address" placeholder="<?= htmlspecialchars($head['email_address'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
-      <!-- Notes -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($labels['notes'], ENT_QUOTES, 'UTF-8') ?></label>
-        <input type="text" name="notes" placeholder="<?= htmlspecialchars($labels['notes'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?></label>
+        <input type="text" name="notes" placeholder="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
