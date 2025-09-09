@@ -186,11 +186,67 @@ $hasRecord = count($rows) > 0;
 <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
   <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[60rem]">
 
-    <div class="mb-3">
-      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU"
-             class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
+  <div class="flex justify-between">
+    <div>
+      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
       <span id="countU" class="ml-2 text-xs text-gray-600"></span>
     </div>
+
+    <!-- Ghost header cell -->
+    <button id="addColumnBtn" class="ml-2 px-3 text-xs rounded-lg border border-dashed border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-800">+ Add fields</button>
+
+    <!-- Popover -->
+    <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      <div class="flex items-center gap-2">
+        <!-- icon -->
+        <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
+        <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
+      </div>
+      <button data-close-add type="button" class="cursor-pointer p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
+        <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <form action="/ItemPilot/categories/Universal Table/add_fields.php" method="post" class="p-4">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+
+      <!-- Name -->
+      <label for="column_name" class="block text-xs font-medium text-gray-700">Field name</label>
+      <div class="relative mt-1">
+        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+        <svg class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7H8m8 5H8m8 5H8"/>
+        </svg>
+        </span>
+        <input id="column_name" name="column_name" type="text" placeholder="e.g. Priority, Owner, ETA" class="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required/>
+      </div>
+      <p class="mt-1 text-[11px] text-gray-500">Use a short, clear label.</p>
+
+      <!-- Optional: Type selector (send as column_type if your PHP handles it) -->
+      <div class="mt-3">
+        <label for="column_type" class="block text-xs font-medium text-gray-700">Field type</label>
+        <select id="column_type" name="column_type" class="mt-1 w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="date">Date</option>
+          <option value="select">Dropdown</option>
+          <option value="checkbox">Checkbox</option>
+        </select>
+        <p class="mt-1 text-[11px] text-gray-500">You can change formatting later.</p>
+      </div>
+
+      <!-- Footer actions -->
+      <div class="mt-4 flex items-center gap-2">
+        <button type="submit" class="cursor-pointer inline-flex w-full justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500">Add field</button>
+        <button type="button" data-close-add id="cancelAddColumn" class="cursor-pointer inline-flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">Cancel</button>
+      </div>
+    </form>
+    </div>
+  </div>
 
     <!-- THEAD -->
     <div class="universal-table" id="ut-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
