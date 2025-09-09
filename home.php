@@ -1270,7 +1270,6 @@ $(function () {
       loadTable(tableIdFromUrl, currentPage); // universal
     }
   }
-
 })();
 
 (() => {
@@ -1608,6 +1607,32 @@ $(function () {
   // initialize once
   updateProfit();
 })();
+
+document.body.addEventListener('click', e => {
+  // --- Add Column popover (works for dynamically injected HTML) ---
+  const addBtnCol = e.target.closest('#addColumnBtn');
+  const pop       = document.getElementById('addColumnPop');
+
+  if (addBtnCol && pop) {
+    e.preventDefault();
+    e.stopPropagation();
+    pop.classList.toggle('hidden');     // Tailwind-friendly show/hide
+    console.log('clicked');
+    return;                             // avoid other handlers interfering
+  }
+  // click outside closes
+  if (pop && !e.target.closest('#addColumnPop, #addColumnBtn')) {
+    pop.classList.add('hidden');
+  }
+
+  // --- keep your existing code below ---
+  const pg = e.target.closest('.pagination a');
+  if (pg) { /* ... */ return; }
+  const addBtn = e.target.closest('#addIcon');
+  if (addBtn) { /* ... */ }
+  const closeAdd = e.target.closest('[data-close-add]');
+  if (closeAdd) { /* ... */ }
+});
 </script>
 </body>
 </html>
