@@ -5,7 +5,7 @@
     <a href="/ItemPilot/home.php">
       <div class="flex items-center gap-2 px-4">
         <!-- Logo icon -->
-        <img src="images/logo(4).png" alt="" class="w-30 h-30">
+        <img src="images/logo(4).png" alt="" class="w-30 h-20">
       </div>
     </a>
       <nav>

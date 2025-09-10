@@ -198,50 +198,25 @@ $hasRecord = count($rows) > 0;
     <!-- Popover -->
     <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-      <div class="flex items-center gap-2">
+    <div class="px-4 py-3 border-b border-gray-100">
+      <div class="flex justify-between items-center gap-2">
         <!-- icon -->
         <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
         <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
-      </div>
       <button data-close-add type="button" class="cursor-pointer p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
         <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
-    </div>
+      </div>
 
-      <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post" class="space-y-4">
-        <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post">
+        <label for="field_name" class="block text-sm font-medium text-gray-700 mt-4">Field Name</label>
+        <input type="text" id="field_name" name="field_name" required class="w-full mt-1 mb-3 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Field name</label>
-          <input name="column_name" required
-                placeholder="e.g. Priority, Owner, ETA"
-                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Field type</label>
-          <select name="column_type"
-                  class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500">
-            <option value="text">Text</option>
-            <option value="long_text">Long text</option>
-            <option value="number">Number</option>
-            <option value="integer">Integer</option>
-            <option value="date">Date</option>
-            <option value="checkbox">Checkbox</option>
-            <option value="file">File (path)</option>
-          </select>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" data-close-add
-                  class="rounded-lg border px-4 py-2 text-gray-600 hover:bg-gray-50">Cancel</button>
-          <button type="submit"
-                  class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-500">Add field</button>
-        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition">Add Field</button>
       </form>
+    </div>
     </div>
   </div>
 
@@ -251,50 +226,25 @@ $hasRecord = count($rows) > 0;
             class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
         <div class="flex text-xs md:text-xs font-bold text-gray-900">
-          <div class="p-2">
+          <div class="p-1 w-1/5">
             <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="p-2">
+          <div class="p-1 w-1/5">
             <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="p-2">
+          <div class="p-1 w-1/5">
             <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-40 p-2">
+          <div class="w-40 p-1">
             <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="p-2 ml-8">
+          <div class="p-1 ml-8 w-1/5">
             <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-
-<div class="p-2 flex flex gap-3">
-<?php
-$titleStmt = $conn->prepare("
-  SELECT id, field_key
-  FROM universal_fields
-  WHERE user_id = ? AND table_id = ?
-  ORDER BY sort_order ASC, id ASC
-");
-$titleStmt->bind_param('ii', $uid, $table_id);
-$titleStmt->execute();
-$res = $titleStmt->get_result();
-
-while ($row = $res->fetch_assoc()): ?>
-  <input
-    type="text"
-    name="field_key[]"
-    value="<?= htmlspecialchars($row['field_key'], ENT_QUOTES, 'UTF-8') ?>"
-    class=" px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-  />
-<?php endwhile;
-$titleStmt->close();
-?>
-</div>
-
       </form>
     </div>
 
@@ -311,17 +261,17 @@ $titleStmt->close();
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <div class="p-1 text-gray-600" data-col="name">
+          <div class="p-1 w-1/5 text-gray-600" data-col="name">
             <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="p-1 text-gray-600" data-col="notes">
+          <div class="p-1 w-1/5 text-gray-600" data-col="notes">
             <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="p-1 text-gray-600" data-col="assignee">
+          <div class="p-1 w-1/5 text-gray-600" data-col="assignee">
             <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
@@ -342,18 +292,18 @@ $titleStmt->close();
             </select>
           </div>
 
-          <div class="p-1 flex items-center gap-3 ml-19" data-col="attachment">
+          <div class="p-1 w-1/5 flex items-center gap-3 ml-19" data-col="attachment">
             <?php if (!empty($r['attachment_summary'])): ?>
               <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment_summary']) ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
-              <span class="italic text-gray-400 ml-2">📎 None</span>
+              <span class="italic text-gray-400">📎 None</span>
             <?php endif; ?>
 
             <div class="ml-auto flex items-center">
               <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
                  onclick="return confirm('Are you sure?')"
-                 class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
+                 class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition ml-10">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                      stroke-width="1.8" stroke="currentColor"
                      class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
