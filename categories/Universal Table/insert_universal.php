@@ -211,6 +211,8 @@ $hasRecord = count($rows) > 0;
       </div>
 
       <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post">
+        <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
         <label for="field_name" class="block text-sm font-medium text-gray-700 mt-4">Field Name</label>
         <input type="text" id="field_name" name="field_name" required class="w-full mt-1 mb-3 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
 
@@ -226,24 +228,43 @@ $hasRecord = count($rows) > 0;
             class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
         <div class="flex text-xs md:text-xs font-bold text-gray-900">
-          <div class="p-1 w-1/5">
+          <div class="p-1">
             <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="p-1 w-1/5">
+          <div class="p-1">
             <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="p-1 w-1/5">
+          <div class="p-1">
             <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="w-40 p-1">
+          <div class="p-1">
             <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="p-1 ml-8 w-1/5">
+          <div class="p-1 ml-8">
             <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          </div>
+
+          <div class="p-1 flex">
+            <?php
+            // make sure these are set earlier:
+            $uid = (int)($_SESSION['user_id'] ?? 0);
+            $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+
+            $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param('ii', $uid, $table_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $fields = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            ?>
+            <?php foreach ($fields as $field): ?>
+              <input type="text" name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Field" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            <?php endforeach; ?>
           </div>
       </form>
     </div>
@@ -261,22 +282,22 @@ $hasRecord = count($rows) > 0;
           <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
           <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <div class="p-1 w-1/5 text-gray-600" data-col="name">
+          <div class="p-1 text-gray-600" data-col="name">
             <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="p-1 w-1/5 text-gray-600" data-col="notes">
+          <div class="p-1 text-gray-600" data-col="notes">
             <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="p-1 w-1/5 text-gray-600" data-col="assignee">
+          <div class="p-1 text-gray-600" data-col="assignee">
             <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="w-30 px-3 py-1 text-xs font-semibold" data-col="status">
+          <div class="px-3 py-1 text-xs font-semibold" data-col="status">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-red-100 text-red-800',
@@ -292,7 +313,7 @@ $hasRecord = count($rows) > 0;
             </select>
           </div>
 
-          <div class="p-1 w-1/5 flex items-center gap-3 ml-19" data-col="attachment">
+          <div class="p-1 flex items-center gap-3 ml-19" data-col="attachment">
             <?php if (!empty($r['attachment_summary'])): ?>
               <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment_summary']) ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">
