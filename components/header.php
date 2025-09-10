@@ -3,9 +3,9 @@
   <!-- Aside -->
   <aside id="sidebar" class="md:w-75 w-65 block bg-[#263544] min-h-screen">
     <a href="/ItemPilot/home.php">
-      <div class="flex items-center gap-2 px-4">
-        <!-- Logo icon -->
-        <img src="images/logo(4).png" alt="" class="w-30 h-20">
+      <div class="flex items-center gap-2 px-6">
+
+        <h1 class="text-4xl text-white mb-2 mt-2 font-bold">𝓟𝓲𝓵𝓸𝓽𝓪</h1>
       </div>
     </a>
       <nav>
