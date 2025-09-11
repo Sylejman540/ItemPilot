@@ -244,7 +244,7 @@ $hasRecord = count($rows) > 0;
             <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>"
                    placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
-          <div class="p-1 ml-8">
+          <div class="p-1">
             <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
 
@@ -297,7 +297,7 @@ $hasRecord = count($rows) > 0;
                    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="px-3 py-1 text-xs font-semibold" data-col="status">
+          <div class="p-1 text-xs font-semibold" data-col="status">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-red-100 text-red-800',
@@ -313,13 +313,33 @@ $hasRecord = count($rows) > 0;
             </select>
           </div>
 
-          <div class="p-1 flex items-center gap-3 ml-19" data-col="attachment">
+          <div class="p-1 flex items-center gap-3" data-col="attachment">
             <?php if (!empty($r['attachment_summary'])): ?>
               <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment_summary']) ?>"
                    class="w-16 h-10 rounded-md" alt="Attachment">
             <?php else: ?>
               <span class="italic text-gray-400">📎 None</span>
             <?php endif; ?>
+
+            <div class="p-1 flex">
+            <?php
+            $chk = $conn->prepare("
+  SELECT 1
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME   = 'universal_base'
+    AND COLUMN_NAME  = ?
+    AND COLUMN_NAME NOT IN ('id','table_id','user_id','created_at','updated_at')
+  LIMIT 1
+");
+$chk->bind_param('s', $field_name);
+$chk->execute();
+$exists = (bool)$chk->get_result()->fetch_row();
+$chk->close(); ?>
+            <?php foreach ($fields as $field): ?>
+              <input type="text" name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($r[$field['field_name']] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Field" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            <?php endforeach; ?>
+          </div>
 
             <div class="ml-auto flex items-center">
               <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
