@@ -6,9 +6,9 @@ $uid = $_SESSION['user_id'] ?? 0;
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
 /* ---------- Config ---------- */
-$CATEGORY_URL = '/ItemPilot/categories/Universal%20Table';      // URL (encoded space)
-$UPLOAD_DIR   = __DIR__ . '/uploads/';                          // FS path
-$UPLOAD_URL   = $CATEGORY_URL . '/uploads';                     // URL path for images
+$CATEGORY_URL = '/ItemPilot/categories/Universal%20Table';
+$UPLOAD_DIR   = __DIR__ . '/uploads/';
+$UPLOAD_URL   = $CATEGORY_URL . '/uploads';
 
 /* ---------- Resolve table_id (session/URL/create) ---------- */
 $action   = $_GET['action'] ?? null;
@@ -55,10 +55,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $status    = $_POST['status'] ?? '';
   $attachment_summary = $_POST['existing_attachment'] ?? '';
 
-  // dynamic inputs for universal_base (if your form posts them)
+  // dynamic inputs for universal_base (your form may post dyn[...] and/or extra_field_<id>)
   $dynIn = $_POST['dyn'] ?? [];
 
-  // handle file upload (unchanged)
+  // Map extra_field_<id> -> dyn[<field_name>]
+  $mapStmt = $conn->prepare("
+    SELECT id, field_name
+    FROM universal_fields
+    WHERE user_id = ? AND table_id = ?
+    ORDER BY id ASC
+  ");
+  $mapStmt->bind_param('ii', $uid, $table_id);
+  $mapStmt->execute();
+  $mapRes = $mapStmt->get_result();
+  while ($m = $mapRes->fetch_assoc()) {
+    $key = 'extra_field_' . (int)$m['id'];
+    if (array_key_exists($key, $_POST)) {
+      $val = $_POST[$key];
+      $dynIn[$m['field_name']] = ($val === '') ? null : $val;
+    }
+  }
+  $mapStmt->close();
+
+  // handle file upload
   if (isset($_FILES['attachment_summary']) && $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK) {
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
       die("Could not create uploads directory.");
@@ -82,11 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $stmt->bind_param('ssssssi', $name, $notes, $assignee, $status, $attachment_summary, $table_id, $uid);
     $stmt->execute();
-    $row_id = (int)$stmt->insert_id;   // <-- this row's id (link key)
+    $row_id = (int)$stmt->insert_id;   // <-- this row's link key
     $stmt->close();
 
     /* ---- INSERT/INIT universal_base for THIS row_id ---- */
-    // whitelist editable columns on universal_base
     $colRes = $conn->query("
       SELECT COLUMN_NAME
       FROM INFORMATION_SCHEMA.COLUMNS
@@ -96,7 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
     $editable  = array_values(array_diff($validCols, $exclude));
 
-    // keep only allowed posted fields
     $toSave = [];
     foreach ($dynIn as $k => $v) {
       if (in_array($k, $editable, true)) {
@@ -104,15 +121,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-    // insert the base row for this row_id
     if ($toSave) {
-      $cols = array_keys($toSave);
+      $cols  = array_keys($toSave);
       $place = array_fill(0, count($cols), '?');
-      $sql = "INSERT INTO universal_base (`table_id`,`user_id`,`row_id`,`"
-           . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
-      $stmt = $conn->prepare($sql);
+      $sql   = "INSERT INTO universal_base (`table_id`,`user_id`,`row_id`,`"
+             . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
+      $stmt  = $conn->prepare($sql);
 
-      $types = 'iii' . str_repeat('s', count($cols));
+      $types  = 'iii' . str_repeat('s', count($cols));
       $params = [$table_id, $uid, $row_id];
       foreach ($cols as $c) { $params[] = $toSave[$c]; }
 
@@ -121,7 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt->execute();
       $stmt->close();
     } else {
-      // no dynamic fields posted, just create the row link
       $insb = $conn->prepare("INSERT INTO universal_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
       $insb->bind_param('iii', $table_id, $uid, $row_id);
       $insb->execute();
@@ -139,8 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute();
     $stmt->close();
 
-    /* ---- (Optional) UPDATE universal_base for THIS row_id if dyn[...] posted ---- */
-    if (!empty($_POST['dyn'])) {
+    /* ---- UPDATE universal_base for THIS row_id if dynamic fields posted ---- */
+    if (!empty($dynIn)) {
       $colRes = $conn->query("
         SELECT COLUMN_NAME
         FROM INFORMATION_SCHEMA.COLUMNS
@@ -151,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $editable  = array_values(array_diff($validCols, $exclude));
 
       $toSave = [];
-      foreach ($_POST['dyn'] as $k => $v) {
+      foreach ($dynIn as $k => $v) {
         if (in_array($k, $editable, true)) {
           $toSave[$k] = ($v === '') ? null : $v;
         }
@@ -179,9 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           if ($val === null) { $set[] = "`$col`=NULL"; }
           else { $set[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
         }
-        if (in_array('updated_at', $validCols, true)) {
-          $set[] = "`updated_at`=NOW()";
-        }
+        if (in_array('updated_at', $validCols, true)) { $set[] = "`updated_at`=NOW()"; }
         if ($set) {
           $sql = "UPDATE universal_base SET ".implode(', ', $set)." WHERE table_id=? AND user_id=? AND row_id=?";
           $types .= 'iii';
@@ -201,7 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   exit;
 }
 
-
 /* ---------- Title (tables) ---------- */
 $stmt = $conn->prepare("SELECT table_title FROM `tables` WHERE user_id = ? AND table_id = ? LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
@@ -211,7 +223,7 @@ $row = $res->fetch_assoc();
 $stmt->close();
 $tableTitle = $row['table_title'] ?? 'Untitled table';
 
-/* ---------- Ensure THEAD exists for this table ---------- */
+/* ---------- Ensure THEAD exists ---------- */
 $stmt = $conn->prepare("
   SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
     FROM universal_thead
@@ -429,17 +441,17 @@ $hasRecord = count($rows) > 0;
             </select>
           </div>
 
-          <div class="p-1 flex items-center gap-3" data-col="attachment">
+          <div class="p-1 gap-3" data-col="attachment">
             <?php if (!empty($r['attachment_summary'])): ?>
               <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment_summary']) ?>"
-                   class="w-16 h-10 rounded-md" alt="Attachment">
+                   class="w-16 h-10 rounded-md ml-16" alt="Attachment">
             <?php else: ?>
-              <span class="italic text-gray-400">📎 None</span>
+              <span class="ml-15 italic text-gray-400">📎 None</span>
             <?php endif; ?>
-
+            </div>
             <?php $row_id = (int)$r['id']; /* <-- tie dynamic values to THIS row */ ?>
 
-            <div class="p-1 flex">
+            <div class="p-1 flex ml-20">
               <?php
               // Identify the record
               $row_id   = (int)($row_id ?? 0);
@@ -484,18 +496,6 @@ $hasRecord = count($rows) > 0;
                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                 />
               <?php endforeach; ?>
-            </div>
-
-            <div class="ml-auto flex items-center">
-              <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
-                 onclick="return confirm('Are you sure?')"
-                 class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition ml-10">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     stroke-width="1.8" stroke="currentColor"
-                     class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
-                </svg>
-              </a>
             </div>
           </div>
         </form>
