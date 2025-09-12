@@ -55,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $status    = $_POST['status'] ?? '';
   $attachment_summary = $_POST['existing_attachment'] ?? '';
 
+  // dynamic inputs for universal_base (if your form posts them)
+  $dynIn = $_POST['dyn'] ?? [];
+
+  // handle file upload (unchanged)
   if (isset($_FILES['attachment_summary']) && $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK) {
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
       die("Could not create uploads directory.");
@@ -68,25 +72,135 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $attachment_summary = $orig;
   }
 
-  if ($id === '' || $id === null) {
+  $rec_id = is_numeric($id) ? (int)$id : 0;
+
+  if ($rec_id <= 0) {
+    /* ---- INSERT universal (tbody) ---- */
     $stmt = $conn->prepare("
       INSERT INTO universal (name, notes, assignee, status, attachment_summary, table_id, user_id)
       VALUES (?,?,?,?,?,?,?)
     ");
     $stmt->bind_param('ssssssi', $name, $notes, $assignee, $status, $attachment_summary, $table_id, $uid);
+    $stmt->execute();
+    $row_id = (int)$stmt->insert_id;   // <-- this row's id (link key)
+    $stmt->close();
+
+    /* ---- INSERT/INIT universal_base for THIS row_id ---- */
+    // whitelist editable columns on universal_base
+    $colRes = $conn->query("
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
+    ");
+    $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
+    $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
+    $editable  = array_values(array_diff($validCols, $exclude));
+
+    // keep only allowed posted fields
+    $toSave = [];
+    foreach ($dynIn as $k => $v) {
+      if (in_array($k, $editable, true)) {
+        $toSave[$k] = ($v === '') ? null : $v;
+      }
+    }
+
+    // insert the base row for this row_id
+    if ($toSave) {
+      $cols = array_keys($toSave);
+      $place = array_fill(0, count($cols), '?');
+      $sql = "INSERT INTO universal_base (`table_id`,`user_id`,`row_id`,`"
+           . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
+      $stmt = $conn->prepare($sql);
+
+      $types = 'iii' . str_repeat('s', count($cols));
+      $params = [$table_id, $uid, $row_id];
+      foreach ($cols as $c) { $params[] = $toSave[$c]; }
+
+      $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
+      call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($params)));
+      $stmt->execute();
+      $stmt->close();
+    } else {
+      // no dynamic fields posted, just create the row link
+      $insb = $conn->prepare("INSERT INTO universal_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
+      $insb->bind_param('iii', $table_id, $uid, $row_id);
+      $insb->execute();
+      $insb->close();
+    }
+
   } else {
+    /* ---- UPDATE universal (tbody) ---- */
     $stmt = $conn->prepare("
       UPDATE universal
-         SET name = ?, notes = ?, assignee = ?, status = ?, attachment_summary = ?
-       WHERE id = ? AND table_id = ? AND user_id = ?
+         SET name=?, notes=?, assignee=?, status=?, attachment_summary=?
+       WHERE id=? AND table_id=? AND user_id=?
     ");
-    $stmt->bind_param('sssssiii', $name, $notes, $assignee, $status, $attachment_summary, $id, $table_id, $uid);
+    $stmt->bind_param('sssssiii', $name, $notes, $assignee, $status, $attachment_summary, $rec_id, $table_id, $uid);
+    $stmt->execute();
+    $stmt->close();
+
+    /* ---- (Optional) UPDATE universal_base for THIS row_id if dyn[...] posted ---- */
+    if (!empty($_POST['dyn'])) {
+      $colRes = $conn->query("
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
+      ");
+      $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
+      $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
+      $editable  = array_values(array_diff($validCols, $exclude));
+
+      $toSave = [];
+      foreach ($_POST['dyn'] as $k => $v) {
+        if (in_array($k, $editable, true)) {
+          $toSave[$k] = ($v === '') ? null : $v;
+        }
+      }
+
+      // ensure base row exists for this row_id
+      $chk = $conn->prepare("SELECT id FROM universal_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
+      $chk->bind_param('iii', $table_id, $uid, $rec_id);
+      $chk->execute();
+      $base = $chk->get_result()->fetch_assoc();
+      $chk->close();
+
+      if (!$base) {
+        $insb = $conn->prepare("INSERT INTO universal_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
+        $insb->bind_param('iii', $table_id, $uid, $rec_id);
+        $insb->execute();
+        $insb->close();
+      }
+
+      if ($toSave) {
+        $set = [];
+        $vals = [];
+        $types = '';
+        foreach ($toSave as $col => $val) {
+          if ($val === null) { $set[] = "`$col`=NULL"; }
+          else { $set[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
+        }
+        if (in_array('updated_at', $validCols, true)) {
+          $set[] = "`updated_at`=NOW()";
+        }
+        if ($set) {
+          $sql = "UPDATE universal_base SET ".implode(', ', $set)." WHERE table_id=? AND user_id=? AND row_id=?";
+          $types .= 'iii';
+          $vals[] = $table_id; $vals[] = $uid; $vals[] = $rec_id;
+
+          $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
+          $stmt = $conn->prepare($sql);
+          call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($vals)));
+          $stmt->execute();
+          $stmt->close();
+        }
+      }
+    }
   }
-  $stmt->execute(); $stmt->close();
 
   header("Location: /ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}");
   exit;
 }
+
 
 /* ---------- Title (tables) ---------- */
 $stmt = $conn->prepare("SELECT table_title FROM `tables` WHERE user_id = ? AND table_id = ? LIMIT 1");
@@ -227,6 +341,8 @@ $hasRecord = count($rows) > 0;
       <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post"
             class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+        <input type="hidden" name="row_id" value="<?= (int)($row_id ?? 0) ?>">
+        <input type="hidden" name="id" value="<?= (int)($thead['id'] ?? 0) ?>">
         <div class="flex text-xs md:text-xs font-bold text-gray-900">
           <div class="p-1">
             <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name', ENT_QUOTES, 'UTF-8') ?>"
@@ -273,7 +389,7 @@ $hasRecord = count($rows) > 0;
     <div class="w-full divide-y divide-gray-200">
       <?php if ($hasRecord): foreach ($rows as $r): ?>
         <form method="POST"
-              action="<?= $CATEGORY_URL ?>/edit_tbody.php?id=<?= (int)$r['id'] ?>"
+              action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$r['id'] ?>"
               enctype="multipart/form-data"
               class="universal-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm"
               data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
@@ -321,25 +437,54 @@ $hasRecord = count($rows) > 0;
               <span class="italic text-gray-400">📎 None</span>
             <?php endif; ?>
 
+            <?php $row_id = (int)$r['id']; /* <-- tie dynamic values to THIS row */ ?>
+
             <div class="p-1 flex">
-            <?php
-            $chk = $conn->prepare("
-  SELECT 1
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME   = 'universal_base'
-    AND COLUMN_NAME  = ?
-    AND COLUMN_NAME NOT IN ('id','table_id','user_id','created_at','updated_at')
-  LIMIT 1
-");
-$chk->bind_param('s', $field_name);
-$chk->execute();
-$exists = (bool)$chk->get_result()->fetch_row();
-$chk->close(); ?>
-            <?php foreach ($fields as $field): ?>
-              <input type="text" name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($r[$field['field_name']] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Field" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            <?php endforeach; ?>
-          </div>
+              <?php
+              // Identify the record
+              $row_id   = (int)($row_id ?? 0);
+              $table_id = (int)($table_id ?? 0);
+              $user_id  = (int)($_SESSION['user_id'] ?? 0);
+
+              // Collect actual columns present in universal_base
+              $colRes = $conn->query("
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
+              ");
+              $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
+
+              // Filter your metadata list ($fields) to only existing columns
+              $dynFields = array_values(array_filter($fields, function($meta) use ($validCols) {
+                return in_array($meta['field_name'], $validCols, true);
+              }));
+
+              // Fetch the base row for THIS table/user/row (scoped!)
+              $baseRow = [];
+              if ($table_id > 0 && $user_id > 0 && $row_id > 0) {
+                $stmt = $conn->prepare("
+                  SELECT *
+                  FROM `universal_base`
+                  WHERE `table_id` = ? AND `user_id` = ? AND `row_id` = ?
+                  LIMIT 1
+                ");
+                $stmt->bind_param('iii', $table_id, $user_id, $row_id);
+                $stmt->execute();
+                $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
+                $stmt->close();
+              }
+              ?>
+
+              <?php foreach ($dynFields as $colMeta): ?>
+                <?php $colName = $colMeta['field_name']; ?>
+                <input
+                  type="text"
+                  name="dyn[<?= htmlspecialchars($colName, ENT_QUOTES) ?>]"
+                  value="<?= htmlspecialchars($baseRow[$colName] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                />
+              <?php endforeach; ?>
+            </div>
 
             <div class="ml-auto flex items-center">
               <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
@@ -427,10 +572,31 @@ $chk->close(); ?>
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment') ?></label>
-        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*"
-               class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
+        <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
+            <?php
+            // make sure these are set earlier:
+            $uid = (int)($_SESSION['user_id'] ?? 0);
+            $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+
+            $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param('ii', $uid, $table_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $fields = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            ?>
+            <?php foreach ($fields as $field): ?>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  <?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                </label>
+                <input type="text" name="extra_field_<?= (int)$field['id'] ?>"
+                      class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2"/>
+              </div>
+            <?php endforeach; ?>
       <div>
         <button type="submit" class="w-full py-3 bg-blue-800 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
           Create New Record

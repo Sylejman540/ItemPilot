@@ -1,83 +1,145 @@
 <?php
-// edit_universal.php
+// /ItemPilot/categories/Universal Table/edit_tbody.php
 require_once __DIR__ . '/../../db.php';
+session_start();
 
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) {
-  die("No valid ID provided");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  http_response_code(405);
+  exit('Method Not Allowed');
 }
 
-// 1) If this is a POST, run the UPDATE
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $name = $_POST['name'] ?? '';
-  $notes = $_POST['notes'] ?? '';
-  $assignee = $_POST['assignee'] ?? '';
-  $status = $_POST['status'] ?? '';
-  $table_id = $_POST['table_id'] ?? 0;
+$uid       = (int)($_SESSION['user_id'] ?? 0);
+$id        = (int)($_POST['id'] ?? $_GET['id'] ?? 0); // tbody row id (row_id)
+$table_id  = (int)($_POST['table_id'] ?? 0);
+$return_to = $_POST['return_to'] ?? ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}");
 
-  $sql = "UPDATE universal SET name = ?, notes = ?, assignee = ?, status = ? WHERE id = ? AND table_id = ?";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param('ssssii', $name, $notes, $assignee, $status, $id, $table_id);
-  if ($stmt->execute()) {
-    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
-    exit;
-  }else {
-    die("Update failed: " . $stmt->error);
+if ($uid <= 0 || $table_id <= 0 || $id <= 0) {
+  $_SESSION['flash_error'] = 'Bad request: missing uid/table_id/id.';
+  header("Location: $return_to");
+  exit;
+}
+
+/* ----- TBODY base fields ----- */
+$name      = $_POST['name']     ?? '';
+$notes     = $_POST['notes']    ?? '';
+$assignee  = $_POST['assignee'] ?? '';
+$status    = $_POST['status']   ?? '';
+
+/* ----- Attachment (optional) ----- */
+$UPLOAD_DIR = __DIR__ . '/uploads/';
+$attachment_summary = $_POST['existing_attachment'] ?? '';
+if (!empty($_FILES['attachment_summary']) && $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK) {
+  if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
+    $_SESSION['flash_error'] = 'Could not create uploads directory.';
+    header("Location: $return_to"); exit;
+  }
+  $tmp  = $_FILES['attachment_summary']['tmp_name'];
+  $orig = basename($_FILES['attachment_summary']['name']);
+  $dest = $UPLOAD_DIR . $orig;
+  if (!move_uploaded_file($tmp, $dest)) {
+    $_SESSION['flash_error'] = 'Failed to save uploaded file.';
+    header("Location: $return_to"); exit;
+  }
+  $attachment_summary = $orig;
+}
+
+/* ----- Dynamic inputs destined for universal_base ----- */
+$dynIn = $_POST['dyn'] ?? [];
+
+/* ----- Prepare whitelist for universal_base ----- */
+$colRes = $conn->query("
+  SELECT COLUMN_NAME
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
+");
+if (!$colRes) {
+  $_SESSION['flash_error'] = 'Schema lookup failed.';
+  header("Location: $return_to"); exit;
+}
+$validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
+$exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
+$editable  = array_values(array_diff($validCols, $exclude));
+
+$toSave = [];
+foreach ($dynIn as $k => $v) {
+  if (in_array($k, $editable, true)) {
+    $toSave[$k] = ($v === '') ? null : $v; // empty -> NULL (optional)
   }
 }
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$conn->begin_transaction();
 
-$stmt = $conn->prepare("SELECT name, notes, assignee, status FROM universal WHERE id = ? AND table_id = ?");
-$stmt->bind_param('ii', $id, $table_id);
-$stmt->execute();
-$stmt->bind_result($name, $notes, $assignee, $status );
-if (! $stmt->fetch()) {
-  die("Record #{$id} not found");
-}
+try {
+  /* 1) Update the TBODY row (universal) */
+  $stmt = $conn->prepare("
+    UPDATE `universal`
+       SET `name`=?, `notes`=?, `assignee`=?, `status`=?, `attachment_summary`=?
+     WHERE `id`=? AND `table_id`=? AND `user_id`=?
+  ");
+  $stmt->bind_param('sssssiii', $name, $notes, $assignee, $status, $attachment_summary, $id, $table_id, $uid);
+  $stmt->execute();
+  $stmt->close();
 
-// inputs you should already have:
-$id       = (int)($_POST['id'] ?? 0);
-$table_id = (int)($_POST['table_id'] ?? 0);
+  /* 2) Ensure a per-row base link exists (user_id, table_id, row_id) */
+  $stmt = $conn->prepare("
+    SELECT `id` FROM `universal_base`
+    WHERE `table_id`=? AND `user_id`=? AND `row_id`=?
+    LIMIT 1
+  ");
+  $stmt->bind_param('iii', $table_id, $uid, $id);
+  $stmt->execute();
+  $res = $stmt->get_result();
+  $base = $res ? $res->fetch_assoc() : null;
+  $stmt->close();
 
-// the dynamic column name you want to set (e.g. from a hidden input)
-$field_name = $_POST['col_name'] ?? '';
+  if (!$base) {
+    $stmt = $conn->prepare("INSERT INTO `universal_base` (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
+    $stmt->bind_param('iii', $table_id, $uid, $id);
+    $stmt->execute();
+    $stmt->close();
+  }
 
-// the value to save for this row/column
-$value = $_POST['value'] ?? '';
+  /* 3) Update ONLY this row's dynamic columns */
+  if ($toSave) {
+    $setParts = [];
+    $vals = [];
+    $types = '';
 
-// 1) whitelist the column against INFORMATION_SCHEMA (prevents SQL injection)
-$chk = $conn->prepare("
-  SELECT 1
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME   = 'universal_base'
-    AND COLUMN_NAME  = ?
-    AND COLUMN_NAME NOT IN ('id','table_id','user_id','created_at','updated_at')
-  LIMIT 1
-");
-$chk->bind_param('s', $field_name);
-$chk->execute();
-$exists = (bool)$chk->get_result()->fetch_row();
-$chk->close();
-if (!$exists) { die('Invalid column'); }
+    foreach ($toSave as $col => $val) {
+      if ($val === null) {
+        $setParts[] = "`$col` = NULL";
+      } else {
+        $setParts[] = "`$col` = ?";
+        $vals[] = $val; $types .= 's';
+      }
+    }
+    if (in_array('updated_at', $validCols, true)) {
+      $setParts[] = "`updated_at` = NOW()";
+    }
 
-// 2) escape the identifier for use in SQL (backticks)
-$col = str_replace('`', '``', $field_name);
+    if ($setParts) {
+      $sql = "UPDATE `universal_base` SET ".implode(', ', $setParts)." WHERE `table_id`=? AND `user_id`=? AND `row_id`=?";
+      $types .= 'iii';
+      $vals[] = $table_id; $vals[] = $uid; $vals[] = $id;
 
-// 3) build SQL with the (validated) identifier; bind only data values
-$sql = "UPDATE `universal_base`
-        SET `{$col}` = ?
-        WHERE id = ? AND table_id = ?";
+      // bind_param needs references
+      $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
+      $stmt = $conn->prepare($sql);
+      call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($vals)));
+      $stmt->execute();
+      $stmt->close();
+    }
+  }
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param('sii', $value, $id, $table_id);
-
-if ($stmt->execute()) {
-  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+  $conn->commit();
+  $_SESSION['flash_success'] = 'Saved.';
+  header("Location: $return_to");
   exit;
-} else {
-  die("Update failed: " . $stmt->error);
-}
 
-$stmt->close();
-?>
+} catch (Throwable $e) {
+  $conn->rollback();
+  $_SESSION['flash_error'] = 'Save failed: '.$e->getMessage();
+  header("Location: $return_to");
+  exit;
+}

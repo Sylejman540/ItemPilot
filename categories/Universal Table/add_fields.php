@@ -21,14 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt->bind_param('iis', $table_id, $uid, $field_name);
   $stmt->execute();
 
-  $sql = "ALTER TABLE universal_base ADD COLUMN `" . str_replace("`", "``", $field_name) . "` TEXT";
-  $stmt = $conn->prepare($sql);
-  $stmt->execute();
+  // 1) Add the column (DDL → use query, not prepare)
+  $conn->query("ALTER TABLE `universal_base` ADD COLUMN `".str_replace('`','``',$field_name)."` TEXT");
 
-  $sql = "INSERT INTO universal_base (table_id, user_id) VALUES (?, ?)";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param('ii', $table_id, $uid);
-  $stmt->execute();
+  // 2) Insert a row and set that new column too
+  $col      = str_replace('`','``', $field_name); // escape identifier
+  $init_val = '';                                 // whatever initial value you want
 
   header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit();
