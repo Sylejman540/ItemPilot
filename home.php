@@ -1633,6 +1633,36 @@ document.body.addEventListener('click', e => {
   const closeAdd = e.target.closest('[data-close-add]');
   if (closeAdd) { pop.classList.add('hidden'); }
 });   
+
+document.body.addEventListener('click', e => {
+  const addBtnCol = e.target.closest('#addDeleteBtn');
+  const pop       = document.getElementById('addDeletePop');
+
+  if (addBtnCol && pop) {
+    e.preventDefault();
+    e.stopPropagation();
+    pop.classList.toggle('hidden');  
+    console.log('clicked');
+    return;              
+  }
+  if (pop && !e.target.closest('#addDeletePop, #addDeleteBtn')) {
+    pop.classList.add('hidden');
+  }
+
+  const pg = e.target.closest('.pagination a');
+  if (pg) {  return; }
+  const addBtn = e.target.closest('#addIcon');
+  if (addBtn) { }
+  const closeAdd = e.target.closest('[data-close-add]');
+  if (closeAdd) { pop.classList.add('hidden'); }
+}); 
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // if the modal contains no field rows, hide the trigger
+    const hasFields = document.querySelector('#addDeletePop input[name^="extra_field_"]') !== null;
+    const btn = document.getElementById('addDeleteBtn');
+    if (btn && !hasFields) btn.classList.add('hidden');
+  });
 </script>
 </body>
 </html>

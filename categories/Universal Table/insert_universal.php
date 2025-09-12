@@ -5,12 +5,10 @@ session_start();
 $uid = $_SESSION['user_id'] ?? 0;
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
-/* ---------- Config ---------- */
 $CATEGORY_URL = '/ItemPilot/categories/Universal%20Table';
 $UPLOAD_DIR   = __DIR__ . '/uploads/';
 $UPLOAD_URL   = $CATEGORY_URL . '/uploads';
 
-/* ---------- Resolve table_id (session/URL/create) ---------- */
 $action   = $_GET['action'] ?? null;
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
@@ -46,7 +44,6 @@ if ($action === 'create_blank') {
   $_SESSION['current_table_id'] = $table_id;
 }
 
-/* ---------- Create/Update record ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $id        = $_POST['id'] ?? '';
   $name      = $_POST['name'] ?? '';
@@ -55,16 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $status    = $_POST['status'] ?? '';
   $attachment_summary = $_POST['existing_attachment'] ?? '';
 
-  // dynamic inputs for universal_base (your form may post dyn[...] and/or extra_field_<id>)
   $dynIn = $_POST['dyn'] ?? [];
 
-  // Map extra_field_<id> -> dyn[<field_name>]
-  $mapStmt = $conn->prepare("
-    SELECT id, field_name
-    FROM universal_fields
-    WHERE user_id = ? AND table_id = ?
-    ORDER BY id ASC
-  ");
+  $mapStmt = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
   $mapStmt->bind_param('ii', $uid, $table_id);
   $mapStmt->execute();
   $mapRes = $mapStmt->get_result();
@@ -77,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
   $mapStmt->close();
 
-  // handle file upload
   if (isset($_FILES['attachment_summary']) && $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK) {
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
       die("Could not create uploads directory.");
@@ -94,22 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $rec_id = is_numeric($id) ? (int)$id : 0;
 
   if ($rec_id <= 0) {
-    /* ---- INSERT universal (tbody) ---- */
-    $stmt = $conn->prepare("
-      INSERT INTO universal (name, notes, assignee, status, attachment_summary, table_id, user_id)
-      VALUES (?,?,?,?,?,?,?)
-    ");
+    $stmt = $conn->prepare("INSERT INTO universal (name, notes, assignee, status, attachment_summary, table_id, user_id) VALUES (?,?,?,?,?,?,?)");
     $stmt->bind_param('ssssssi', $name, $notes, $assignee, $status, $attachment_summary, $table_id, $uid);
     $stmt->execute();
-    $row_id = (int)$stmt->insert_id;   // <-- this row's link key
+    $row_id = (int)$stmt->insert_id; 
     $stmt->close();
 
-    /* ---- INSERT/INIT universal_base for THIS row_id ---- */
-    $colRes = $conn->query("
-      SELECT COLUMN_NAME
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
-    ");
+    $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
     $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
     $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
     $editable  = array_values(array_diff($validCols, $exclude));
@@ -124,8 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($toSave) {
       $cols  = array_keys($toSave);
       $place = array_fill(0, count($cols), '?');
-      $sql   = "INSERT INTO universal_base (`table_id`,`user_id`,`row_id`,`"
-             . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
+      $sql   = "INSERT INTO universal_base (`table_id`,`user_id`,`row_id`,`" . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
       $stmt  = $conn->prepare($sql);
 
       $types  = 'iii' . str_repeat('s', count($cols));
@@ -144,23 +123,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
   } else {
-    /* ---- UPDATE universal (tbody) ---- */
-    $stmt = $conn->prepare("
-      UPDATE universal
-         SET name=?, notes=?, assignee=?, status=?, attachment_summary=?
-       WHERE id=? AND table_id=? AND user_id=?
-    ");
+    $stmt = $conn->prepare("UPDATE universal SET name=?, notes=?, assignee=?, status=?, attachment_summary=? WHERE id=? AND table_id=? AND user_id=?");
     $stmt->bind_param('sssssiii', $name, $notes, $assignee, $status, $attachment_summary, $rec_id, $table_id, $uid);
     $stmt->execute();
     $stmt->close();
 
-    /* ---- UPDATE universal_base for THIS row_id if dynamic fields posted ---- */
     if (!empty($dynIn)) {
-      $colRes = $conn->query("
-        SELECT COLUMN_NAME
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
-      ");
+      $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
       $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
       $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
       $editable  = array_values(array_diff($validCols, $exclude));
@@ -172,7 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
       }
 
-      // ensure base row exists for this row_id
       $chk = $conn->prepare("SELECT id FROM universal_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
       $chk->bind_param('iii', $table_id, $uid, $rec_id);
       $chk->execute();
@@ -196,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (in_array('updated_at', $validCols, true)) { $set[] = "`updated_at`=NOW()"; }
         if ($set) {
-          $sql = "UPDATE universal_base SET ".implode(', ', $set)." WHERE table_id=? AND user_id=? AND row_id=?";
+          $sql = "UPDATE universal_base SET " . implode(', ', $set) . " WHERE table_id=? AND user_id=? AND row_id=?";
           $types .= 'iii';
           $vals[] = $table_id; $vals[] = $uid; $vals[] = $rec_id;
 
@@ -214,7 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   exit;
 }
 
-/* ---------- Title (tables) ---------- */
 $stmt = $conn->prepare("SELECT table_title FROM `tables` WHERE user_id = ? AND table_id = ? LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
 $stmt->execute();
@@ -223,14 +190,7 @@ $row = $res->fetch_assoc();
 $stmt->close();
 $tableTitle = $row['table_title'] ?? 'Untitled table';
 
-/* ---------- Ensure THEAD exists ---------- */
-$stmt = $conn->prepare("
-  SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
-    FROM universal_thead
-   WHERE user_id = ? AND table_id = ?
-ORDER BY id DESC
-   LIMIT 1
-");
+$stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment FROM universal_thead WHERE user_id = ? AND table_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
 $stmt->execute();
 $theadRes = $stmt->get_result();
@@ -244,11 +204,7 @@ if ($theadRes && $theadRes->num_rows) {
     'thead_status'     => 'Status',
     'thead_attachment' => 'Attachment',
   ];
-  $ins = $conn->prepare("
-    INSERT INTO universal_thead
-      (user_id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment)
-    VALUES (?,?,?,?,?,?,?)
-  ");
+  $ins = $conn->prepare("INSERT INTO universal_thead (user_id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment) VALUES (?,?,?,?,?,?,?)");
   $ins->bind_param('iisssss', $uid, $table_id,
     $thead['thead_name'], $thead['thead_notes'], $thead['thead_assignee'],
     $thead['thead_status'], $thead['thead_attachment']
@@ -257,7 +213,6 @@ if ($theadRes && $theadRes->num_rows) {
 }
 $stmt->close();
 
-/* ---------- Pagination + data ---------- */
 $limit  = 10;
 $page   = (isset($_GET['page']) && is_numeric($_GET['page'])) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
@@ -269,13 +224,7 @@ $countStmt->execute(); $countStmt->bind_result($totalRows); $countStmt->fetch();
 
 $totalPages = (int)ceil($totalRows / $limit);
 
-$dataStmt = $conn->prepare("
-  SELECT id, name, notes, assignee, status, attachment_summary
-    FROM universal
-   WHERE user_id = ? AND table_id = ?
-ORDER BY id ASC
-   LIMIT ? OFFSET ?
-");
+$dataStmt = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary FROM universal WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
 $dataStmt->bind_param('iiii', $uid, $table_id, $limit, $offset);
 $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -294,14 +243,10 @@ $hasRecord = count($rows) > 0;
   <section class="flex mt-6 justify-between ml-3">
     <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php" class="flex gap-2">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-      <input type="text" name="table_title"
-             value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>"
-             class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-             placeholder="Untitled table"/>
+      <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Untitled table"/>
     </form>
 
-    <button id="addIcon" type="button"
-            class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
@@ -314,118 +259,168 @@ $hasRecord = count($rows) > 0;
 
   <div class="flex justify-between">
     <div>
-      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
+      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72"/>
       <span id="countU" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
-    <!-- Ghost header cell -->
-    <button id="addColumnBtn" class="ml-2 px-3 text-xs rounded-lg border border-dashed border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-800">+ Add fields</button>
+    <div class="flex gap-3">
+      <button id="addDeleteBtn" class="ml-2 px-3 text-xs bg-red-500 rounded-lg  text-white cursor-pointer">Delete fields</button>  
 
-    <!-- Popover -->
-    <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
-    <!-- Header -->
-    <div class="px-4 py-3 border-b border-gray-100">
-      <div class="flex justify-between items-center gap-2">
-        <!-- icon -->
-        <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
-        <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
-      <button data-close-add type="button" class="cursor-pointer p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
-        <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-      </div>
-
-      <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post">
-        <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
-
-        <label for="field_name" class="block text-sm font-medium text-gray-700 mt-4">Field Name</label>
-        <input type="text" id="field_name" name="field_name" required class="w-full mt-1 mb-3 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-
-        <button type="submit" class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition">Add Field</button>
-      </form>
+      <button id="addColumnBtn" class="ml-2 px-3 text-xs rounded-lg bg-blue-500 text-white cursor-pointer">+ Add fields</button>
     </div>
+
+    <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <div class="flex justify-between items-center gap-2">
+          <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
+          <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
+          <button data-close-add type="button" class="cursor-pointer p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
+            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post">
+          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
+          <label for="field_name" class="block text-sm font-medium text-gray-700 mt-4">Field Name</label>
+          <input type="text" id="field_name" name="field_name" required class="w-full mt-1 mb-3 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+
+          <button type="submit" class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition">Add Field</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="addDeletePop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 max-w-[90vw] rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <div class="flex justify-between items-center gap-2">
+          <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
+          <button data-close-add type="button" class="p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
+            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="flex items-start mt-4 gap-2">
+          <svg class="h-5 w-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v6M12 17h.01"/>
+          </svg>
+          <p class="text-xs text-gray-500">Select a field to delete. This action can’t be undone.</p>
+        </div>
+
+        <form action="/ItemPilot/categories/Universal%20Table/delete_fields.php" method="post" class="mt-3">
+          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
+          <?php
+          $uid = (int)($_SESSION['user_id'] ?? 0);
+          $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+
+          $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+          $stmt = $conn->prepare($sql);
+          $stmt->bind_param('ii', $uid, $table_id);
+          $stmt->execute();
+          $result = $stmt->get_result();
+          $fields = $result->fetch_all(MYSQLI_ASSOC);
+          $stmt->close();
+          ?>
+
+          <div class="divide-y divide-gray-100">
+            <?php foreach ($fields as $field): ?>
+              <div class="flex items-center justify-between py-2">
+                <input type="text" readonly name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent px-1 py-1 text-base text-gray-900"/>
+
+                <a href="/ItemPilot/categories/Universal%20Table/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Delete this field?')" class="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete" title="Delete">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
+                  </svg>
+                </a>
+              </div>
+            <?php endforeach; ?>
+          </div>
+
+          <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-end">
+            <button type="button" data-close-add class="px-3 py-1.5 text-xs rounded-md border bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
-    <!-- THEAD -->
-    <div class="universal-table" id="ut-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
-      <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post"
-            class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
+  <!-- THEAD -->
+  <div class="universal-table" id="ut-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
+    <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <input type="hidden" name="row_id" value="<?= (int)($row_id ?? 0) ?>">
+      <input type="hidden" name="id" value="<?= (int)($thead['id'] ?? 0) ?>">
+      <div class="flex text-xs md:text-xs font-bold text-gray-900">
+        <div class="p-2">
+          <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+
+        <div class="p-2">
+          <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+
+        <div class="p-2">
+          <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+
+        <div class="p-2">
+          <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+
+        <div class="p-2">
+          <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+
+        <div class="p-2 flex">
+          <?php
+          // make sure these are set earlier:
+          $uid = (int)($_SESSION['user_id'] ?? 0);
+          $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+
+          $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+          $stmt = $conn->prepare($sql);
+          $stmt->bind_param('ii', $uid, $table_id);
+          $stmt->execute();
+          $result = $stmt->get_result();
+          $fields = $result->fetch_all(MYSQLI_ASSOC);
+          $stmt->close();
+          ?>
+          <?php foreach ($fields as $field): ?>
+            <input type="text" name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Field" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- TBODY -->
+  <div class="w-full divide-y divide-gray-200">
+    <?php if ($hasRecord): foreach ($rows as $r): ?>
+      <form method="POST" action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$r['id'] ?>" enctype="multipart/form-data" class="universal-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+        <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
         <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-        <input type="hidden" name="row_id" value="<?= (int)($row_id ?? 0) ?>">
-        <input type="hidden" name="id" value="<?= (int)($thead['id'] ?? 0) ?>">
-        <div class="flex text-xs md:text-xs font-bold text-gray-900">
-          <div class="p-1">
-            <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name', ENT_QUOTES, 'UTF-8') ?>"
-                   placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-          </div>
-          <div class="p-1">
-            <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes', ENT_QUOTES, 'UTF-8') ?>"
-                   placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-          </div>
-          <div class="p-1">
-            <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee', ENT_QUOTES, 'UTF-8') ?>"
-                   placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-          </div>
-          <div class="p-1">
-            <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>"
-                   placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-          </div>
-          <div class="p-1">
-            <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-          </div>
+        <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-          <div class="p-1 flex">
-            <?php
-            // make sure these are set earlier:
-            $uid = (int)($_SESSION['user_id'] ?? 0);
-            $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
-
-            $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param('ii', $uid, $table_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $fields = $result->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-            ?>
-            <?php foreach ($fields as $field): ?>
-              <input type="text" name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Field" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-            <?php endforeach; ?>
-          </div>
-      </form>
-    </div>
-
-    <!-- TBODY -->
-    <div class="w-full divide-y divide-gray-200">
-      <?php if ($hasRecord): foreach ($rows as $r): ?>
-        <form method="POST"
-              action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$r['id'] ?>"
-              enctype="multipart/form-data"
-              class="universal-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm"
-              data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-
-          <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-          <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-          <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-
-          <div class="p-1 text-gray-600" data-col="name">
-            <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
+        <div class="p-1 text-gray-600" data-col="name">
+            <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        </div>
 
           <div class="p-1 text-gray-600" data-col="notes">
-            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
           <div class="p-1 text-gray-600" data-col="assignee">
-            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
           </div>
 
-          <div class="p-1 text-xs font-semibold" data-col="status">
+          <div class="p-1 w-30 text-xs font-semibold" data-col="status">
             <?php
               $statusColors = [
                 'To Do'       => 'bg-red-100 text-red-800',
@@ -441,45 +436,27 @@ $hasRecord = count($rows) > 0;
             </select>
           </div>
 
-          <div class="p-1 gap-3" data-col="attachment">
-            <?php if (!empty($r['attachment_summary'])): ?>
-              <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment_summary']) ?>"
-                   class="w-16 h-10 rounded-md ml-16" alt="Attachment">
-            <?php else: ?>
-              <span class="ml-15 italic text-gray-400">📎 None</span>
-            <?php endif; ?>
-            </div>
-            <?php $row_id = (int)$r['id']; /* <-- tie dynamic values to THIS row */ ?>
+                    <div class="p-1 text-gray-600" data-col="assignee">
+            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          </div>
 
-            <div class="p-1 flex ml-20">
+          <div class="p-1 flex" data-col="dyn">
+            <?php $row_id = (int)$r['id']; ?>
               <?php
-              // Identify the record
               $row_id   = (int)($row_id ?? 0);
               $table_id = (int)($table_id ?? 0);
               $user_id  = (int)($_SESSION['user_id'] ?? 0);
 
-              // Collect actual columns present in universal_base
-              $colRes = $conn->query("
-                SELECT COLUMN_NAME
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
-              ");
+              $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
               $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
 
-              // Filter your metadata list ($fields) to only existing columns
               $dynFields = array_values(array_filter($fields, function($meta) use ($validCols) {
                 return in_array($meta['field_name'], $validCols, true);
               }));
 
-              // Fetch the base row for THIS table/user/row (scoped!)
               $baseRow = [];
               if ($table_id > 0 && $user_id > 0 && $row_id > 0) {
-                $stmt = $conn->prepare("
-                  SELECT *
-                  FROM `universal_base`
-                  WHERE `table_id` = ? AND `user_id` = ? AND `row_id` = ?
-                  LIMIT 1
-                ");
+                $stmt = $conn->prepare("SELECT * FROM `universal_base` WHERE `table_id` = ? AND `user_id` = ? AND `row_id` = ? LIMIT 1");
                 $stmt->bind_param('iii', $table_id, $user_id, $row_id);
                 $stmt->execute();
                 $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
@@ -489,40 +466,36 @@ $hasRecord = count($rows) > 0;
 
               <?php foreach ($dynFields as $colMeta): ?>
                 <?php $colName = $colMeta['field_name']; ?>
-                <input
-                  type="text"
-                  name="dyn[<?= htmlspecialchars($colName, ENT_QUOTES) ?>]"
-                  value="<?= htmlspecialchars($baseRow[$colName] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                />
+                <input type="text" name="dyn[<?= htmlspecialchars($colName, ENT_QUOTES) ?>]" value="<?= htmlspecialchars($baseRow[$colName] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
               <?php endforeach; ?>
-            </div>
           </div>
-        </form>
-      <?php endforeach; else: ?>
-        <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
-      <?php endif; ?>
-    </div>
 
-    <?php if ($totalPages > 1): ?>
-      <div class="pagination my-4 flex justify-start md:justify-center space-x-2">
-        <?php if ($page > 1): ?>
-          <a href="insert_universal.php?page=<?= $page-1 ?>&table_id=<?= (int)$table_id ?>"
-             class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">« Prev</a>
-        <?php endif; ?>
-        <?php for ($i=1; $i<=$totalPages; $i++): ?>
-          <a href="insert_universal.php?page=<?= $i ?>&table_id=<?= (int)$table_id ?>"
-             class="px-3 py-1 border rounded transition
-               <?= $i===$page ? 'bg-blue-600 text-white border-blue-600 font-semibold'
-                              : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>"><?= $i ?></a>
-        <?php endfor; ?>
-        <?php if ($page < $totalPages): ?>
-          <a href="insert_universal.php?page=<?= $page+1 ?>&table_id=<?= (int)$table_id ?>"
-             class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">Next »</a>
-        <?php endif; ?>
-      </div>
+          <div class="p-1">
+            <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Are you sure?')" class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition ml-10">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
+              </svg>
+            </a>
+          </div>
+      </form>
+    <?php endforeach; else: ?>
+      <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
     <?php endif; ?>
   </div>
+
+  <?php if ($totalPages > 1): ?>
+    <div class="pagination my-4 flex justify-start md:justify-center space-x-2">
+      <?php if ($page > 1): ?>
+        <a href="insert_universal.php?page=<?= $page-1 ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">« Prev</a>
+      <?php endif; ?>
+      <?php for ($i=1; $i<=$totalPages; $i++): ?>
+        <a href="insert_universal.php?page=<?= $i ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded transition <?= $i===$page ? 'bg-blue-600 text-white border-blue-600 font-semibold' : 'text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700' ?>"><?= $i ?></a>
+      <?php endfor; ?>
+      <?php if ($page < $totalPages): ?>
+        <a href="insert_universal.php?page=<?= $page+1 ?>&table_id=<?= (int)$table_id ?>" class="px-3 py-1 border rounded text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">Next »</a>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
 </main>
 </header>
 
@@ -545,20 +518,17 @@ $hasRecord = count($rows) > 0;
 
       <div class="mt-5">
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?></label>
-        <input type="text" name="name" placeholder="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>"
-               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <input type="text" name="name" placeholder="<?= htmlspecialchars($thead['thead_name'] ?? 'Name') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?></label>
-        <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>"
-               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?></label>
-        <input type="text" name="assignee" placeholder="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>"
-               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        <input type="text" name="assignee" placeholder="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
       <div>
@@ -575,28 +545,27 @@ $hasRecord = count($rows) > 0;
         <input id="attachment_summary" type="file" name="attachment_summary" accept="image/*" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2">
       </div>
 
-            <?php
-            // make sure these are set earlier:
-            $uid = (int)($_SESSION['user_id'] ?? 0);
-            $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+      <?php
+        $uid = (int)($_SESSION['user_id'] ?? 0);
+        $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
 
-            $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param('ii', $uid, $table_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $fields = $result->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-            ?>
-            <?php foreach ($fields as $field): ?>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  <?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
-                </label>
-                <input type="text" name="extra_field_<?= (int)$field['id'] ?>"
-                      class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2"/>
-              </div>
-            <?php endforeach; ?>
+        $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('ii', $uid, $table_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $fields = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+      ?>
+      <?php foreach ($fields as $field): ?>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+          </label>
+          <input type="text" name="extra_field_<?= (int)$field['id'] ?>" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2"/>
+        </div>
+      <?php endforeach; ?>
+
       <div>
         <button type="submit" class="w-full py-3 bg-blue-800 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
           Create New Record
