@@ -246,7 +246,7 @@ $hasRecord = count($rows) > 0;
       <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Untitled table"/>
     </form>
 
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-800 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-600 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
@@ -265,47 +265,60 @@ $hasRecord = count($rows) > 0;
 
     <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
 
-    <div class="hidden fixed z-[70] left-1/2 top-1/2 p-3 -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl ring-1 ring-black/5" id="actionMenuList">
-      <div class="flex items-center justify-between px-5 py-2 border-b border-gray-100">
-        <h3 id="moreTitle" class="text-base font-semibold text-gray-900">More</h3>
-        <button data-close-add class="p-2 rounded-md hover:bg-gray-100 cursor-pointer" aria-label="Close">
-          <!-- X icon -->
-          <svg class="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <!-- same id -->
+    <div id="actionMenuList"
+        class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,28rem)] rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-0 overflow-hidden">
+
+      <!-- header (tighter) -->
+      <div class="flex items-start justify-between px-4 pt-3 pb-2 border-b border-gray-100">
+        <div>
+          <h3 id="moreTitle" class="text-sm font-semibold text-gray-900">More</h3>
+          <p class="mt-0.5 text-[11px] text-gray-500">Table actions</p>
+        </div>
+        <button data-close-add class="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
           </svg>
         </button>
       </div>
 
-      <div class="space-y-4">
-        <!-- Add fields row -->
-        <div class="md:flex items-start gap-3 border-b border-gray-100 p-3 rounded-xl hover:bg-gray-50 cursor-pointer" id="addColumnBtn">
-          <!-- icon -->
-          <svg class="w-5 h-5 mt-0.5 text-blue-600 mt-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"/>
-          </svg>
-          <div class="flex-1">
-            <h4 class="text-sm font-medium text-gray-900">Add fields</h4>
-            <p class="text-xs text-gray-500">Create a new column with type and default value.</p>
+      <div class="p-3 space-y-3">
+        <div id="addColumnBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-blue-50/40 hover:border-blue-100 transition">
+          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-blue-100 text-blue-700">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"/>
+            </svg>
           </div>
-          <button id="addFieldsBtn" class="px-3 py-1.5 text-sm font-medium text-blue-800 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30">Add</button>
+
+          <div class="flex-1">
+            <h4 class="text-[13px] font-medium text-gray-900 md:mt-0 mt-1">Add fields</h4>
+            <p class="text-[11px] leading-4 text-gray-500 md:mt-0 mt-1">Create a new column with type and default value.</p>
+          </div>
+
+          <button id="addFieldsBtn" class="self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 md:mt-0 mt-1">Add</button>
         </div>
 
-        <!-- Delete fields row -->
-        <div class="md:flex items-start gap-3 p-3 rounded-xl mt-2 hover:bg-gray-50 border-b border-gray-100 cursor-pointer" id="addDeleteBtn">
-          <!-- icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" class="mt-2" width="20" height="20" viewBox="0 0 24 24" fill="#ef4444" aria-hidden="true">
-            <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/>
-          </svg>
-          <div class="flex-1">
-            <h4 class="text-sm font-medium text-gray-900">Delete fields</h4>
-            <p class="text-xs text-gray-500">Remove selected fields from this table.</p>
+        <div class="h-px bg-gray-100"></div>
+
+        <p class="px-0.5 text-[10px] font-semibold tracking-wide text-red-600/80 uppercase">Danger</p>
+
+        <div id="addDeleteBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-red-50/40 hover:border-red-100 transition">
+          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-red-100 text-red-600">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/>
+            </svg>
           </div>
-          <button id="deleteFieldsBtn" class="px-3 py-1.5 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500/30">Delete
+
+          <div class="flex-1">
+            <h4 class="md:mt-0 mt-1 text-[13px] font-medium text-gray-900">Delete fields</h4>
+            <p class="md:mt-0 mt-1 text-[11px] leading-4 text-gray-500">Remove selected fields from this table.<span class="text-gray-700 font-medium">This can’t be undone.</span></p>
+          </div>
+
+          <button id="deleteFieldsBtn" class="md:mt-0 mt-1 self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">Delete
           </button>
         </div>
       </div>
     </div>
-
 
     <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
       <div class="px-4 py-3 border-b border-gray-100">
@@ -524,7 +537,7 @@ $hasRecord = count($rows) > 0;
         <div class="p-1 text-gray-600" data-col="attachment">
           <?php if (!empty($r['attachment_summary'])): ?>
             <?php $src = "/ItemPilot/categories/Universal%20Table/uploads/".rawurlencode($r['attachment_summary']); ?>
-            <img src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>" class="w-16 h-10 rounded-md" alt="Attachment">
+            <img src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>" class="w-16 h-10 rounded-md ml-5" alt="Attachment">
           <?php else: ?>
             <span class="italic text-gray-400 ml-[5px]">📎 None</span>
           <?php endif; ?>
@@ -658,9 +671,7 @@ $hasRecord = count($rows) > 0;
       <?php endforeach; ?>
 
       <div>
-        <button type="submit" class="w-full py-3 bg-blue-800 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
-          Create New Record
-        </button>
+        <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition">Create New Record</button>
       </div>
     </form>
   </div>
