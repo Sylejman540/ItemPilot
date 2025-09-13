@@ -355,8 +355,8 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
 
 <div class="flex justify-between">
     <div>
-      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72"/>
-      <span id="countU" class="ml-2 text-xs text-gray-600"></span>
+      <input id="rowSearchA" type="search" placeholder="Search rows…" data-rows=".applicant-row" data-count="#countA" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72"/>
+      <span id="countA" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
     <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
