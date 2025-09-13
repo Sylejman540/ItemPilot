@@ -2,156 +2,117 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  http_response_code(405);
-  exit('Method Not Allowed');
-}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit('Method Not Allowed'); }
 
-$uid      = (int)($_SESSION['user_id'] ?? 0);
-$table_id = (int)($_POST['table_id'] ?? 0);
-$thead_id = (int)($_POST['id'] ?? 0); // hidden input from your form
+$uid = (int)($_SESSION['user_id'] ?? 0);
+if ($uid <= 0) { http_response_code(401); exit('Unauthorized'); }
 
-if ($uid <= 0 || $table_id <= 0) {
-  http_response_code(400);
-  exit('Missing or invalid user/table');
-}
+$table_id = filter_input(INPUT_POST, 'table_id', FILTER_VALIDATE_INT);
+if (!$table_id) { http_response_code(400); exit('Missing or invalid table_id'); }
 
-/* fixed labels from THEAD */
+// optional: save current thead labels (keep your fields/ids)
 $thead_name       = trim($_POST['thead_name'] ?? '');
 $thead_notes      = trim($_POST['thead_notes'] ?? '');
 $thead_assignee   = trim($_POST['thead_assignee'] ?? '');
 $thead_status     = trim($_POST['thead_status'] ?? '');
 $thead_attachment = trim($_POST['thead_attachment'] ?? '');
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); // throw on SQL errors
+// helper: make a safe SQL identifier (col name)
+$makeIdent = function(string $s): string {
+  // spaces -> _, strip non [A-Za-z0-9_], ensure doesn’t start with digit
+  $s = preg_replace('/\s+/', '_', $s);
+  $s = preg_replace('/[^A-Za-z0-9_]/', '', $s);
+  if ($s === '' || ctype_digit($s[0])) $s = '_' . $s;
+  return substr($s, 0, 64); // MySQL identifier limit
+};
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $conn->begin_transaction();
-
 try {
-  /* ---- 1) Upsert the header labels ---- */
-  if ($thead_id > 0) {
-    $u = $conn->prepare("
-      UPDATE universal_thead
-         SET thead_name=?, thead_notes=?, thead_assignee=?, thead_status=?, thead_attachment=?
-       WHERE id=? AND table_id=? AND user_id=?");
-    $u->bind_param(
-      'ssssiiii',
-      $thead_name, $thead_notes, $thead_assignee, $thead_status, $thead_attachment,
-      $thead_id, $table_id, $uid
-    );
-    $u->execute();
-    $u->close();
-  } else {
-    $i = $conn->prepare("
-      INSERT INTO universal_thead
-        (thead_name, thead_notes, thead_assignee, thead_status, thead_attachment, user_id, table_id)
-      VALUES (?,?,?,?,?,?,?)");
-    $i->bind_param('sssssii',
-      $thead_name, $thead_notes, $thead_assignee, $thead_status, $thead_attachment,
-      $uid, $table_id
-    );
-    $i->execute();
-    $i->close();
-  }
-
-  /* ---- 2) Load current dynamic field names (universal_fields) ---- */
-  $map = [];
-  $s = $conn->prepare("
-    SELECT id, field_name
-      FROM universal_fields
-     WHERE user_id=? AND table_id=?
-     ORDER BY id ASC
+  // 1) record thead labels (like before)
+  $stmt = $conn->prepare("
+    INSERT INTO universal_thead
+      (thead_name, thead_notes, thead_assignee, thead_status, thead_attachment, user_id, table_id)
+    VALUES (?,?,?,?,?,?,?)
   ");
-  $s->bind_param('ii', $uid, $table_id);
-  $s->execute();
-  $res = $s->get_result();
+  $stmt->bind_param('sssssii', $thead_name, $thead_notes, $thead_assignee, $thead_status, $thead_attachment, $uid, $table_id);
+  $stmt->execute();
+  $stmt->close();
+
+  // 2) load current universal_fields map (id => old_name)
+  $map = [];
+  $stmt = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id=? AND table_id=? ORDER BY id ASC");
+  $stmt->bind_param('ii', $uid, $table_id);
+  $stmt->execute();
+  $res = $stmt->get_result();
   while ($row = $res->fetch_assoc()) {
     $map[(int)$row['id']] = $row['field_name'];
   }
-  $s->close();
+  $stmt->close();
 
-  /* Helpers for safe column rename in universal_base */
-  $colMeta = $conn->prepare("
-    SELECT COLUMN_TYPE, IS_NULLABLE
-      FROM INFORMATION_SCHEMA.COLUMNS
-     WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME   = 'universal_base'
-       AND COLUMN_NAME  = ?
+  // 3) current columns in universal_base
+  $cols = [];
+  $q = $conn->query("
+    SELECT COLUMN_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'
   ");
+  foreach ($q->fetch_all(MYSQLI_ASSOC) as $c) { $cols[$c['COLUMN_NAME']] = true; }
 
-  $colExists = $conn->prepare("
-    SELECT 1
-      FROM INFORMATION_SCHEMA.COLUMNS
-     WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME   = 'universal_base'
-       AND COLUMN_NAME  = ?
-  ");
+  // 4) prepare statements we’ll reuse
+  $updField = $conn->prepare("UPDATE universal_fields SET field_name=? WHERE id=? AND table_id=? AND user_id=?");
 
-  $updMeta = $conn->prepare("
-    UPDATE universal_fields
-       SET field_name = ?
-     WHERE id = ? AND table_id = ? AND user_id = ?
-  ");
-
-  /* ---- 3) For every extra_field_<id> from the THEAD form, rename if needed ---- */
-  foreach ($_POST as $k => $v) {
-    if (!preg_match('/^extra_field_(\d+)$/', $k, $m)) continue;
-
+  // 5) walk POSTed extra_field_* and add/rename columns as needed
+  foreach ($_POST as $key => $val) {
+    if (!preg_match('/^extra_field_(\d+)$/', $key, $m)) continue;
     $fid     = (int)$m[1];
-    $newName = trim((string)$v);
-    $oldName = $map[$fid] ?? null;
+    if (!array_key_exists($fid, $map)) continue;
 
-    if ($oldName === null) continue;            // unknown field id
-    if ($newName === '' || $newName === $oldName) continue;
+    $oldRaw  = (string)$map[$fid];
+    $newRaw  = trim((string)$val);
 
-    // Basic identifier validation (MySQL-safe unquoted identifier)
-    if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/', $newName)) {
-      // Skip invalid names silently (or set a flash if you prefer)
-      continue;
-    }
+    // sanitize to valid identifiers
+    $old = $makeIdent($oldRaw);
+    $new = $makeIdent($newRaw);
 
-    // If a column with the old name exists in universal_base, rename it (preserving type & nullability)
-    $colMeta->bind_param('s', $oldName);
-    $colMeta->execute();
-    $meta = $colMeta->get_result()->fetch_assoc();
+    if ($new === '') continue; // skip empty
 
-    if ($meta) {
-      // Don't collide with an existing column of the new name
-      $colExists->bind_param('s', $newName);
-      $colExists->execute();
-      $hasNew = (bool)$colExists->get_result()->fetch_row();
-
-      if (!$hasNew) {
-        $type = $meta['COLUMN_TYPE'];                 // e.g. 'text', 'varchar(191)', 'int(11)'
-        $null = ($meta['IS_NULLABLE'] === 'YES') ? 'NULL' : 'NOT NULL';
-
-        // ALTER TABLE ... CHANGE COLUMN old new TYPE NULL/NOT NULL
-        $sql = sprintf(
-          "ALTER TABLE `universal_base` CHANGE COLUMN `%s` `%s` %s %s",
-          $conn->real_escape_string($oldName),
-          $conn->real_escape_string($newName),
-          $type,
-          $null
-        );
-        $conn->query($sql);
+    // if name didn’t change (after sanitize), just ensure the column exists
+    if ($old === $new) {
+      if (!isset($cols[$new])) {
+        $conn->query("ALTER TABLE `universal_base` ADD COLUMN `{$new}` TEXT NULL");
+        $cols[$new] = true;
       }
+    } else {
+      // name changed
+      $oldExists = isset($cols[$old]);
+      $newExists = isset($cols[$new]);
+
+      if ($oldExists && !$newExists) {
+        // rename column
+        $conn->query("ALTER TABLE `universal_base` CHANGE COLUMN `{$old}` `{$new}` TEXT NULL");
+        unset($cols[$old]); $cols[$new] = true;
+      } elseif (!$oldExists && !$newExists) {
+        // brand new column
+        $conn->query("ALTER TABLE `universal_base` ADD COLUMN `{$new}` TEXT NULL");
+        $cols[$new] = true;
+      }
+      // if $new already exists, we won’t drop/merge here; we’ll just re-map the field.
     }
 
-    // Update the metadata name in universal_fields
-    $updMeta->bind_param('siii', $newName, $fid, $table_id, $uid);
-    $updMeta->execute();
+    // update the field mapping to the (sanitized) $new
+    $updField->bind_param('siii', $new, $fid, $table_id, $uid);
+    $updField->execute();
   }
-
-  $updMeta->close();
-  $colMeta->close();
-  $colExists->close();
+  $updField->close();
 
   $conn->commit();
-
   header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
 
 } catch (Throwable $e) {
   $conn->rollback();
   http_response_code(500);
-  exit('DB error: ' . $e->getMessage());
+  echo 'DB error: ' . $e->getMessage();
+  exit;
 }
