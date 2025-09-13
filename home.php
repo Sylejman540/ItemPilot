@@ -1354,75 +1354,65 @@ $(function () {
 (function ($) {
   if (!window.jQuery) return;
 
-  // ------------ helpers you already have ------------
+  // ---- helpers ----
   const debounce = (fn, ms = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-  const cellText = ($cell) => { const $c = $cell.find('input,textarea,select'); return $c.length ? String($c.val() ?? '') : String($cell.text() ?? ''); };
+  const cellText = ($cell) => {
+    const $c = $cell.find('input,textarea,select');
+    if ($c.length) {
+      if ($c.is('select')) {
+        const opt = $c[0].options[$c[0].selectedIndex];
+        return String(opt ? opt.text : $c.val() ?? '');
+      }
+      return String($c.val() ?? '');
+    }
+    return String(($cell.text() ?? '').trim());
+  };
   const highlightCell = ($cell, q) => {
     const $c = $cell.find('input,textarea,select');
     const t = cellText($cell).toLowerCase();
     const hit = q && t.includes(q.toLowerCase());
     $cell.removeClass('cell-hit'); $c.removeClass('ctrl-hit');
-    if (!q) return;
-    if (hit) ($c.length ? $c.addClass('ctrl-hit') : $cell.addClass('cell-hit'));
+    if (q && hit) ($c.length ? $c.addClass('ctrl-hit') : $cell.addClass('cell-hit'));
   };
 
-  // ------------ NEW: load & merge rows from other pages ------------
-  // We dedupe by the hidden input [name="id"] inside each row <form>.
-  function rowId($row) {
-    const v = $row.find('input[name=id]').val();
-    return v ? String(v) : null;
-  }
-
+  // ---- row id helpers (for dedupe across pages) ----
+  function rowId($row) { const v = $row.find('input[name=id]').val(); return v ? String(v) : null; }
   function collectExistingIds($container, rowsSel) {
     const ids = new Set();
-    $container.find(rowsSel).each(function () {
-      const id = rowId($(this));
-      if (id) ids.add(id);
-    });
+    $container.find(rowsSel).each(function () { const id = rowId($(this)); if (id) ids.add(id); });
     return ids;
   }
 
-  // Fetch all pagination pages found in $scope and append missing rows into $container.
+  // ---- load & merge rows from pagination ----
   async function loadAllPages($scope, rowsSel, $container) {
-    // If we already loaded once for this scope, skip
     if ($scope.data('allPagesLoaded')) return;
-
     const $pag = $scope.find('.pagination a[href]');
     if (!$pag.length) { $scope.data('allPagesLoaded', true); return; }
 
-    const urls = [...new Set($pag.map((_, a) => a.href).get())]; // unique
-
+    const urls = [...new Set($pag.map((_, a) => a.href).get())];
     const existing = collectExistingIds($container, rowsSel);
 
-    // Fetch pages sequentially (simpler & avoids flooding the server)
     for (const url of urls) {
       try {
         const html = await fetch(url, { credentials: 'same-origin' }).then(r => r.text());
         const doc  = new DOMParser().parseFromString(html, 'text/html');
-        const nodes = doc.querySelectorAll(rowsSel);
-        nodes.forEach(node => {
+        doc.querySelectorAll(rowsSel).forEach(node => {
           const $row = $(node);
           const id = rowId($row);
           if (!id || existing.has(id)) return;
           existing.add(id);
-          // Append to the same container that holds current page rows
           $container.append($row);
         });
-      } catch (e) {
-        // swallow and continue; we still filter what we have
-        console.error('Failed to fetch page', url, e);
-      }
+      } catch (e) { console.error('Failed to fetch page', url, e); }
     }
-
-    // Mark as loaded so we don't re-fetch
     $scope.data('allPagesLoaded', true);
   }
 
-  // ------------ your existing filter (unchanged) ------------
+  // ---- filter ----
   function runFilter($input) {
-    const rowsSel  = $input.data('rows');
-    const countSel = $input.data('count');
-    const scopeSel = $input.data('scope');
+    const rowsSel  = $input.data('rows');      // e.g. ".sales-row" or ".universal-row"
+    const countSel = $input.data('count');     // optional counter selector
+    const scopeSel = $input.data('scope');     // optional scope root
     const $scope   = scopeSel ? $(scopeSel) : $(document);
     const $rows    = $scope.find(rowsSel);
     if (!$rows.length) { if (countSel) $(countSel).text(''); return; }
@@ -1430,34 +1420,30 @@ $(function () {
     const q = String($input.val() ?? '').trim();
     let visible = 0;
 
-    // find the container that actually holds the rows
-    // (go up from the first row to a stable parent; adjust if you have a known container)
-    const $container = $scope.find('.md\\:w-full.divide-y'); // example
+    // RELIABLE container: parent of first row (don’t hardcode class combos)
+    const $container = $rows.first().parent();
 
-
-    // If there is a query, first make sure we loaded rows from other pages
-    // (only the first time we search; load once per scope).
-    // We only await the loader when q is non-empty to avoid unnecessary fetches.
     const maybeLoad = q ? loadAllPages($scope, rowsSel, $container) : Promise.resolve();
 
     Promise.resolve(maybeLoad).then(() => {
-      // Re-query after possible appends
       const $allRows = $scope.find(rowsSel);
+      const ql = q.toLowerCase();
 
       $allRows.each(function () {
         const $r = $(this);
         const $cells = $r.find('[data-col]');
         const hay = $cells.map((_, c) => cellText($(c))).get().join(' ').toLowerCase();
-        const match = q ? hay.includes(q.toLowerCase()) : true;
+        const match = q ? hay.includes(ql) : true;
 
-        $r.toggleClass('hidden', !match);
-        if (match) visible++;
+        // Hide/show WHOLE row, robust even without Tailwind
+        if (match) { $r.removeClass('hidden').show(); visible++; }
+        else       { $r.addClass('hidden').hide(); }
 
+        // optional highlight
         $cells.each(function () { highlightCell($(this), match ? q : ''); });
       });
 
       if (countSel) $(countSel).text(q ? (visible ? `${visible} match${visible === 1 ? '' : 'es'}` : 'No matches') : '');
-      // Optionally hide pagination when searching
       $scope.find('.pagination').toggleClass('hidden', !!q);
     });
   }
@@ -1472,17 +1458,17 @@ $(function () {
 
   // events
   $(document).on('input', '[data-rows]', function () { runFilterDebounced($(this)); });
-
   $(document).on('keydown', '[data-rows]', function (e) {
     if (e.key === 'Escape') { $(this).val(''); runFilter($(this)); e.stopPropagation(); }
   });
 
+  // initial run + observe DOM changes
   $(function () { window.TableSearch.refreshAll(); });
-
   const obs = new MutationObserver(debounce(() => window.TableSearch.refreshAll(), 150));
   obs.observe(document.documentElement || document.body, { childList: true, subtree: true });
 
 })(window.jQuery);
+
 
 (function () {
   // parse numbers from "$20", "20$", "20.50", "20,50", etc.
