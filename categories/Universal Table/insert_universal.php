@@ -389,161 +389,144 @@ $hasRecord = count($rows) > 0;
     </div>
   </div>
 <!-- ===== Helpers (add once) ===== -->
+<!-- ====== Equal-width table (each column = 100% / N) ====== -->
 <style>
-  /* Row + cells (no horizontal scrollbars, shrink nicely) */
-  .ut-row{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;overflow:visible}
-  .ut-nowrap{flex-wrap:nowrap}                 /* keep single line on wide screens */
-  .ut-cell{flex:1 1 11rem;min-width:0}        /* ~176px base */
-  .ut-cell-sm{flex:0 0 9rem;min-width:0}      /* smaller cells like Status */
-  .ut-cell-xs{flex:0 0 2.75rem;min-width:0}   /* tiny (icons) */
-  .ut-input,.ut-select{width:100%;min-width:0}/* prevent content from forcing wrap */
+  .ut-eq{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));align-items:center;column-gap:.75rem}
+  .ut-row{padding:.5rem 0;border-bottom:1px solid #e5e7eb}
+  .ut-head{font-weight:700;font-size:.75rem;color:#111827}
+  .ut-cell{min-width:0}
+  .ut-field{width:100%;height:36px;padding:0 .75rem;border:none;background:transparent;border-radius:.5rem}
+  .ut-field:focus{outline:none;box-shadow:0 0 0 2px rgba(59,130,246,.45)}
   .ut-truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-  /* Compact status pill */
-  .ut-pill{border:0;border-radius:9999px;padding:.125rem .5rem;font-size:11px;
-           line-height:1.25rem;appearance:none;outline:0}
+  .ut-pill{height:28px;border:0;border-radius:9999px;padding:0 .5rem;font-size:.75rem;line-height:28px;appearance:none;outline:0}
   .pill-todo{background:#fee2e2;color:#991b1b}
   .pill-progress{background:#fef3c7;color:#92400e}
   .pill-done{background:#dcfce7;color:#166534}
 </style>
 
-  <!-- THEAD -->
-  <div class="universal-table" id="ut-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
-    <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
+<?php
+// ---------- shared data for columns ----------
+$uid      = (int)($_SESSION['user_id'] ?? 0);
+$table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+
+// dynamic field names configured by the user
+$stmt = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id=? AND table_id=? ORDER BY id ASC");
+$stmt->bind_param('ii', $uid, $table_id);
+$stmt->execute();
+$fields = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// only include dynamic columns that exist in universal_base
+$colsRes   = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
+$validCols = array_column($colsRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
+$dynCols   = array_values(array_filter($fields, fn($m)=>in_array($m['field_name'], $validCols, true)));
+
+// fixed columns (match your UI)
+$fixedCols  = ['name','notes','assignee','status','attachment'];
+$hasActions = true; // trash icon column
+
+$totalCols = count($fixedCols) + count($dynCols) + ($hasActions ? 1 : 0);
+?>
+
+<!-- ================= THEAD ================= -->
+<div class="universal-table" id="ut-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
+  <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post" class="thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
+    <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+    <input type="hidden" name="row_id"   value="<?= (int)($row_id ?? 0) ?>">
+    <input type="hidden" name="id"       value="<?= (int)($thead['id'] ?? 0) ?>">
+
+    <div class="ut-eq ut-row ut-head" style="--cols: <?= (int)$totalCols ?>;">
+      <div class="ut-cell"><input name="thead_name"       class="ut-field ut-truncate" placeholder="Names"      value="<?= htmlspecialchars($thead['thead_name'] ?? 'Names', ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="ut-cell"><input name="thead_notes"      class="ut-field ut-truncate" placeholder="Notes"      value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes', ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="ut-cell"><input name="thead_assignee"   class="ut-field ut-truncate" placeholder="Assignee"   value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee', ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="ut-cell"><input name="thead_status"     class="ut-field ut-truncate" placeholder="Status"     value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="ut-cell"><input name="thead_attachment" class="ut-field ut-truncate" placeholder="Attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>"></div>
+
+      <?php foreach ($dynCols as $dc): ?>
+        <div class="ut-cell">
+          <input type="text" name="extra_field_<?= (int)$dc['id'] ?>" class="ut-field ut-truncate"
+                 placeholder="Field" value="<?= htmlspecialchars($dc['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+        </div>
+      <?php endforeach; ?>
+
+      <?php if ($hasActions): ?><div class="ut-cell"></div><?php endif; ?>
+    </div>
+  </form>
+</div>
+
+<!-- ================= TBODY ================= -->
+<div class="w-full">
+  <?php if ($hasRecord): foreach ($rows as $r): ?>
+    <?php
+      // load dynamic values for this row
+      $row_id  = (int)$r['id'];
+      $user_id = (int)($_SESSION['user_id'] ?? 0);
+      $baseRow = [];
+      if ($table_id && $user_id && $row_id) {
+        $stmt = $conn->prepare("SELECT * FROM `universal_base` WHERE `table_id`=? AND `user_id`=? AND `row_id`=? LIMIT 1");
+        $stmt->bind_param('iii', $table_id, $user_id, $row_id);
+        $stmt->execute();
+        $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
+        $stmt->close();
+      }
+      $s = $r['status'] ?? '';
+      $pill = $s==='Done' ? 'pill-done' : ($s==='In Progress' ? 'pill-progress' : 'pill-todo');
+    ?>
+
+    <form method="POST" action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$r['id'] ?>"
+          enctype="multipart/form-data"
+          class="ut-eq ut-row hover:bg-gray-50 text-sm"
+          style="--cols: <?= (int)$totalCols ?>;">
+      <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-      <input type="hidden" name="row_id" value="<?= (int)($row_id ?? 0) ?>">
-      <input type="hidden" name="id" value="<?= (int)($thead['id'] ?? 0) ?>">
-      <div class="flex text-xs md:text-xs font-bold text-gray-900">
-        <div class="p-2">
-          <input name="thead_name" value="<?= htmlspecialchars($thead['thead_name'] ?? 'Name', ENT_QUOTES, 'UTF-8') ?>" placeholder="Name" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
+      <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-        <div class="p-2">
-          <input name="thead_notes" value="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes', ENT_QUOTES, 'UTF-8') ?>" placeholder="Notes" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
+      <div class="ut-cell"><input name="name"     class="ut-field ut-truncate" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="ut-cell"><input name="notes"    class="ut-field ut-truncate" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>"></div>
+      <div class="ut-cell"><input name="assignee" class="ut-field ut-truncate" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>"></div>
 
-        <div class="p-2">
-          <input name="thead_assignee" value="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee', ENT_QUOTES, 'UTF-8') ?>" placeholder="Assignee" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-
-        <div class="p-2">
-          <input name="thead_status" value="<?= htmlspecialchars($thead['thead_status'] ?? 'Status', ENT_QUOTES, 'UTF-8') ?>" placeholder="Status" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-
-        <div class="p-2">
-          <input name="thead_attachment" value="<?= htmlspecialchars($thead['thead_attachment'] ?? 'Attachment', ENT_QUOTES, 'UTF-8') ?>" placeholder="Attachment" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-        </div>
-
-        <div class="p-2 flex">
-          <?php
-          // make sure these are set earlier:
-          $uid = (int)($_SESSION['user_id'] ?? 0);
-          $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
-
-          $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
-          $stmt = $conn->prepare($sql);
-          $stmt->bind_param('ii', $uid, $table_id);
-          $stmt->execute();
-          $result = $stmt->get_result();
-          $fields = $result->fetch_all(MYSQLI_ASSOC);
-          $stmt->close();
-          ?>
-          <?php foreach ($fields as $field): ?>
-            <input type="text" name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Field" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-          <?php endforeach; ?>
-        </div>
+      <div class="ut-cell">
+        <select name="status" class="ut-pill <?= $pill ?>">
+          <option value="To Do"       <?= $s==='To Do'?'selected':'' ?>>To Do</option>
+          <option value="In Progress" <?= $s==='In Progress'?'selected':'' ?>>In Progress</option>
+          <option value="Done"        <?= $s==='Done'?'selected':'' ?>>Done</option>
+        </select>
       </div>
-    </form>
-  </div>
 
-  <!-- TBODY -->
-  <div class="w-full divide-y divide-gray-200">
-    <?php if ($hasRecord): foreach ($rows as $r): ?>
-      <form method="POST" action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$r['id'] ?>" enctype="multipart/form-data" class="universal-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm" data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+      <div class="ut-cell">
+        <?php if (!empty($r['attachment_summary'])): $src="/ItemPilot/categories/Universal%20Table/uploads/".rawurlencode($r['attachment_summary']); ?>
+          <img src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>" class="w-8 h-8 rounded-md" alt="Attachment">
+        <?php else: ?>
+          <span class="italic text-gray-400">📎 None</span>
+        <?php endif; ?>
+      </div>
 
-        <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-        <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-        <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-
-        <div class="p-1 text-gray-600" data-col="name">
-            <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+      <?php foreach ($dynCols as $dc): $col=$dc['field_name']; ?>
+        <div class="ut-cell">
+          <input name="dyn[<?= htmlspecialchars($col, ENT_QUOTES, 'UTF-8') ?>]"
+                 class="ut-field ut-truncate"
+                 value="<?= htmlspecialchars($baseRow[$col] ?? '', ENT_QUOTES, 'UTF-8') ?>">
         </div>
+      <?php endforeach; ?>
 
-          <div class="p-1 text-gray-600" data-col="notes">
-            <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
+      <?php if ($hasActions): ?>
+        <div class="ut-cell">
+          <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
+             onclick="return confirm('Are you sure?')" class="inline-block text-red-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-500 hover:text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z"/>
+            </svg>
+          </a>
+        </div>
+      <?php endif; ?>
+    </form>
 
-          <div class="p-1 text-gray-600" data-col="assignee">
-            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-          </div>
+  <?php endforeach; else: ?>
+    <div class="px-4 py-4 text-center text-gray-500 border-b border-gray-300">No records found.</div>
+  <?php endif; ?>
+</div>
 
-          <div class="p-1 w-30 text-xs font-semibold" data-col="status">
-            <?php
-              $statusColors = [
-                'To Do'       => 'bg-red-100 text-red-800',
-                'In Progress' => 'bg-yellow-100 text-yellow-800',
-                'Done'        => 'bg-green-100 text-green-800'
-              ];
-              $colorClass = $statusColors[$r['status'] ?? ''] ?? 'bg-white text-gray-900';
-            ?>
-            <select name="status" class="custom-select w-full px-3 py-1 rounded-xl status--autosave <?= $colorClass ?>">
-              <option value="To Do"       <?= ($r['status'] ?? '') === 'To Do' ? 'selected' : '' ?>>To Do</option>
-              <option value="In Progress" <?= ($r['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-              <option value="Done"        <?= ($r['status'] ?? '') === 'Done' ? 'selected' : '' ?>>Done</option>
-            </select>
-          </div>
-
-          <div class="p-1 text-gray-600" data-col="attachment">
-            <?php if (!empty($r['attachment_summary'])): ?>
-              <?php $src = "/ItemPilot/categories/Universal%20Table/uploads/".rawurlencode($r['attachment_summary']); ?>
-              <img src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>" class="w-16 h-10 rounded-md" alt="Attachment">
-            <?php else: ?>
-              <span class="italic text-gray-400 ml-[5px]">📎 None</span>
-            <?php endif; ?>
-          </div>
-
-          <div class="p-1 flex" data-col="dyn">
-            <?php $row_id = (int)$r['id']; ?>
-              <?php
-              $row_id   = (int)($row_id ?? 0);
-              $table_id = (int)($table_id ?? 0);
-              $user_id  = (int)($_SESSION['user_id'] ?? 0);
-
-              $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
-              $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
-
-              $dynFields = array_values(array_filter($fields, function($meta) use ($validCols) {
-                return in_array($meta['field_name'], $validCols, true);
-              }));
-
-              $baseRow = [];
-              if ($table_id > 0 && $user_id > 0 && $row_id > 0) {
-                $stmt = $conn->prepare("SELECT * FROM `universal_base` WHERE `table_id` = ? AND `user_id` = ? AND `row_id` = ? LIMIT 1");
-                $stmt->bind_param('iii', $table_id, $user_id, $row_id);
-                $stmt->execute();
-                $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
-                $stmt->close();
-              }
-              ?>
-
-              <?php foreach ($dynFields as $colMeta): ?>
-                <?php $colName = $colMeta['field_name']; ?>
-                <input type="text" name="dyn[<?= htmlspecialchars($colName, ENT_QUOTES) ?>]" value="<?= htmlspecialchars($baseRow[$colName] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-              <?php endforeach; ?>
-          </div>
-
-          <div class="p-1">
-            <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Are you sure?')" class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition ml-10">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
-              </svg>
-            </a>
-          </div>
-      </form>
-    <?php endforeach; else: ?>
-      <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
-    <?php endif; ?>
-  </div>
 
   <?php if ($totalPages > 1): ?>
     <div class="pagination my-4 flex justify-start md:justify-center space-x-2">
