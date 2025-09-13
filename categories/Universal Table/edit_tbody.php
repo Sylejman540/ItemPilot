@@ -11,11 +11,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $uid       = (int)($_SESSION['user_id'] ?? 0);
 $id        = (int)($_POST['id'] ?? $_GET['id'] ?? 0); // tbody row id (row_id)
 $table_id  = (int)($_POST['table_id'] ?? 0);
-$return_to = $_POST['return_to'] ?? ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}");
+$return_to = $_POST['return_to'] ?? ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&table_id={$table_id}");
 
 if ($uid <= 0 || $table_id <= 0 || $id <= 0) {
   $_SESSION['flash_error'] = 'Bad request: missing uid/table_id/id.';
-  header("Location: $return_to");
+  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
 }
 
@@ -31,14 +31,14 @@ $attachment_summary = $_POST['existing_attachment'] ?? '';
 if (!empty($_FILES['attachment_summary']) && $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK) {
   if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
     $_SESSION['flash_error'] = 'Could not create uploads directory.';
-    header("Location: $return_to"); exit;
+    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}"); exit;
   }
   $tmp  = $_FILES['attachment_summary']['tmp_name'];
   $orig = basename($_FILES['attachment_summary']['name']);
   $dest = $UPLOAD_DIR . $orig;
   if (!move_uploaded_file($tmp, $dest)) {
     $_SESSION['flash_error'] = 'Failed to save uploaded file.';
-    header("Location: $return_to"); exit;
+    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}"); exit;
   }
   $attachment_summary = $orig;
 }
@@ -54,7 +54,7 @@ $colRes = $conn->query("
 ");
 if (!$colRes) {
   $_SESSION['flash_error'] = 'Schema lookup failed.';
-  header("Location: $return_to"); exit;
+  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}"); exit;
 }
 $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
 $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
@@ -134,12 +134,12 @@ try {
 
   $conn->commit();
   $_SESSION['flash_success'] = 'Saved.';
-  header("Location: $return_to");
+  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
 
 } catch (Throwable $e) {
   $conn->rollback();
   $_SESSION['flash_error'] = 'Save failed: '.$e->getMessage();
-  header("Location: $return_to");
+  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
 }

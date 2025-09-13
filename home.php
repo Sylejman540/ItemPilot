@@ -1642,11 +1642,13 @@ document.body.addEventListener('click', e => {
     e.preventDefault();
     e.stopPropagation();
     pop.classList.toggle('hidden');  
+    actionMenuList.classList.toggle('hidden');
     console.log('clicked');
     return;              
   }
   if (pop && !e.target.closest('#addDeletePop, #addDeleteBtn')) {
     pop.classList.add('hidden');
+    actionMenuList.classList.add('hidden');
   }
 
   const pg = e.target.closest('.pagination a');
@@ -1657,12 +1659,36 @@ document.body.addEventListener('click', e => {
   if (closeAdd) { pop.classList.add('hidden'); }
 }); 
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // if the modal contains no field rows, hide the trigger
-    const hasFields = document.querySelector('#addDeletePop input[name^="extra_field_"]') !== null;
-    const btn = document.getElementById('addDeleteBtn');
-    if (btn && !hasFields) btn.classList.add('hidden');
-  });
+document.addEventListener('DOMContentLoaded', () => {
+  // if the modal contains no field rows, hide the trigger
+  const hasFields = document.querySelector('#addDeletePop input[name^="extra_field_"]') !== null;
+  const btn = document.getElementById('addDeleteBtn');
+  if (btn && !hasFields) btn.classList.add('hidden');
+});
+
+// Action menu (uses different IDs than your addColumn/addDelete popovers)
+document.body.addEventListener('click', e => {
+  const trigger = e.target.closest('#actionMenuBtn');
+  const menu    = document.getElementById('actionMenuList');
+
+  if (trigger && menu) {
+    e.preventDefault();
+    e.stopPropagation();
+    menu.classList.toggle('hidden');   // Tailwind-friendly show/hide
+    return;
+  }
+
+  // click outside closes
+  if (menu && !e.target.closest('#actionMenuList, #actionMenuBtn')) {
+    menu.classList.add('hidden');
+  }
+
+  // optional close button inside the menu
+  const close = e.target.closest('[data-close-action-menu]');
+  if (close && menu) menu.classList.add('hidden');
+});
+
+
 </script>
 </body>
 </html>

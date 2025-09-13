@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  header("Location: /ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}");
+    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
 }
 
@@ -263,11 +263,49 @@ $hasRecord = count($rows) > 0;
       <span id="countU" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
-    <div class="flex gap-3">
-      <button id="addDeleteBtn" class="ml-2 px-3 text-xs bg-red-500 rounded-lg  text-white cursor-pointer">Delete fields</button>  
+    <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
 
-      <button id="addColumnBtn" class="ml-2 px-3 text-xs rounded-lg bg-blue-500 text-white cursor-pointer">+ Add fields</button>
+    <div class="hidden fixed z-[70] left-1/2 top-1/2 p-3 -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl ring-1 ring-black/5" id="actionMenuList">
+      <div class="flex items-center justify-between px-5 py-2 border-b border-gray-100">
+        <h3 id="moreTitle" class="text-base font-semibold text-gray-900">More</h3>
+        <button data-close-add class="p-2 rounded-md hover:bg-gray-100 cursor-pointer" aria-label="Close">
+          <!-- X icon -->
+          <svg class="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Add fields row -->
+        <div class="md:flex items-start gap-3 border-b border-gray-100 p-3 rounded-xl hover:bg-gray-50 cursor-pointer" id="addColumnBtn">
+          <!-- icon -->
+          <svg class="w-5 h-5 mt-0.5 text-blue-600 mt-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"/>
+          </svg>
+          <div class="flex-1">
+            <h4 class="text-sm font-medium text-gray-900">Add fields</h4>
+            <p class="text-xs text-gray-500">Create a new column with type and default value.</p>
+          </div>
+          <button id="addFieldsBtn" class="px-3 py-1.5 text-sm font-medium text-blue-800 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30">Add</button>
+        </div>
+
+        <!-- Delete fields row -->
+        <div class="md:flex items-start gap-3 p-3 rounded-xl mt-2 hover:bg-gray-50 border-b border-gray-100 cursor-pointer" id="addDeleteBtn">
+          <!-- icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="mt-2" width="20" height="20" viewBox="0 0 24 24" fill="#ef4444" aria-hidden="true">
+            <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/>
+          </svg>
+          <div class="flex-1">
+            <h4 class="text-sm font-medium text-gray-900">Delete fields</h4>
+            <p class="text-xs text-gray-500">Remove selected fields from this table.</p>
+          </div>
+          <button id="deleteFieldsBtn" class="px-3 py-1.5 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500/30">Delete
+          </button>
+        </div>
+      </div>
     </div>
+
 
     <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
       <div class="px-4 py-3 border-b border-gray-100">
@@ -311,6 +349,7 @@ $hasRecord = count($rows) > 0;
           <p class="text-xs text-gray-500">Select a field to delete. This action can’t be undone.</p>
         </div>
 
+        <div class="w-full bg-gray-100 h-[1px] mt-2"></div>
         <form action="/ItemPilot/categories/Universal%20Table/delete_fields.php" method="post" class="mt-3">
           <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
 
@@ -329,7 +368,7 @@ $hasRecord = count($rows) > 0;
 
           <div class="divide-y divide-gray-100">
             <?php foreach ($fields as $field): ?>
-              <div class="flex items-center justify-between py-2">
+              <div class="flex items-center justify-between">
                 <input type="text" readonly name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent px-1 py-1 text-base text-gray-900"/>
 
                 <a href="/ItemPilot/categories/Universal%20Table/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Delete this field?')" class="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete" title="Delete">
@@ -349,6 +388,24 @@ $hasRecord = count($rows) > 0;
       </div>
     </div>
   </div>
+<!-- ===== Helpers (add once) ===== -->
+<style>
+  /* Row + cells (no horizontal scrollbars, shrink nicely) */
+  .ut-row{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;overflow:visible}
+  .ut-nowrap{flex-wrap:nowrap}                 /* keep single line on wide screens */
+  .ut-cell{flex:1 1 11rem;min-width:0}        /* ~176px base */
+  .ut-cell-sm{flex:0 0 9rem;min-width:0}      /* smaller cells like Status */
+  .ut-cell-xs{flex:0 0 2.75rem;min-width:0}   /* tiny (icons) */
+  .ut-input,.ut-select{width:100%;min-width:0}/* prevent content from forcing wrap */
+  .ut-truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* Compact status pill */
+  .ut-pill{border:0;border-radius:9999px;padding:.125rem .5rem;font-size:11px;
+           line-height:1.25rem;appearance:none;outline:0}
+  .pill-todo{background:#fee2e2;color:#991b1b}
+  .pill-progress{background:#fef3c7;color:#92400e}
+  .pill-done{background:#dcfce7;color:#166534}
+</style>
 
   <!-- THEAD -->
   <div class="universal-table" id="ut-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
@@ -436,8 +493,13 @@ $hasRecord = count($rows) > 0;
             </select>
           </div>
 
-                    <div class="p-1 text-gray-600" data-col="assignee">
-            <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          <div class="p-1 text-gray-600" data-col="attachment">
+            <?php if (!empty($r['attachment_summary'])): ?>
+              <?php $src = "/ItemPilot/categories/Universal%20Table/uploads/".rawurlencode($r['attachment_summary']); ?>
+              <img src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>" class="w-16 h-10 rounded-md" alt="Attachment">
+            <?php else: ?>
+              <span class="italic text-gray-400 ml-[5px]">📎 None</span>
+            <?php endif; ?>
           </div>
 
           <div class="p-1 flex" data-col="dyn">
@@ -524,8 +586,8 @@ $hasRecord = count($rows) > 0;
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?></label>
         <input type="text" name="notes" placeholder="<?= htmlspecialchars($thead['thead_notes'] ?? 'Notes') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-      </div>
-
+      </div>       
+      
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?></label>
         <input type="text" name="assignee" placeholder="<?= htmlspecialchars($thead['thead_assignee'] ?? 'Assignee') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
