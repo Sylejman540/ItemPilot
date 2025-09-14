@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
-$uid = $_SESSION['user_id'] ?? 0;
+$uid = (int)($_SESSION['user_id'] ?? 0);
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
 /* ---------- Config ---------- */
@@ -44,17 +44,21 @@ if ($action === 'create_blank') {
   $_SESSION['current_table_id'] = $table_id;
 }
 
-/* ---------- Create/Update ---------- */
+/* ---------- Create/Update (with dynamic fields) ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $id           = $_POST['id'] ?? '';
-  $brand_flavor = $_POST['brand_flavor'] ?? '';
-  $quantity     = $_POST['quantity'] ?? '';
-  $department   = $_POST['department'] ?? '';
+  $rec_id       = is_numeric($id) ? (int)$id : 0;
+  $table_id     = (int)($_POST['table_id'] ?? $table_id);
+
+  $brand_flavor = trim($_POST['brand_flavor'] ?? '');
+  $quantity     = trim($_POST['quantity'] ?? '');
+  $department   = trim($_POST['department'] ?? '');
   $purchased    = empty($_POST['purchased']) ? 0 : 1; // store as int
-  $notes        = $_POST['notes'] ?? '';
+  $notes        = trim($_POST['notes'] ?? '');
   $photo        = $_POST['existing_photo'] ?? '';
 
-  if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+  // Upload photo
+  if (!empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
       die("Could not create uploads directory.");
     }
@@ -67,21 +71,131 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $photo = $orig;
   }
 
-  if ($id === '' || $id === null) {
+  /* ---- collect dynamic inputs ----
+     1) From "dyn[colname]" (when editing rows)
+     2) From "extra_field_{id}" (when creating via modal with field IDs)
+  */
+  $dynIn = $_POST['dyn'] ?? [];
+
+  $mapStmt = $conn->prepare("SELECT id, field_name FROM groceries_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
+  $mapStmt->bind_param('ii', $uid, $table_id);
+  $mapStmt->execute();
+  $mapRes = $mapStmt->get_result();
+  while ($m = $mapRes->fetch_assoc()) {
+    $key = 'extra_field_' . (int)$m['id'];
+    if (array_key_exists($key, $_POST)) {
+      $val = $_POST[$key];
+      $dynIn[$m['field_name']] = ($val === '') ? null : $val;
+    }
+  }
+  $mapStmt->close();
+
+  // Whitelist columns in groceries_base
+  $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'groceries_base'");
+  $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
+  $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
+  $editable  = array_values(array_diff($validCols, $exclude));
+
+  $toSave = [];
+  foreach ($dynIn as $k => $v) {
+    if (in_array($k, $editable, true)) {
+      $toSave[$k] = ($v === '') ? null : $v;
+    }
+  }
+
+  if ($rec_id <= 0) {
+    // CREATE groceries row
     $stmt = $conn->prepare("
       INSERT INTO groceries (photo, brand_flavor, quantity, department, purchased, notes, table_id, user_id)
       VALUES (?,?,?,?,?,?,?,?)
     ");
-    $stmt->bind_param('ssssisii', $photo, $brand_flavor, $quantity, $department, $purchased, $notes, $table_id, $uid);
+    $stmt->bind_param('ssssisis', $photo, $brand_flavor, $quantity, $department, $purchased, $notes, $table_id, $uid);
+    // fix types: photo s, brand s, quantity s, department s, purchased i, notes s, table i, user i
+    $stmt->bind_param('ssssissi', $photo, $brand_flavor, $quantity, $department, $purchased, $notes, $table_id, $uid);
+    // (To avoid double bind confusion, do it once correctly:)
+    $stmt->close();
+    $stmt = $conn->prepare("
+      INSERT INTO groceries (photo, brand_flavor, quantity, department, purchased, notes, table_id, user_id)
+      VALUES (?,?,?,?,?,?,?,?)
+    ");
+    $stmt->bind_param('ssssissi', $photo, $brand_flavor, $quantity, $department, $purchased, $notes, $table_id, $uid);
+    $stmt->execute();
+    $row_id = (int)$stmt->insert_id;
+    $stmt->close();
+
+    // CREATE groceries_base row (with dynamic values if any)
+    if ($toSave) {
+      $cols  = array_keys($toSave);
+      $place = array_fill(0, count($cols), '?');
+      $sql   = "INSERT INTO groceries_base (`table_id`,`user_id`,`row_id`,`" . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
+      $stmt  = $conn->prepare($sql);
+      $types = 'iii' . str_repeat('s', count($cols));
+      $params = [$table_id, $uid, $row_id];
+      foreach ($cols as $c) { $params[] = $toSave[$c]; }
+      $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
+      call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($params)));
+      $stmt->execute();
+      $stmt->close();
+    } else {
+      // ensure base row exists for later updates
+      $insb = $conn->prepare("INSERT INTO groceries_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
+      $insb->bind_param('iii', $table_id, $uid, $row_id);
+      $insb->execute();
+      $insb->close();
+    }
+
   } else {
+    // UPDATE groceries row
     $stmt = $conn->prepare("
       UPDATE groceries
          SET photo = ?, brand_flavor = ?, quantity = ?, department = ?, purchased = ?, notes = ?
        WHERE id = ? AND table_id = ? AND user_id = ?
     ");
-    $stmt->bind_param('ssssisiii', $photo, $brand_flavor, $quantity, $department, $purchased, $notes, $id, $table_id, $uid);
+    $stmt->bind_param('ssssisiii', $photo, $brand_flavor, $quantity, $department, $purchased, $notes, $rec_id, $table_id, $uid);
+    $stmt->execute();
+    $stmt->close();
+
+    // ensure groceries_base row exists
+    $chk = $conn->prepare("SELECT id FROM groceries_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
+    $chk->bind_param('iii', $table_id, $uid, $rec_id);
+    $chk->execute();
+    $base = $chk->get_result()->fetch_assoc();
+    $chk->close();
+
+    if (!$base) {
+      $insb = $conn->prepare("INSERT INTO groceries_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
+      $insb->bind_param('iii', $table_id, $uid, $rec_id);
+      $insb->execute();
+      $insb->close();
+    }
+
+    // UPDATE dynamic columns
+    if ($toSave) {
+      $setParts = [];
+      $vals  = [];
+      $types = '';
+      foreach ($toSave as $col => $val) {
+        if ($val === null) { $setParts[] = "`$col`=NULL"; }
+        else { $setParts[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
+      }
+      if (in_array('updated_at', $validCols, true)) {
+        $setParts[] = "`updated_at`=NOW()";
+      }
+      if ($setParts) {
+        $sql = "UPDATE groceries_base SET ".implode(', ', $setParts)." WHERE table_id=? AND user_id=? AND row_id=?";
+        $types .= 'iii';
+        $vals[]  = $table_id;
+        $vals[]  = $uid;
+        $vals[]  = $rec_id;
+
+        $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
+        $stmt = $conn->prepare($sql);
+        call_user_func_array([$stmt, 'bind_param'], array_merge([$types], $byRef($vals)));
+        $stmt->execute();
+        $stmt->close();
+      }
+    }
   }
-  $stmt->execute(); $stmt->close();
 
   header("Location: /ItemPilot/home.php?autoload=1&type=groceries&table_id={$table_id}");
   exit;
@@ -124,7 +238,6 @@ if ($headRes && $headRes->num_rows) {
       (user_id, table_id, photo, brand_flavor, quantity, department, purchased, notes)
     VALUES (?,?,?,?,?,?,?,?)
   ");
-  $zero = 'No';
   $ins->bind_param('iissssss', $uid, $table_id,
     $head['photo'], $head['brand_flavor'], $head['quantity'],
     $head['department'], $head['purchased'], $head['notes']
@@ -157,6 +270,18 @@ $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $dataStmt->close();
 $hasRecord = count($rows) > 0;
+
+/* ---------- Dynamic field metadata ---------- */
+$metaStmt = $conn->prepare("SELECT id, field_name FROM groceries_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
+$metaStmt->bind_param('ii', $uid, $table_id);
+$metaStmt->execute();
+$fields = $metaStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$metaStmt->close();
+
+/* for row rendering, check which metadata columns actually exist in groceries_base */
+$colRes    = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'groceries_base'");
+$validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -170,12 +295,10 @@ $hasRecord = count($rows) > 0;
   <section class="flex mt-6 justify-between ml-3" id="randomHeader">
     <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-      <input type="text" name="table_title"
-             value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>"
-             class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
     </form>
 
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-400 hover:bg-blue-500 py-[10px] cursor-pointer px-2 rounded-lg text-white">
+    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 py-[10px] cursor-pointer px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
@@ -186,103 +309,326 @@ $hasRecord = count($rows) > 0;
   <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
-      <div class="mb-3">
-        <input id="rowSearchG" type="search" placeholder="Search rows…" data-rows=".groceries-row" data-count="#countG" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72 md:w-96"/>
-        <span id="countG" class="ml-2 text-xs text-gray-600"></span>
+       <div class="flex justify-between">
+    <div>
+      <input id="rowSearchG" type="search" placeholder="Search rows…" data-rows=".groceries-row" data-count="#countG" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72"/>
+      <span id="countG" class="ml-2 text-xs text-gray-600"></span>
+    </div>
+
+    <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+
+    <!-- same id -->
+    <div id="actionMenuList"
+        class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,28rem)] rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-0 overflow-hidden">
+
+      <!-- header (tighter) -->
+      <div class="flex items-start justify-between px-4 pt-3 pb-2 border-b border-gray-100">
+        <div>
+          <h3 id="moreTitle" class="text-sm font-semibold text-gray-900">More</h3>
+          <p class="mt-0.5 text-[11px] text-gray-500">Table actions</p>
+        </div>
+        <button data-close-add class="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- THEAD (labels editor) -->
-      <div class="universal-table" id="gt-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
-        <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post" class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
-          <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-          <div class="flex text-xs md:text-xs font-bold text-gray-900 uppercase">
-            <div class="w-1/7 p-2"><input name="photo"         value="<?= htmlspecialchars($head['photo'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Photo"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="brand_flavor"  value="<?= htmlspecialchars($head['brand_flavor'], ENT_QUOTES, 'UTF-8') ?>"  placeholder="Brand/Flavor"  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="quantity"      value="<?= htmlspecialchars($head['quantity'], ENT_QUOTES, 'UTF-8') ?>"      placeholder="Quantity"      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-30  p-2"><input name="department"    value="<?= htmlspecialchars($head['department'], ENT_QUOTES, 'UTF-8') ?>"    placeholder="Department"    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="purchased"     value="<?= htmlspecialchars($head['purchased'], ENT_QUOTES, 'UTF-8') ?>"     placeholder="Purchased"     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
-            <div class="w-1/7 p-2"><input name="notes"         value="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Notes"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-3 space-y-3">
+        <div id="addColumnBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-blue-50/40 hover:border-blue-100 transition">
+          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-blue-100 text-blue-700">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"/>
+            </svg>
+          </div>
+
+          <div class="flex-1">
+            <h4 class="text-[13px] font-medium text-gray-900 md:mt-0 mt-1">Add fields</h4>
+            <p class="text-[11px] leading-4 text-gray-500 md:mt-0 mt-1">Create a new column with type and default value.</p>
+          </div>
+
+          <button id="addFieldsBtn" class="self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 md:mt-0 mt-1">Add</button>
+        </div>
+
+        <div class="h-px bg-gray-100"></div>
+
+        <p class="px-0.5 text-[10px] font-semibold tracking-wide text-red-600/80 uppercase">Danger</p>
+
+        <div id="addDeleteBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-red-50/40 hover:border-red-100 transition">
+          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-red-100 text-red-600">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/>
+            </svg>
+          </div>
+
+          <div class="flex-1">
+            <h4 class="md:mt-0 mt-1 text-[13px] font-medium text-gray-900">Delete fields</h4>
+            <p class="md:mt-0 mt-1 text-[11px] leading-4 text-gray-500">Remove selected fields from this table.<span class="text-gray-700 font-medium">This can’t be undone.</span></p>
+          </div>
+
+          <button id="deleteFieldsBtn" class="md:mt-0 mt-1 self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <div class="flex justify-between items-center gap-2">
+          <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
+          <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
+          <button data-close-add type="button" class="cursor-pointer p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
+            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <form action="/ItemPilot/categories/Groceries%20Table/add_fields.php" method="post">
+          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
+          <label for="field_name" class="block text-sm font-medium text-gray-700 mt-4">Field Name</label>
+          <input type="text" id="field_name" name="field_name" required class="w-full mt-1 mb-3 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+
+          <button type="submit" class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition">Add Field</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="addDeletePop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 max-w-[90vw] rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+      <div class="px-4 py-3 border-b border-gray-100">
+        <div class="flex justify-between items-center gap-2">
+          <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
+          <button data-close-add type="button" class="p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
+            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="flex items-start mt-4 gap-2">
+          <svg class="h-5 w-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v6M12 17h.01"/>
+          </svg>
+          <p class="text-xs text-gray-500">Select a field to delete. This action can’t be undone.</p>
+        </div>
+
+        <div class="w-full bg-gray-100 h-[1px] mt-2"></div>
+        <form action="/ItemPilot/categories/Groceries%20Table/delete_fields.php" method="post" class="mt-3">
+          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
+          <?php
+          $uid = (int)($_SESSION['user_id'] ?? 0);
+          $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+
+          $sql = "SELECT id, field_name FROM groceries_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+          $stmt = $conn->prepare($sql);
+          $stmt->bind_param('ii', $uid, $table_id);
+          $stmt->execute();
+          $result = $stmt->get_result();
+          $fields = $result->fetch_all(MYSQLI_ASSOC);
+          $stmt->close();
+          ?>
+
+          <div class="divide-y divide-gray-100">
+            <?php foreach ($fields as $field): ?>
+              <div class="flex items-center justify-between">
+                <input type="text" readonly name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent px-1 py-1 text-base text-gray-900"/>
+
+                <a href="/ItemPilot/categories/Groceries%20Table/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Delete this field?')" class="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete" title="Delete">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
+                  </svg>
+                </a>
+              </div>
+            <?php endforeach; ?>
+          </div>
+
+          <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-end">
+            <button type="button" data-close-add class="px-3 py-1.5 text-xs rounded-md border bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">Cancel</button>
           </div>
         </form>
       </div>
+    </div>
+  </div>
 
-      <!-- TBODY (rows) -->
-      <div class="w-full divide-y divide-gray-200">
-        <?php if ($hasRecord): foreach ($rows as $r): ?>
-          <form method="POST" action="<?= $CATEGORY_URL ?>/insert_groceries.php" enctype="multipart/form-data" class="groceries-row flex items-center border-b border-gray-200 hover:bg-gray-50 text-sm">
+  <style>
+    /* Use ONE grid for both header and rows */
+    .app-grid, .groceries-row {
+      display: grid;
+      grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+      column-gap: .75rem;
+      align-items: center;
+    }
+    .app-grid input, .groceries-row input, .groceries-row select { width:100%; min-width:0; }
+    /* Flatten dynamic wrapper so each input becomes a real column cell */
+    .groceries-row [data-col="dyn"],
+    .app-grid [data-col="dyn"] { display: contents; }
+  </style>
 
-            <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-            <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-            <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+  <?php
+    // --------- Build column count once ----------
+    $uid      = (int)($_SESSION['user_id'] ?? 0);
+    $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
 
-            <!-- Photo -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="photo">
-              <?php if (!empty($r['photo'])): ?>
-                <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['photo']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
-              <?php else: ?>
-                <span class="italic text-gray-400 ml-2">📎 None</span>
-              <?php endif; ?>
-            </div>
+    $sql  = "SELECT id, field_name FROM groceries_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('ii', $uid, $table_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $fields = $result->fetch_all(MYSQLI_ASSOC) ?: [];
+    $stmt->close();
 
-            <!-- Brand/Flavor -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="brand_flavor">
-              <input type="text" name="brand_flavor" value="<?= htmlspecialchars($r['brand_flavor'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-            </div>
+    // Count only dynamic columns that actually exist in groceries_base
+    $colRes    = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'groceries_base'");
+    $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
+    $dynFields = array_values(array_filter($fields, fn($m) => in_array($m['field_name'], $validCols, true)));
+    $dynCount  = count($dynFields);
 
-            <!-- Quantity -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="quantity">
-              <input type="text" name="quantity" value="<?= htmlspecialchars($r['quantity'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-            </div>
+    // Fixed columns you show: photo, brand_flavor, quantity, department, purchased, notes  => 6
+    $fixedCount = 6;
+    $hasAction  = true; // trash column
+    $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
+  ?>
 
-            <!-- Department -->
-            <?php
-              $DEPTS = ['Produce','Bakery','Dairy','Frozen','Meat/Seafood','Dry Goods','Household'];
-              $deptColors = [
-                'Produce'      => 'bg-green-100 text-green-800',
-                'Bakery'       => 'bg-yellow-100 text-yellow-800',
-                'Dairy'        => 'bg-blue-100 text-blue-800',
-                'Frozen'       => 'bg-cyan-100 text-cyan-800',
-                'Meat/Seafood' => 'bg-rose-100 text-rose-800',
-                'Dry Goods'    => 'bg-amber-100 text-amber-800',
-                'Household'    => 'bg-gray-100 text-gray-800',
-              ];
-              $deptClass = $deptColors[$r['department'] ?? ''] ?? 'bg-white text-gray-900';
-            ?>
-            <div class="w-30 p-2 text-gray-600 text-xs font-semibold" data-col="department">
-              <select data-autosave="1" name="department" style="appearance:none;" class="w-full px-2 py-1 rounded-xl status--autosave <?= $deptClass ?>">
-                <?php foreach ($DEPTS as $opt): ?>
-                  <option value="<?= $opt ?>" <?= (($r['department'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
+  <!-- THEAD (labels editor) -->
+  <div class="groceries-table" id="gt-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
+    <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post"
+          class="w-full flex text-xs md:text-xs font-bold text-gray-900 thead-form border-b border-gray-200 app-grid"
+          style="--cols: <?= (int)$totalCols ?>;"
+          data-table-id="<?= (int)$table_id ?>">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
 
-            <!-- Purchased -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="purchased">
-              <label class="inline-flex items-center gap-2 ml-2">
-                <input type="checkbox" name="purchased" value="1" <?= !empty($r['purchased']) ? 'checked' : '' ?> />
-                <span>Purchased</span>
-              </label>
-            </div>
+      <div class="p-2"><input name="photo"         value="<?= htmlspecialchars($head['photo'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Photo"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="brand_flavor"  value="<?= htmlspecialchars($head['brand_flavor'], ENT_QUOTES, 'UTF-8') ?>"  placeholder="Brand/Flavor"  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="quantity"      value="<?= htmlspecialchars($head['quantity'], ENT_QUOTES, 'UTF-8') ?>"      placeholder="Quantity"      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="department"    value="<?= htmlspecialchars($head['department'], ENT_QUOTES, 'UTF-8') ?>"    placeholder="Department"    class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="purchased"     value="<?= htmlspecialchars($head['purchased'], ENT_QUOTES, 'UTF-8') ?>"     placeholder="Purchased"     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="notes"         value="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>"         placeholder="Notes"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
 
-            <!-- Notes -->
-            <div class="w-1/7 p-2 text-gray-600" data-col="notes">
-              <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
-            </div>
+      <!-- Dynamic field labels (each is its own grid column) -->
+      <?php foreach ($fields as $field): ?>
+        <div class="p-2">
+          <input type="text"
+                name="extra_field_<?= (int)$field['id'] ?>"
+                value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                placeholder="Field"
+                class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+      <?php endforeach; ?>
 
-            <div class="ml-auto flex items-center">
-              <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
-                 onclick="return confirm('Are you sure?')"
-                 class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
-                </svg>
-              </a>
-            </div>
-          </form>
-        <?php endforeach; else: ?>
-          <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
-        <?php endif; ?>
-      </div>
+      <?php if ($hasAction): ?><div class="p-2"></div><?php endif; ?>
+    </form>
+  </div>
+
+  <!-- TBODY (rows) -->
+  <div class="w-full divide-y divide-gray-200">
+    <?php if ($hasRecord): foreach ($rows as $r): ?>
+      <form method="POST"
+            action="<?= $CATEGORY_URL ?>/insert_groceries.php"
+            enctype="multipart/form-data"
+            class="groceries-row border-b border-gray-200 hover:bg-gray-50 text-sm"
+            style="--cols: <?= (int)$totalCols ?>;">
+        <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+        <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+        <input type="hidden" name="existing_photo" value="<?= htmlspecialchars($r['photo'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+        <!-- Photo -->
+        <div class="p-2 text-gray-600" data-col="photo">
+          <?php if (!empty($r['photo'])): ?>
+            <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['photo']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
+          <?php else: ?>
+            <span class="italic text-gray-400 ml-2">📎 None</span>
+          <?php endif; ?>
+        </div>
+
+        <!-- Brand/Flavor -->
+        <div class="p-2 text-gray-600" data-col="brand_flavor">
+          <input type="text" name="brand_flavor" value="<?= htmlspecialchars($r['brand_flavor'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        </div>
+
+        <!-- Quantity -->
+        <div class="p-2 text-gray-600" data-col="quantity">
+          <input type="text" name="quantity" value="<?= htmlspecialchars($r['quantity'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        </div>
+
+        <!-- Department -->
+        <?php
+          $DEPTS = ['Produce','Bakery','Dairy','Frozen','Meat/Seafood','Dry Goods','Household'];
+          $deptColors = [
+            'Produce'      => 'bg-green-100 text-green-800',
+            'Bakery'       => 'bg-yellow-100 text-yellow-800',
+            'Dairy'        => 'bg-blue-100 text-blue-800',
+            'Frozen'       => 'bg-cyan-100 text-cyan-800',
+            'Meat/Seafood' => 'bg-rose-100 text-rose-800',
+            'Dry Goods'    => 'bg-amber-100 text-amber-800',
+            'Household'    => 'bg-gray-100 text-gray-800',
+          ];
+          $deptClass = $deptColors[$r['department'] ?? ''] ?? 'bg-white text-gray-900';
+        ?>
+        <div class="p-2 w-30 text-gray-600 text-xs font-semibold" data-col="department">
+          <select data-autosave="1" name="department" style="appearance:none;" class="w-full px-2 py-1 rounded-xl <?= $deptClass ?>">
+            <?php foreach ($DEPTS as $opt): ?>
+              <option value="<?= $opt ?>" <?= (($r['department'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <!-- Purchased -->
+        <div class="p-2 text-gray-600" data-col="purchased">
+          <label class="inline-flex items-center gap-2 ml-2">
+            <input type="checkbox" name="purchased" value="1" <?= !empty($r['purchased']) ? 'checked' : '' ?> />
+            <span>Purchased</span>
+          </label>
+        </div>
+
+        <!-- Notes -->
+        <div class="p-2 text-gray-600" data-col="notes">
+          <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+        </div>
+
+        <!-- Dynamic field values (one input per existing groceries_base column) -->
+        <?php
+          $row_id  = (int)$r['id'];
+          $user_id = (int)($_SESSION['user_id'] ?? 0);
+
+          $baseRow = [];
+          if ($table_id > 0 && $user_id > 0 && $row_id > 0) {
+            $stmt = $conn->prepare("SELECT * FROM `groceries_base` WHERE `table_id` = ? AND `user_id` = ? AND `row_id` = ? LIMIT 1");
+            $stmt->bind_param('iii', $table_id, $user_id, $row_id);
+            $stmt->execute();
+            $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
+            $stmt->close();
+          }
+        ?>
+        <div class="p-2" data-col="dyn">
+          <?php foreach ($dynFields as $colMeta): ?>
+            <?php $colName = $colMeta['field_name']; ?>
+            <input type="text" name="dyn[<?= htmlspecialchars($colName, ENT_QUOTES) ?>]"
+                  value="<?= htmlspecialchars($baseRow[$colName] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                  class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
+          <?php endforeach; ?>
+        </div>
+
+        <!-- Action -->
+        <div class="p-2">
+          <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
+            onclick="return confirm('Are you sure?')"
+            class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.8" stroke="currentColor"
+                class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
+            </svg>
+          </a>
+        </div>
+      </form>
+    <?php endforeach; else: ?>
+      <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
+    <?php endif; ?>
+  </div>
 
       <?php if ($totalPages > 1): ?>
         <div class="pagination grocery my-2 flex justify-start md:justify-center space-x-2">
@@ -312,6 +658,15 @@ $hasRecord = count($rows) > 0;
       </a>
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
+
+    <?php
+      // Pull dynamic fields again for the create form (labels only)
+      $fstmt = $conn->prepare("SELECT id, field_name FROM groceries_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
+      $fstmt->bind_param('ii', $uid, $table_id);
+      $fstmt->execute();
+      $createFields = $fstmt->get_result()->fetch_all(MYSQLI_ASSOC);
+      $fstmt->close();
+    ?>
 
     <form action="<?= $CATEGORY_URL ?>/insert_groceries.php" method="POST" enctype="multipart/form-data" class="space-y-6">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
@@ -358,8 +713,17 @@ $hasRecord = count($rows) > 0;
         <input type="text" name="notes" placeholder="<?= htmlspecialchars($head['notes'], ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
       </div>
 
+      <?php if (!empty($createFields)): ?>
+        <?php foreach ($createFields as $field): ?>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></label>
+            <input type="text" name="extra_field_<?= (int)$field['id'] ?>" placeholder="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+
       <div>
-        <button type="submit" class="w-full py-3 bg-blue-400 hover:bg-blue-500 text-white font-semibold rounded-lg transition">Create New Record</button>
+        <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition">Create New Record</button>
       </div>
     </form>
   </div>

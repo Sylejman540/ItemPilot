@@ -297,7 +297,7 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
              class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
     </form>
 
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-700 hover:bg-blue-800 py-[10px] cursor-pointer px-2 rounded-lg text-white">
+    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 py-[10px] cursor-pointer px-2 rounded-lg text-white">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
