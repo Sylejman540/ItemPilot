@@ -666,7 +666,7 @@ $hasRecord = count($rows) > 0;
           <label class="block text-sm font-medium text-gray-700 mb-1">
             <?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
           </label>
-          <input type="text" name="extra_field_<?= (int)$field['id'] ?>" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2"/>
+          <input type="text" name="extra_field_<?= (int)$field['id'] ?>" placehoder="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm file:bg-blue-50 file:border-0 file:rounded-md file:px-4 file:py-2"/>
         </div>
       <?php endforeach; ?>
 

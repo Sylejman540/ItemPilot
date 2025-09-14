@@ -362,8 +362,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
     <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
 
     <!-- same id -->
-    <div id="actionMenuList"
-        class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,28rem)] rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-0 overflow-hidden">
+    <div id="actionMenuList" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,28rem)] rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-0 overflow-hidden">
 
       <!-- header (tighter) -->
       <div class="flex items-start justify-between px-4 pt-3 pb-2 border-b border-gray-100">
@@ -770,7 +769,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
         <?php foreach ($fields as $field): ?>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1"><?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></label>
-            <input type="text" name="extra_field_<?= (int)$field['id'] ?>" class="w-full mt-1 border border-gray-300 rounded-lg p-2 text-sm"/>
+            <input type="text" name="extra_field_<?= (int)$field['id'] ?>" placeholder="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
