@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                notes              = ?,
                priority           = ?,
                owner              = ?,
-               deadline           = ?
+               deadline           = $deadlineDb
          WHERE id = ? AND table_id = ? AND user_id = ?
     ";
     $stmt = $conn->prepare($sql);

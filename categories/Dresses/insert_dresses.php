@@ -567,8 +567,9 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
                      class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
             </div>
 
-            <div class="p-2 py-1 text-gray-600 whitespace-normal break-words" data-col="deadline">
-              <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES) ?>" readonly class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+            <div class="flex p-2 gap-1 py-1 text-gray-600 whitespace-normal break-words" data-col="deadline">
+              <data class="py-2">&euro;</data>
+              <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES) ?>" readonly class="w-full bg-transparent border-none py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
             </div>
 
             <div class="p-2 py-1 flex items-center gap-2" data-col="attachment">
