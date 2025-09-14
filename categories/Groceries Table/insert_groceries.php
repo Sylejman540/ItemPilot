@@ -309,7 +309,7 @@ $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NA
   <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
 
-       <div class="flex justify-between">
+    <div class="flex justify-between">
     <div>
       <input id="rowSearchG" type="search" placeholder="Search rows…" data-rows=".groceries-row" data-count="#countG" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72"/>
       <span id="countG" class="ml-2 text-xs text-gray-600"></span>
@@ -510,7 +510,7 @@ $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NA
 
       <!-- Dynamic field labels (each is its own grid column) -->
       <?php foreach ($fields as $field): ?>
-        <div class="p-2">
+        <div>
           <input type="text"
                 name="extra_field_<?= (int)$field['id'] ?>"
                 value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
