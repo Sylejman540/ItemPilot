@@ -1758,13 +1758,11 @@ document.body.addEventListener('click', e => {
 });
 
 (() => {
-  const AJAX_FORMS = '.thead-form, .applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
+  const AJAX_FORMS = '.thead-form, .applicant-row, .football-row, .sales-row, .universal-row, .groceries-row, .new-record-form';
 
-  // Submit any table form via AJAX
   document.addEventListener('submit', async (e) => {
     const form = e.target;
     if (!form.matches(AJAX_FORMS)) return;
-
     e.preventDefault();
 
     const fd = new FormData(form);
@@ -1772,25 +1770,30 @@ document.body.addEventListener('click', e => {
     const action = form.getAttribute('action') || window.location.href;
 
     try {
-      const res = await fetch(action, {
+      const res  = await fetch(action, {
         method,
         body: fd,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json'
-        }
+        headers: { 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }
       });
 
-      if (!res.ok) throw new Error('Server error');
-      const data = await res.json();
-      // Optional: update fields that are computed on the server (e.g., Profit)
-      // Example for Dresses profit:
-      const profitInput = form.querySelector('input[name="deadline"]');
-      if (profitInput && typeof data.profit !== 'undefined') {
-        profitInput.value = data.profit;
+      const raw = await res.text();
+      let data; try { data = JSON.parse(raw); } catch { console.error(raw); throw new Error('Bad JSON'); }
+      if (!res.ok || !data?.ok) throw new Error(data?.error || 'Server error');
+
+      // If server gave us the new row HTML, insert it at the top of the tbody wrapper
+      if (data.row_html && data.table_id) {
+        // table header div has id="ut-<table_id>"; the next sibling is your rows wrapper
+        const tableHead = document.querySelector(`#ut-${data.table_id}`);
+        const rowsWrap = tableHead?.nextElementSibling?.matches('.w-full.divide-y') ? tableHead.nextElementSibling : document.querySelector('.w-full.divide-y');
+        if (rowsWrap) rowsWrap.insertAdjacentHTML('afterbegin', data.row_html);
       }
 
-      // Tiny success toast
+      // If it was the modal form, reset and close it
+      if (form.classList.contains('new-record-form')) {
+        form.reset();
+        document.querySelector('#addForm [data-close-add]')?.click?.();
+      }
+
       toast('Saved');
     } catch (err) {
       console.error(err);
@@ -1798,64 +1801,31 @@ document.body.addEventListener('click', e => {
     }
   });
 
-  // Autosave on change for quick fields (your data-autosave attributes)
+  // autosave on change still fine
   document.addEventListener('change', (e) => {
-    const target = e.target;
-    if (target.closest(AJAX_FORMS) && (target.hasAttribute('data-autosave') || target.type === 'checkbox')) {
-      const form = target.closest('form');
-      if (form) form.requestSubmit(); // triggers the submit listener above
+    const t = e.target;
+    if (t.closest(AJAX_FORMS) && (t.hasAttribute('data-autosave') || t.type === 'checkbox')) {
+      t.closest('form')?.requestSubmit();
     }
   });
 
-  // Intercept delete links
-  document.addEventListener('click', async (e) => {
-    const a = e.target.closest('a[href*="/delete.php"]');
-    if (!a) return;
+  // delete handler you already have…
 
-    // respect your existing confirm() but prevent navigation if confirmed
-    if (!confirm('Are you sure?')) {
-      e.preventDefault();
-      return;
-    }
-
-    e.preventDefault();
-    try {
-      const res = await fetch(a.href, {
-        method: 'POST', // safer than GET for deletes
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json'
-        }
-      });
-      if (!res.ok) throw new Error('Delete failed');
-      const data = await res.json();
-
-      // Remove the row from DOM
-      const row = a.closest('.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row');
-      if (row) row.remove();
-
-      toast('Deleted');
-    } catch (err) {
-      console.error(err);
-      toast('Delete failed', true);
-    }
-  });
-
-  // Tiny toast helper
   let toastEl;
-  function toast(msg, isError) {
+  function toast(msg, bad) {
     if (!toastEl) {
       toastEl = document.createElement('div');
-      toastEl.style.cssText = 'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,.2);';
+      toastEl.style.cssText = 'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
       document.body.appendChild(toastEl);
     }
     toastEl.textContent = msg;
-    toastEl.style.background = isError ? '#dc2626' : '#16a34a';
+    toastEl.style.background = bad ? '#dc2626' : '#16a34a';
     toastEl.style.opacity = '1';
-    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
+    setTimeout(() => toastEl.style.opacity = '0', 1400);
   }
 })();
 </script>
+
 
 </body>
 </html>

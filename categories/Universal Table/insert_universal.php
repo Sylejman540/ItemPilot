@@ -2,19 +2,22 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
+/* ---- AJAX detection ---- */
 $isAjax = (
   isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
   strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
 );
 
-
-$uid = $_SESSION['user_id'] ?? 0;
+/* ---- Auth ---- */
+$uid = (int)($_SESSION['user_id'] ?? 0);
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
+/* ---- Paths ---- */
 $CATEGORY_URL = '/ItemPilot/categories/Universal%20Table';
 $UPLOAD_DIR   = __DIR__ . '/uploads/';
 $UPLOAD_URL   = $CATEGORY_URL . '/uploads';
 
+/* ---- Resolve table_id ---- */
 $action   = $_GET['action'] ?? null;
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
@@ -31,14 +34,12 @@ if ($action === 'create_blank') {
 
 } else {
   $table_id = (int)($_SESSION['current_table_id'] ?? 0);
-
   if ($table_id <= 0) {
     $q = $conn->prepare("SELECT table_id FROM `tables` WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
     $q->bind_param('i', $uid);
     $q->execute(); $q->bind_result($latestId); $q->fetch(); $q->close();
     $table_id = (int)$latestId;
   }
-
   if ($table_id <= 0) {
     $stmt = $conn->prepare("INSERT INTO `tables` (user_id, created_at) VALUES (?, NOW())");
     $stmt->bind_param('i', $uid);
@@ -46,10 +47,109 @@ if ($action === 'create_blank') {
     $table_id = (int)$conn->insert_id;
     $stmt->close();
   }
-
   $_SESSION['current_table_id'] = $table_id;
 }
 
+/* Util: render one row into HTML (same markup as your foreach) */
+function render_universal_row_html(mysqli $conn, array $r, array $fields, array $validCols, int $table_id, int $uid, string $UPLOAD_URL, int $totalCols): string {
+  // status color classes
+  $statusColors = [
+    'To Do'       => 'bg-red-100 text-red-800',
+    'In Progress' => 'bg-yellow-100 text-yellow-800',
+    'Done'        => 'bg-green-100 text-green-800'
+  ];
+  $colorClass = $statusColors[$r['status'] ?? ''] ?? 'bg-white text-gray-900';
+
+  // dynamic fields that actually exist in universal_base
+  $dynFields = array_values(array_filter($fields, function($f) use ($validCols){
+    return in_array($f['field_name'], $validCols, true);
+  }));
+
+  // base row values
+  $baseRow = [];
+  if ($table_id > 0 && $uid > 0 && !empty($r['id'])) {
+    $stmt = $conn->prepare("SELECT * FROM universal_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
+    $row_id = (int)$r['id'];
+    $stmt->bind_param('iii', $table_id, $uid, $row_id);
+    $stmt->execute();
+    $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
+    $stmt->close();
+  }
+
+  // attachment
+  $thumb = '';
+  if (!empty($r['attachment_summary'])) {
+    $src = $UPLOAD_URL . '/' . rawurlencode($r['attachment_summary']);
+    $thumb = '<img src="'.htmlspecialchars($src, ENT_QUOTES).'" class="thumb" alt="Attachment">';
+  } else {
+    $thumb = '<span class="italic text-gray-400 ml-[5px]">📎 None</span>';
+  }
+
+  ob_start(); ?>
+<form method="POST"
+      action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$r['id'] ?>"
+      enctype="multipart/form-data"
+      class="universal-row border-b border-gray-200 hover:bg-gray-50 text-sm"
+      style="--cols: <?= (int)$totalCols ?>;"
+      data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES) ?>">
+
+  <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+  <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+  <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES) ?>">
+
+  <div class="p-2 text-gray-600" data-col="name">
+    <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES) ?>"
+           class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+  </div>
+
+  <div class="p-2 text-gray-600" data-col="notes">
+    <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES) ?>"
+           class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+  </div>
+
+  <div class="p-2 text-gray-600" data-col="assignee">
+    <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES) ?>"
+           class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+  </div>
+
+  <div class="p-2 text-xs font-semibold" data-col="status">
+    <select name="status" style="appearance:none;" data-autosave="1" class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
+      <option value="To Do"       <?= ($r['status'] ?? '') === 'To Do' ? 'selected' : '' ?>>To Do</option>
+      <option value="In Progress" <?= ($r['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+      <option value="Done"        <?= ($r['status'] ?? '') === 'Done' ? 'selected' : '' ?>>Done</option>
+    </select>
+  </div>
+
+  <div class="p-2 text-gray-600" data-col="attachment">
+    <?= $thumb ?>
+  </div>
+
+  <div class="p-2 text-gray-600" data-col="dyn">
+    <?php foreach ($dynFields as $colMeta): $colName = $colMeta['field_name']; ?>
+      <input type="text" name="dyn[<?= htmlspecialchars($colName, ENT_QUOTES) ?>]"
+             value="<?= htmlspecialchars($baseRow[$colName] ?? '', ENT_QUOTES) ?>"
+             class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+    <?php endforeach; ?>
+  </div>
+
+  <div class="p-2">
+    <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
+       onclick="return confirm('Are you sure?')"
+       class="icon-btn" aria-label="Delete row">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z"/>
+      </svg>
+    </a>
+  </div>
+</form>
+<?php
+  return ob_get_clean();
+}
+
+/* ---------------------------
+   Create / Update (POST)
+----------------------------*/
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $id        = $_POST['id'] ?? '';
   $name      = $_POST['name'] ?? '';
@@ -58,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $status    = $_POST['status'] ?? '';
   $attachment_summary = $_POST['existing_attachment'] ?? '';
 
+  // map dynamic inputs (from extra_field_ID into dyn[field_name])
   $dynIn = $_POST['dyn'] ?? [];
 
   $mapStmt = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
@@ -73,14 +174,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
   $mapStmt->close();
 
+  // handle file upload if provided
   if (isset($_FILES['attachment_summary']) && $_FILES['attachment_summary']['error'] === UPLOAD_ERR_OK) {
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
+      if ($isAjax) { http_response_code(500); echo json_encode(['ok'=>false,'error'=>'Could not create uploads dir']); exit; }
       die("Could not create uploads directory.");
     }
     $tmp  = $_FILES['attachment_summary']['tmp_name'];
     $orig = basename($_FILES['attachment_summary']['name']);
     $dest = $UPLOAD_DIR . $orig;
     if (!move_uploaded_file($tmp, $dest)) {
+      if ($isAjax) { http_response_code(500); echo json_encode(['ok'=>false,'error'=>'Failed to save file']); exit; }
       die("Failed to save uploaded file.");
     }
     $attachment_summary = $orig;
@@ -89,136 +193,152 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $rec_id = is_numeric($id) ? (int)$id : 0;
 
   if ($rec_id <= 0) {
-    $stmt = $conn->prepare("INSERT INTO universal (name, notes, assignee, status, attachment_summary, table_id, user_id) VALUES (?,?,?,?,?,?,?)");
+    // INSERT
+    $stmt = $conn->prepare("INSERT INTO universal (name, notes, assignee, status, attachment_summary, table_id, user_id)
+                            VALUES (?,?,?,?,?,?,?)");
     $stmt->bind_param('ssssssi', $name, $notes, $assignee, $status, $attachment_summary, $table_id, $uid);
     $stmt->execute();
-    $row_id = (int)$stmt->insert_id; 
+    $row_id = (int)$stmt->insert_id;
     $stmt->close();
 
-    $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
+    // dynamic -> whitelist columns
+    $colRes    = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
     $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
     $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
     $editable  = array_values(array_diff($validCols, $exclude));
 
     $toSave = [];
     foreach ($dynIn as $k => $v) {
-      if (in_array($k, $editable, true)) {
-        $toSave[$k] = ($v === '') ? null : $v;
-      }
+      if (in_array($k, $editable, true)) $toSave[$k] = ($v === '') ? null : $v;
     }
 
     if ($toSave) {
       $cols  = array_keys($toSave);
       $place = array_fill(0, count($cols), '?');
-      $sql   = "INSERT INTO universal_base (`table_id`,`user_id`,`row_id`,`" . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
+      $sql   = "INSERT INTO universal_base (`table_id`,`user_id`,`row_id`,`".implode("`,`",$cols)."`) VALUES (?,?,?,".implode(',',$place).")";
       $stmt  = $conn->prepare($sql);
-
-      $types  = 'iii' . str_repeat('s', count($cols));
+      $types = 'iii'.str_repeat('s', count($cols));
       $params = [$table_id, $uid, $row_id];
-      foreach ($cols as $c) { $params[] = $toSave[$c]; }
-
+      foreach ($cols as $c) $params[] = $toSave[$c];
       $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
       call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($params)));
-      $stmt->execute();
-      $stmt->close();
+      $stmt->execute(); $stmt->close();
     } else {
       $insb = $conn->prepare("INSERT INTO universal_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
       $insb->bind_param('iii', $table_id, $uid, $row_id);
-      $insb->execute();
-      $insb->close();
+      $insb->execute(); $insb->close();
+    }
+
+    if ($isAjax) {
+      // fetch fields for rendering + compute total cols
+      $fStmt = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id=? AND table_id=? ORDER BY id ASC");
+      $fStmt->bind_param('ii', $uid, $table_id);
+      $fStmt->execute();
+      $fields = $fStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+      $fStmt->close();
+
+      $colRes2    = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
+      $validCols2 = array_column($colRes2->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
+
+      $dynCount = 0; foreach ($fields as $m) if (in_array($m['field_name'], $validCols2, true)) $dynCount++;
+      $fixedCount = 5; $hasAction = true;
+      $totalCols = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
+
+      // fetch the new row
+      $q = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary
+                             FROM universal
+                            WHERE id=? AND user_id=? AND table_id=? LIMIT 1");
+      $q->bind_param('iii', $row_id, $uid, $table_id);
+      $q->execute(); $r = $q->get_result()->fetch_assoc(); $q->close();
+
+      $row_html = render_universal_row_html($conn, $r, $fields, $validCols2, $table_id, $uid, $UPLOAD_URL, $totalCols);
+
+      header('Content-Type: application/json; charset=utf-8');
+      echo json_encode([
+        'ok'        => true,
+        'table_id'  => (int)$table_id,
+        'row_id'    => (int)$row_id,
+        'row_html'  => $row_html,
+      ]);
+      exit;
     }
 
   } else {
-    $stmt = $conn->prepare("UPDATE universal SET name=?, notes=?, assignee=?, status=?, attachment_summary=? WHERE id=? AND table_id=? AND user_id=?");
+    // UPDATE
+    $stmt = $conn->prepare("UPDATE universal
+                               SET name=?, notes=?, assignee=?, status=?, attachment_summary=?
+                             WHERE id=? AND table_id=? AND user_id=?");
     $stmt->bind_param('sssssiii', $name, $notes, $assignee, $status, $attachment_summary, $rec_id, $table_id, $uid);
-    $stmt->execute();
-    $stmt->close();
+    $stmt->execute(); $stmt->close();
 
     if (!empty($dynIn)) {
-      $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
+      $colRes    = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'universal_base'");
       $validCols = array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
       $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
       $editable  = array_values(array_diff($validCols, $exclude));
 
       $toSave = [];
       foreach ($dynIn as $k => $v) {
-        if (in_array($k, $editable, true)) {
-          $toSave[$k] = ($v === '') ? null : $v;
-        }
+        if (in_array($k, $editable, true)) $toSave[$k] = ($v === '') ? null : $v;
       }
 
       $chk = $conn->prepare("SELECT id FROM universal_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
       $chk->bind_param('iii', $table_id, $uid, $rec_id);
-      $chk->execute();
-      $base = $chk->get_result()->fetch_assoc();
-      $chk->close();
+      $chk->execute(); $base = $chk->get_result()->fetch_assoc(); $chk->close();
 
       if (!$base) {
         $insb = $conn->prepare("INSERT INTO universal_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
         $insb->bind_param('iii', $table_id, $uid, $rec_id);
-        $insb->execute();
-        $insb->close();
+        $insb->execute(); $insb->close();
       }
 
       if ($toSave) {
-        $set = [];
-        $vals = [];
-        $types = '';
-        foreach ($toSave as $col => $val) {
-          if ($val === null) { $set[] = "`$col`=NULL"; }
-          else { $set[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
+        $set=[]; $vals=[]; $types='';
+        foreach ($toSave as $col=>$val) {
+          if ($val === null) $set[]="`$col`=NULL"; else { $set[]="`$col`=?"; $vals[]=$val; $types.='s'; }
         }
-        if (in_array('updated_at', $validCols, true)) { $set[] = "`updated_at`=NOW()"; }
+        if (in_array('updated_at', $validCols, true)) $set[]="`updated_at`=NOW()";
         if ($set) {
-          $sql = "UPDATE universal_base SET " . implode(', ', $set) . " WHERE table_id=? AND user_id=? AND row_id=?";
-          $types .= 'iii';
-          $vals[] = $table_id; $vals[] = $uid; $vals[] = $rec_id;
-
+          $sql = "UPDATE universal_base SET ".implode(', ',$set)." WHERE table_id=? AND user_id=? AND row_id=?";
+          $types.='iii'; $vals[]=$table_id; $vals[]=$uid; $vals[]=$rec_id;
           $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
-          $stmt = $conn->prepare($sql);
+          $stmt=$conn->prepare($sql);
           call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($vals)));
-          $stmt->execute();
-          $stmt->close();
+          $stmt->execute(); $stmt->close();
         }
       }
     }
+
+    if ($isAjax) {
+      header('Content-Type: application/json; charset=utf-8');
+      echo json_encode([
+        'ok'      => true,
+        'table_id'=> (int)$table_id,
+        'id'      => (int)$rec_id,
+        'status'  => $status,
+      ]);
+      exit;
+    }
   }
 
-if ($isAjax) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-      'ok'       => true,
-      'id'       => isset($row_id) ? (int)$row_id : (int)($_POST['id'] ?? 0),
-      'table_id' => (int)$table_id,
-
-      // include whatever the UI should update instantly:
-      // DRESSES example:
-      'profit'         => $deadlineDb ?? null, // computed on the server
-      'attachment_url' => !empty($attachment) ? ($UPLOAD_URL . '/' . rawurlencode($attachment)) : null,
-
-      // UNIVERSAL example:
-      'status'         => $_POST['status'] ?? null,
-    ]);
-    exit;
-  }
-
-  // Non-AJAX fallback (user hard-submits or JS disabled)
+  // Non-AJAX fallback
   header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&table_id={$table_id}"));
   exit;
 }
 
+/* ---------------------------
+   Page (GET) data fetch
+----------------------------*/
 $stmt = $conn->prepare("SELECT table_title FROM `tables` WHERE user_id = ? AND table_id = ? LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
-$stmt->execute();
-$res = $stmt->get_result();
-$row = $res->fetch_assoc();
-$stmt->close();
+$stmt->execute(); $res = $stmt->get_result(); $row = $res->fetch_assoc(); $stmt->close();
 $tableTitle = $row['table_title'] ?? 'Untitled table';
 
-$stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment FROM universal_thead WHERE user_id = ? AND table_id = ? ORDER BY id DESC LIMIT 1");
+$stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment
+                          FROM universal_thead WHERE user_id = ? AND table_id = ?
+                      ORDER BY id DESC LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
-$stmt->execute();
-$theadRes = $stmt->get_result();
+$stmt->execute(); $theadRes = $stmt->get_result();
 if ($theadRes && $theadRes->num_rows) {
   $thead = $theadRes->fetch_assoc();
 } else {
@@ -229,7 +349,8 @@ if ($theadRes && $theadRes->num_rows) {
     'thead_status'     => 'Status',
     'thead_attachment' => 'Attachment',
   ];
-  $ins = $conn->prepare("INSERT INTO universal_thead (user_id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment) VALUES (?,?,?,?,?,?,?)");
+  $ins = $conn->prepare("INSERT INTO universal_thead (user_id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment)
+                         VALUES (?,?,?,?,?,?,?)");
   $ins->bind_param('iisssss', $uid, $table_id,
     $thead['thead_name'], $thead['thead_notes'], $thead['thead_assignee'],
     $thead['thead_status'], $thead['thead_attachment']
@@ -238,6 +359,7 @@ if ($theadRes && $theadRes->num_rows) {
 }
 $stmt->close();
 
+/* Pagination */
 $limit  = 10;
 $page   = (isset($_GET['page']) && is_numeric($_GET['page'])) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
@@ -249,7 +371,10 @@ $countStmt->execute(); $countStmt->bind_result($totalRows); $countStmt->fetch();
 
 $totalPages = (int)ceil($totalRows / $limit);
 
-$dataStmt = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary FROM universal WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
+$dataStmt = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary
+                              FROM universal
+                             WHERE user_id = ? AND table_id = ?
+                          ORDER BY id ASC LIMIT ? OFFSET ?");
 $dataStmt->bind_param('iiii', $uid, $table_id, $limit, $offset);
 $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -290,141 +415,231 @@ $hasRecord = count($rows) > 0;
 
     <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
 
-    <!-- same id -->
-    <div id="actionMenuList"
-        class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,28rem)] rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-0 overflow-hidden">
+    <!-- Action menu -->
+<div id="actionMenuList"
+     role="dialog" aria-modal="true" aria-labelledby="moreTitle"
+     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+            w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur
+            shadow-2xl ring-1 ring-black/5 overflow-hidden">
 
-      <!-- header (tighter) -->
-      <div class="flex items-start justify-between px-4 pt-3 pb-2 border-b border-gray-100">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+      <div class="flex items-center gap-3">
+        <div class="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-blue-700">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm1 13h-2v-2h2v2Zm0-4h-2V7h2v4Z"/>
+          </svg>
+        </div>
         <div>
           <h3 id="moreTitle" class="text-sm font-semibold text-gray-900">More</h3>
           <p class="mt-0.5 text-[11px] text-gray-500">Table actions</p>
         </div>
-        <button data-close-add class="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
-          </svg>
-        </button>
       </div>
 
-      <div class="p-3 space-y-3">
-        <div id="addColumnBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-blue-50/40 hover:border-blue-100 transition">
-          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-blue-100 text-blue-700">
+      <button data-close-add
+              class="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-2 w-100 space-y-5">
+
+      <!-- Add fields (FLEX) -->
+      <div id="addColumnBtn"
+          class="cursor-pointer group flex flex-col md:flex-row md:items-center justify-between gap-3
+                  p-3 rounded-xl border border-transparent ring-1 ring-transparent
+                  hover:bg-blue-50/60 hover:border-blue-200 hover:ring-blue-100 transition">
+        <!-- left: icon + text -->
+        <div class="flex items-start gap-3 md:pr-3 flex-1">
+          <div class="mt-0.5 grid place-items-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 shrink-0">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"/>
             </svg>
           </div>
-
-          <div class="flex-1">
-            <h4 class="text-[13px] font-medium text-gray-900 md:mt-0 mt-1">Add fields</h4>
-            <p class="text-[11px] leading-4 text-gray-500 md:mt-0 mt-1">Create a new column with type and default value.</p>
+          <div class="min-w-0">
+            <h4 class="text-[13px] font-medium text-gray-900">Add fields</h4>
+            <p class="text-[11px] leading-4 text-gray-500">Create a new column with a default value.</p>
           </div>
-
-          <button id="addFieldsBtn" class="self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 md:mt-0 mt-1">Add</button>
         </div>
+        <!-- right: button -->
+        <button id="addFieldsBtn"
+                class="shrink-0 w-full md:w-auto px-4 py-2 text-[12px] font-medium rounded-md
+                      bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          Add
+        </button>
+      </div>
 
-        <div class="h-px bg-gray-100"></div>
+      <div class="h-px bg-gray-100"></div>
 
-        <p class="px-0.5 text-[10px] font-semibold tracking-wide text-red-600/80 uppercase">Danger</p>
+      <!-- Danger chip -->
+      <div class="flex items-center gap-2 px-0.5">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2 1 21h22L12 2Zm1 15h-2v-2h2v2Zm0-4h-2V9h2v4Z"/>
+          </svg>
+          Danger
+        </span>
+      </div>
 
-        <div id="addDeleteBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-red-50/40 hover:border-red-100 transition">
-          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-red-100 text-red-600">
+      <!-- Delete fields (FLEX) -->
+      <div id="addDeleteBtn"
+          class="cursor-pointer group flex flex-col md:flex-row md:items-center justify-between gap-3
+                  p-3 rounded-xl border border-transparent ring-1 ring-transparent
+                  hover:bg-red-50/60 hover:border-red-200 hover:ring-red-100 transition">
+        <!-- left: icon + text -->
+        <div class="flex items-start gap-3 md:pr-3 flex-1">
+          <div class="mt-0.5 grid place-items-center w-8 h-8 rounded-full bg-red-100 text-red-600 shrink-0">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/>
             </svg>
           </div>
-
-          <div class="flex-1">
-            <h4 class="md:mt-0 mt-1 text-[13px] font-medium text-gray-900">Delete fields</h4>
-            <p class="md:mt-0 mt-1 text-[11px] leading-4 text-gray-500">Remove selected fields from this table.<span class="text-gray-700 font-medium">This can’t be undone.</span></p>
+          <div class="min-w-0">
+            <h4 class="text-[13px] font-medium text-gray-900">Delete fields</h4>
+            <p class="text-[11px] leading-4 text-gray-500">Remove selected fields from this table.</p>
           </div>
-
-          <button id="deleteFieldsBtn" class="md:mt-0 mt-1 self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">Delete
-          </button>
         </div>
+        <!-- right: button -->
+        <button id="deleteFieldsBtn"
+                class="shrink-0 w-full md:w-auto px-4 py-2 text-[12px] font-medium rounded-md
+                      bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+          Delete
+        </button>
       </div>
+
+    </div>
+  </div>
+
+
+<!-- Add Field modal -->
+<div id="addColumnPop"
+     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+            w-[min(92vw,28rem)] rounded-2xl bg-white/95 backdrop-blur
+            shadow-2xl ring-1 ring-black/5">
+  <!-- Header -->
+  <div class="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <svg class="h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/>
+        </svg>
+        <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
+      </div>
+      <button data-close-add type="button" id="closeAddColumnPop"
+              class="cursor-pointer p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="px-5 py-4">
+    <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post" class="space-y-3">
+      <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
+      <label for="field_name" class="block text-sm font-medium text-gray-700">Field name</label>
+      <input id="field_name" name="field_name" required
+             class="w-full rounded-xl border border-gray-300 bg-slate-50 px-3 py-2
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                    placeholder:text-gray-400"
+             type="text" placeholder="e.g. Price, SKU, Notes" />
+
+      <div class="pt-2">
+        <button type="submit"
+                class="w-full rounded-lg bg-blue-600 px-4 py-2 text-white text-sm font-medium
+                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          Add Field
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Fields modal -->
+<div id="addDeletePop"
+     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+            w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur
+            shadow-2xl ring-1 ring-black/5">
+  <!-- Header -->
+  <div class="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+    <div class="flex items-center justify-between gap-3">
+      <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
+      <button data-close-add type="button" id="closeAddColumnPop"
+              class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
     </div>
 
-    <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
-      <div class="px-4 py-3 border-b border-gray-100">
-        <div class="flex justify-between items-center gap-2">
-          <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
-          <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
-          <button data-close-add type="button" class="cursor-pointer p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
-            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <form action="/ItemPilot/categories/Universal%20Table/add_fields.php" method="post">
-          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
-
-          <label for="field_name" class="block text-sm font-medium text-gray-700 mt-4">Field Name</label>
-          <input type="text" id="field_name" name="field_name" required class="w-full mt-1 mb-3 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-
-          <button type="submit" class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition">Add Field</button>
-        </form>
-      </div>
+    <!-- Danger hint -->
+    <div class="mt-3 flex items-start gap-2 px-1">
+      <svg class="h-5 w-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="9"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v6M12 17h.01"/>
+      </svg>
+      <p class="text-xs text-gray-600">
+        Select a field to delete. <span class="font-medium text-gray-800">This action can’t be undone.</span>
+      </p>
     </div>
+  </div>
 
-    <div id="addDeletePop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 max-w-[90vw] rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
-      <div class="px-4 py-3 border-b border-gray-100">
-        <div class="flex justify-between items-center gap-2">
-          <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
-          <button data-close-add type="button" class="p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
-            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
+  <!-- Body -->
+  <div class="px-5 py-4">
+    <form action="/ItemPilot/categories/Universal%20Table/delete_fields.php" method="post" class="space-y-3">
+      <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
 
-        <div class="flex items-start mt-4 gap-2">
-          <svg class="h-5 w-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="9"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v6M12 17h.01"/>
-          </svg>
-          <p class="text-xs text-gray-500">Select a field to delete. This action can’t be undone.</p>
-        </div>
+      <?php
+        $uid = (int)($_SESSION['user_id'] ?? 0);
+        $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+        $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('ii', $uid, $table_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $fields = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+      ?>
 
-        <div class="w-full bg-gray-100 h-[1px] mt-2"></div>
-        <form action="/ItemPilot/categories/Universal%20Table/delete_fields.php" method="post" class="mt-3">
-          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+      <div class="divide-y divide-gray-100 rounded-xl overflow-hidden ring-1 ring-gray-100">
+        <?php foreach ($fields as $field): ?>
+          <div class="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50 transition">
+            <input type="text" readonly
+                   name="extra_field_<?= (int)$field['id'] ?>"
+                   value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                   class="w-full bg-transparent border-none px-1 py-1 text-sm text-gray-900
+                          pointer-events-none focus:outline-none" />
 
-          <?php
-          $uid = (int)($_SESSION['user_id'] ?? 0);
-          $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
-
-          $sql = "SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
-          $stmt = $conn->prepare($sql);
-          $stmt->bind_param('ii', $uid, $table_id);
-          $stmt->execute();
-          $result = $stmt->get_result();
-          $fields = $result->fetch_all(MYSQLI_ASSOC);
-          $stmt->close();
-          ?>
-
-          <div class="divide-y divide-gray-100">
-            <?php foreach ($fields as $field): ?>
-              <div class="flex items-center justify-between">
-                <input type="text" readonly name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent px-1 py-1 text-base text-gray-900"/>
-
-                <a href="/ItemPilot/categories/Universal%20Table/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Delete this field?')" class="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete" title="Delete">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
-                  </svg>
-                </a>
-              </div>
-            <?php endforeach; ?>
+            <a href="/ItemPilot/categories/Universal%20Table/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>"
+               onclick="return confirm('Delete this field?')"
+               class="inline-flex items-center justify-center rounded-md p-1.5
+                      text-red-600 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+               aria-label="Delete" title="Delete">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
+              </svg>
+            </a>
           </div>
-
-          <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-end">
-            <button type="button" data-close-add class="px-3 py-1.5 text-xs rounded-md border bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">Cancel</button>
-          </div>
-        </form>
+        <?php endforeach; ?>
       </div>
-    </div>
+
+      <div class="pt-3 mt-1 border-t border-gray-100 flex items-center justify-end">
+        <button type="button" data-close-add
+                class="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
   </div>
 
 
@@ -637,7 +852,7 @@ $hasRecord = count($rows) > 0;
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
 
-    <form action="<?= $CATEGORY_URL ?>/insert_universal.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="<?= $CATEGORY_URL ?>/insert_universal.php" method="POST" enctype="multipart/form-data" class="new-record-form space-y-6">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <h1 class="w-full px-4 py-2 text-center text-2xl"><?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?></h1>
 
