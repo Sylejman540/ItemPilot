@@ -1757,7 +1757,105 @@ document.body.addEventListener('click', e => {
   if (close && menu) menu.classList.add('hidden');
 });
 
+(() => {
+  const AJAX_FORMS = '.thead-form, .applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
 
+  // Submit any table form via AJAX
+  document.addEventListener('submit', async (e) => {
+    const form = e.target;
+    if (!form.matches(AJAX_FORMS)) return;
+
+    e.preventDefault();
+
+    const fd = new FormData(form);
+    const method = (form.getAttribute('method') || 'POST').toUpperCase();
+    const action = form.getAttribute('action') || window.location.href;
+
+    try {
+      const res = await fetch(action, {
+        method,
+        body: fd,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!res.ok) throw new Error('Server error');
+      const data = await res.json();
+      // Optional: update fields that are computed on the server (e.g., Profit)
+      // Example for Dresses profit:
+      const profitInput = form.querySelector('input[name="deadline"]');
+      if (profitInput && typeof data.profit !== 'undefined') {
+        profitInput.value = data.profit;
+      }
+
+      // Tiny success toast
+      toast('Saved');
+    } catch (err) {
+      console.error(err);
+      toast('Save failed', true);
+    }
+  });
+
+  // Autosave on change for quick fields (your data-autosave attributes)
+  document.addEventListener('change', (e) => {
+    const target = e.target;
+    if (target.closest(AJAX_FORMS) && (target.hasAttribute('data-autosave') || target.type === 'checkbox')) {
+      const form = target.closest('form');
+      if (form) form.requestSubmit(); // triggers the submit listener above
+    }
+  });
+
+  // Intercept delete links
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('a[href*="/delete.php"]');
+    if (!a) return;
+
+    // respect your existing confirm() but prevent navigation if confirmed
+    if (!confirm('Are you sure?')) {
+      e.preventDefault();
+      return;
+    }
+
+    e.preventDefault();
+    try {
+      const res = await fetch(a.href, {
+        method: 'POST', // safer than GET for deletes
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      const data = await res.json();
+
+      // Remove the row from DOM
+      const row = a.closest('.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row');
+      if (row) row.remove();
+
+      toast('Deleted');
+    } catch (err) {
+      console.error(err);
+      toast('Delete failed', true);
+    }
+  });
+
+  // Tiny toast helper
+  let toastEl;
+  function toast(msg, isError) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.style.cssText = 'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,.2);';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.style.background = isError ? '#dc2626' : '#16a34a';
+    toastEl.style.opacity = '1';
+    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
+  }
+})();
 </script>
+
 </body>
 </html>

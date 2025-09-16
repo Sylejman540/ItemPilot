@@ -2,6 +2,11 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
+$isAjax = (
+  isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+);
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $field_name = trim($_POST['field_name'] ?? '');
@@ -28,6 +33,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $col      = str_replace('`','``', $field_name); // escape identifier
   $init_val = '';                                 // whatever initial value you want
 
-  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
-  exit();
+  if ($isAjax) {
+      header('Content-Type: application/json; charset=utf-8');
+      echo json_encode([
+        'ok'       => true,
+        'id'       => isset($row_id) ? (int)$row_id : (int)($_POST['id'] ?? 0),
+        'table_id' => (int)$table_id,
+
+        // include whatever the UI should update instantly:
+        // DRESSES example:
+        'profit'         => $deadlineDb ?? null, // computed on the server
+        'attachment_url' => !empty($attachment) ? ($UPLOAD_URL . '/' . rawurlencode($attachment)) : null,
+
+        // UNIVERSAL example:
+        'status'         => $_POST['status'] ?? null,
+      ]);
+      exit;
+    }
+
+    // Non-AJAX fallback (user hard-submits or JS disabled)
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&table_id={$table_id}"));
+    exit;
 }

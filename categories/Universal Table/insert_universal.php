@@ -2,6 +2,12 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
+$isAjax = (
+  isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+);
+
+
 $uid = $_SESSION['user_id'] ?? 0;
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
@@ -178,7 +184,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-    header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+if ($isAjax) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+      'ok'       => true,
+      'id'       => isset($row_id) ? (int)$row_id : (int)($_POST['id'] ?? 0),
+      'table_id' => (int)$table_id,
+
+      // include whatever the UI should update instantly:
+      // DRESSES example:
+      'profit'         => $deadlineDb ?? null, // computed on the server
+      'attachment_url' => !empty($attachment) ? ($UPLOAD_URL . '/' . rawurlencode($attachment)) : null,
+
+      // UNIVERSAL example:
+      'status'         => $_POST['status'] ?? null,
+    ]);
+    exit;
+  }
+
+  // Non-AJAX fallback (user hard-submits or JS disabled)
+  header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&table_id={$table_id}"));
   exit;
 }
 
@@ -569,7 +594,6 @@ $hasRecord = count($rows) > 0;
 
       <div class="p-2">
         <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
-          onclick="return confirm('Are you sure?')"
           class="icon-btn" aria-label="Delete row">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
