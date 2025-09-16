@@ -294,20 +294,6 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
 <head>
 <meta charset="UTF-8" />
 <title>Dresses</title>
-<style>
-  .sales-grid, .sales-row {
-    display: grid;
-    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-    column-gap: .75rem;
-    align-items: center;
-  }
-  .sales-grid input,
-  .sales-row input,
-  .sales-row select { width: 100%; min-width: 0; }
-  /* flatten the dynamic wrapper to contribute cells to the grid */
-  .sales-grid [data-col="dyn"],
-  .sales-row  [data-col="dyn"] { display: contents; }
-</style>
 </head>
 <body>
 <header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
@@ -474,152 +460,160 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
       </div>
     </div>
   </div>
+  
+<!-- THEAD -->
+<div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
+  <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post"
+        class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
+    <input type="hidden" name="id" value="<?= (int)($headRow['id'] ?? 0) ?>">
+    <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+
+    <!-- unified header grid -->
+    <div class="app-grid text-xs font-semibold text-black uppercase" style="--cols: <?= (int)$totalCols ?>;">
+      <div class="p-2"><input name="linked_initiatives" value="<?= htmlspecialchars($headRow['linked_initiatives'] ?? 'Name', ENT_QUOTES) ?>"          placeholder="Name"          class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="notes"              value="<?= htmlspecialchars($headRow['notes'] ?? 'Delivery date', ENT_QUOTES) ?>"              placeholder="Delivery date" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="executive_sponsor"  value="<?= htmlspecialchars($headRow['executive_sponsor'] ?? 'Country', ENT_QUOTES) ?>"        placeholder="Country"       class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="status"             value="<?= htmlspecialchars($headRow['status'] ?? 'Status', ENT_QUOTES) ?>"                    placeholder="Status"        class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="complete"           value="<?= htmlspecialchars($headRow['complete'] ?? 'Age', ENT_QUOTES) ?>"                      placeholder="Age"           class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="priority"           value="<?= htmlspecialchars($headRow['priority'] ?? 'Price', ENT_QUOTES) ?>"                    placeholder="Price"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="owner"              value="<?= htmlspecialchars($headRow['owner'] ?? 'Material cost', ENT_QUOTES) ?>"               placeholder="Material cost" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="deadline"           value="<?= htmlspecialchars($headRow['deadline'] ?? 'Profit', ENT_QUOTES) ?>"                   placeholder="Profit"        class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+      <div class="p-2"><input name="attachment"         value="<?= htmlspecialchars($headRow['attachment'] ?? 'Model', ENT_QUOTES) ?>"                  placeholder="Model"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/></div>
+
+      <!-- Dynamic field labels -->
+      <?php foreach ($fields as $f): ?>
+        <div class="p-2">
+          <input type="text"
+                name="extra_field_<?= (int)$f['id'] ?>"
+                value="<?= htmlspecialchars($f['field_name'] ?? '', ENT_QUOTES) ?>"
+                placeholder="Field"
+                class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        </div>
+      <?php endforeach; ?>
 
 
-      <!-- THEAD -->
-      <div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">
-        <form action="<?= $CATEGORY_URL ?>/edit_thead.php" method="post"
-              class="w-full thead-form border-b border-gray-200" data-table-id="<?= (int)$table_id ?>">
-          <input type="hidden" name="id" value="<?= (int)($headRow['id'] ?? 0) ?>">
-          <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <?php if ($hasAction): ?><div class="p-2"></div><?php endif; ?>
+    </div>
+  </form>
+</div>
 
-          <div class="sales-grid text-xs font-semibold text-black uppercase" style="--cols: <?= (int)$totalCols ?>;">
-            <div class="p-2 py-1"><input name="linked_initiatives" value="<?= htmlspecialchars($headRow['linked_initiatives'] ?? 'Name', ENT_QUOTES) ?>"          placeholder="Name"          class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="notes"              value="<?= htmlspecialchars($headRow['notes'] ?? 'Delivery date', ENT_QUOTES) ?>"              placeholder="Delivery date" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="executive_sponsor"  value="<?= htmlspecialchars($headRow['executive_sponsor'] ?? 'Country', ENT_QUOTES) ?>"        placeholder="Country"       class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="status"             value="<?= htmlspecialchars($headRow['status'] ?? 'Status', ENT_QUOTES) ?>"                    placeholder="Status"        class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="complete"           value="<?= htmlspecialchars($headRow['complete'] ?? 'Age', ENT_QUOTES) ?>"                      placeholder="Age"           class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="priority"           value="<?= htmlspecialchars($headRow['priority'] ?? 'Price', ENT_QUOTES) ?>"                    placeholder="Price"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="owner"              value="<?= htmlspecialchars($headRow['owner'] ?? 'Material cost', ENT_QUOTES) ?>"               placeholder="Material cost" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="deadline"           value="<?= htmlspecialchars($headRow['deadline'] ?? 'Profit', ENT_QUOTES) ?>"                   placeholder="Profit"        class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
-            <div class="p-2 py-1"><input name="attachment"         value="<?= htmlspecialchars($headRow['attachment'] ?? 'Model', ENT_QUOTES) ?>"                  placeholder="Model"         class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/></div>
+<!-- TBODY -->
+<div class="w-full divide-y divide-gray-200">
+  <?php if ($hasRecord): foreach ($rows as $r): ?>
+    <form method="POST"
+          action="<?= $CATEGORY_URL ?>/insert_dresses.php"
+          enctype="multipart/form-data"
+          class="sales-row border-b border-gray-200 hover:bg-gray-50 text-sm"
+          style="--cols: <?= (int)$totalCols ?>;"
+          data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES) ?>">
 
-            <!-- Dynamic field labels -->
-            <div class="p-2 py-1" data-col="dyn">
-              <?php foreach ($fields as $f): ?>
-                <input type="text" name="extra_field_<?= (int)$f['id'] ?>" value="<?= htmlspecialchars($f['field_name'] ?? '', ENT_QUOTES) ?>"
-                       placeholder="Field" class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-              <?php endforeach; ?>
-            </div>
+      <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment'] ?? '', ENT_QUOTES) ?>">
 
-            <?php if ($hasAction): ?><div class="p-2 py-1"></div><?php endif; ?>
-          </div>
-        </form>
+      <div class="p-2 text-gray-600" data-col="linked_initiatives">
+        <input type="text" name="linked_initiatives" value="<?= htmlspecialchars($r['linked_initiatives'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
-      <!-- TBODY -->
-      <div class="w-full divide-y divide-gray-200">
-        <?php if ($hasRecord): foreach ($rows as $r): ?>
-          <form method="POST"
-                action="<?= $CATEGORY_URL ?>/insert_dresses.php"
-                enctype="multipart/form-data"
-                class="sales-row border-b border-gray-200 hover:bg-gray-50 text-sm"
-                style="--cols: <?= (int)$totalCols ?>;"
-                data-status="<?= htmlspecialchars($r['status'] ?? '', ENT_QUOTES) ?>">
+      <div class="p-2 text-gray-600" data-col="notes">
+        <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
 
-            <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-            <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-            <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment'] ?? '', ENT_QUOTES) ?>">
+      <div class="p-2 text-gray-600" data-col="executive_sponsor">
+        <input type="text" name="executive_sponsor" value="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
 
-            <div class="p-2 py-1 text-gray-600" data-col="linked_initiatives">
-              <input type="text" name="linked_initiatives" value="<?= htmlspecialchars($r['linked_initiatives'] ?? '', ENT_QUOTES) ?>"
-                     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-            </div>
+      <?php
+      $statusColors = [
+        'To Do'       => 'bg-red-100 text-red-800',
+        'In Progress' => 'bg-yellow-100 text-yellow-800',
+        'Done'        => 'bg-green-100 text-green-800',
+      ];
+      $colorClass = $statusColors[$r['status'] ?? ''] ?? 'bg-white text-gray-900';
+      ?>
+      <div class="p-2 text-gray-600 text-xs font-semibold" data-col="status">
+        <select data-autosave="1" name="status" style="appearance:none;"
+                class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
+          <option value="To Do"       <?= ($r['status'] ?? '') === 'To Do' ? 'selected' : '' ?>>To Do</option>
+          <option value="In Progress" <?= ($r['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+          <option value="Done"        <?= ($r['status'] ?? '') === 'Done' ? 'selected' : '' ?>>Done</option>
+        </select>
+      </div>
 
-            <div class="p-2 py-1 text-gray-600" data-col="notes">
-              <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES) ?>"
-                     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-            </div>
 
-            <div class="p-2 py-1 text-gray-600" data-col="executive_sponsor">
-              <input type="text" name="executive_sponsor" value="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES) ?>"
-                     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-            </div>
+      <div class="p-2 text-gray-600" data-col="complete">
+        <input type="text" name="complete" value="<?= htmlspecialchars($r['complete'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
 
-            <?php
-              $statusColors = [
-                'To Do'       => 'bg-red-100 text-red-800',
-                'In Progress' => 'bg-yellow-100 text-yellow-800',
-                'Done'        => 'bg-green-100 text-green-800'
-              ];
-              $colorClass = $statusColors[$r['status'] ?? ''] ?? 'bg-white text-gray-900';
-            ?>
-            <div class="p-2 py-1 text-gray-600 text-xs font-semibold" data-col="status">
-              <select data-autosave="1" name="status" style="appearance:none;" class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
-                <option value="To Do"       <?= ($r['status'] ?? '') === 'To Do' ? 'selected' : '' ?>>To Do</option>
-                <option value="In Progress" <?= ($r['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-                <option value="Done"        <?= ($r['status'] ?? '') === 'Done' ? 'selected' : '' ?>>Done</option>
-              </select>
-            </div>
+      <div class="p-2 text-gray-600" data-col="priority">
+        <input type="text" name="priority" value="<?= htmlspecialchars($r['priority'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
 
-            <div class="p-2 py-1 text-gray-600" data-col="complete">
-              <input type="text" name="complete" value="<?= htmlspecialchars($r['complete'] ?? '', ENT_QUOTES) ?>"
-                     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-            </div>
+      <div class="p-2 text-gray-600" data-col="owner">
+        <input type="text" name="owner" value="<?= htmlspecialchars($r['owner'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
 
-            <div class="p-2 py-1 text-gray-600" data-col="priority">
-              <input type="text" name="priority" value="<?= htmlspecialchars($r['priority'] ?? '', ENT_QUOTES) ?>"
-                     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-            </div>
+      <div class="flex p-2 gap-1 text-gray-600 whitespace-normal break-words" data-col="deadline">
+        <data class="py-2">&euro;</data>
+        <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES) ?>" readonly
+               class="w-full bg-transparent border-none py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
 
-            <div class="p-2 py-1 text-gray-600" data-col="owner">
-              <input type="text" name="owner" value="<?= htmlspecialchars($r['owner'] ?? '', ENT_QUOTES) ?>"
-                     class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-            </div>
-
-            <div class="flex p-2 gap-1 py-1 text-gray-600 whitespace-normal break-words" data-col="deadline">
-              <data class="py-2">&euro;</data>
-              <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES) ?>" readonly class="w-full bg-transparent border-none py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-            </div>
-
-            <div class="p-2 py-1 flex items-center gap-2" data-col="attachment">
-              <?php if (!empty($r['attachment'])): ?>
-                <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment']) ?>" class="w-16 h-10 rounded-md" alt="Attachment">
-              <?php else: ?>
-                <span class="italic text-gray-400 ml-[5px]">📎 None</span>
-              <?php endif; ?>
-            </div>
-
-            <!-- Dynamic values -->
-            <?php
-              $row_id  = (int)$r['id'];
-              $baseRow = [];
-              if ($table_id > 0 && $uid > 0 && $row_id > 0) {
-                $stmt = $conn->prepare("SELECT * FROM dresses_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
-                $stmt->bind_param('iii', $table_id, $uid, $row_id);
-                $stmt->execute();
-                $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
-                $stmt->close();
-              }
-              $dynFields = array_values(array_filter($fields, function($m) use ($validCols) {
-                return in_array($m['field_name'], $validCols, true);
-              }));
-            ?>
-            <div class="p-2 py-1" data-col="dyn">
-              <?php foreach ($dynFields as $meta): $col = $meta['field_name']; ?>
-                <input type="text" name="dyn[<?= htmlspecialchars($col, ENT_QUOTES) ?>]" value="<?= htmlspecialchars($baseRow[$col] ?? '', ENT_QUOTES) ?>"
-                       class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-              <?php endforeach; ?>
-            </div>
-
-            <!-- Action -->
-            <?php if ($hasAction): ?>
-              <div class="p-2 py-1">
-                <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
-                   onclick="return confirm('Are you sure?')"
-                   class="inline-block py-1 px-2 text-red-500 hover:bg-red-50 transition rounded">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                       stroke-width="1.8" stroke="currentColor" class="w-10 h-10 text-gray-500 hover:text-red-600 transition p-2 rounded">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
-                  </svg>
-                </a>
-              </div>
-            <?php endif; ?>
-          </form>
-        <?php endforeach; else: ?>
-          <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
+      <div class="p-2 flex items-center gap-2" data-col="attachment">
+        <?php if (!empty($r['attachment'])): ?>
+          <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment']) ?>" class="thumb"
+               alt="<?= htmlspecialchars($r['linked_initiatives'] ?? 'Attachment', ENT_QUOTES) ?>">
+        <?php else: ?>
+          <span class="italic text-gray-400 ml-[5px]">📎 None</span>
         <?php endif; ?>
       </div>
+
+      <!-- Dynamic values -->
+      <?php
+        $row_id  = (int)$r['id'];
+        $baseRow = [];
+        if ($table_id > 0 && $uid > 0 && $row_id > 0) {
+          $stmt = $conn->prepare("SELECT * FROM dresses_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
+          $stmt->bind_param('iii', $table_id, $uid, $row_id);
+          $stmt->execute();
+          $baseRow = $stmt->get_result()->fetch_assoc() ?: [];
+          $stmt->close();
+        }
+        $dynFields = array_values(array_filter($fields, function($m) use ($validCols) {
+          return in_array($m['field_name'], $validCols, true);
+        }));
+      ?>
+      <div class="p-2 text-gray-600" data-col="dyn">
+        <?php foreach ($dynFields as $meta): $col = $meta['field_name']; ?>
+          <input type="text" name="dyn[<?= htmlspecialchars($col, ENT_QUOTES) ?>]" value="<?= htmlspecialchars($baseRow[$col] ?? '', ENT_QUOTES) ?>"
+                 class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <?php endforeach; ?>
+      </div>
+
+      <!-- Action -->
+      <?php if ($hasAction): ?>
+        <div class="p-2">
+          <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
+             onclick="return confirm('Are you sure?')"
+             class="icon-btn" aria-label="Delete row">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                 stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z" />
+            </svg>
+          </a>
+        </div>
+      <?php endif; ?>
+    </form>
+  <?php endforeach; else: ?>
+    <div class="px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300">No records found.</div>
+  <?php endif; ?>
+</div>
 
       <?php if ($totalPages > 1): ?>
         <div class="pagination my-2 flex justify-start md:justify-center space-x-2">

@@ -586,7 +586,90 @@ $barData  = fillMissingMonthlyWithNull($barData);
 </div>
 
 
+  <style>
+    :root{
+      --tbl-gap:.75rem;             /* gap-2 */
+      --ring:0 0 0 2px #3b82f6;     /* focus ring blue-500 */
+      --row-border:#e5e7eb;         /* gray-200 */
+      --row-hover:#f9fafb;          /* gray-50 */
+    }
+    
 
+    /* Shared grid for header + rows */
+    .app-grid,
+    .applicant-row,
+    .football-row,
+    .sales-row,
+    .universal-row,
+    .groceries-row{
+      display:grid;
+      grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+      column-gap: var(--tbl-gap);
+      align-items:center;
+    }
+
+    /* Uniform inputs/selects */
+    .app-grid input,
+    .applicant-row input, .applicant-row select,
+    .football-row  input, .football-row  select,
+    .sales-row     input, .sales-row     select,
+    .groceries-row input, .groceries-row select{
+      width:100%; min-width:0;
+      border:1px solid transparent;    /* keep layout stable */          /* rounded-lg */              /* px-4 py-2 */
+      outline:0;
+    }
+
+    .universal-row input, .universal-row select{
+      width: 60%;
+    }
+    .app-grid input:focus,
+    .applicant-row input:focus, .applicant-row select:focus,
+    .football-row  input:focus, .football-row  select:focus,
+    .sales-row     input:focus, .sales-row     select:focus,
+    .universal-row input:focus, .universal-row select:focus,
+    .groceries-row input:focus, .groceries-row select:focus{
+      border-color:transparent;
+      box-shadow:var(--ring);
+    }
+
+    /* Body rows look/hover/border identical */
+    .applicant-row,
+    .football-row,
+    .sales-row,
+    .universal-row,
+    .groceries-row{
+      border-bottom:1px solid var(--row-border);
+      background:#fff;
+      transition:background .15s ease;
+    }
+    /* BUGFIX: add commas between :hover selectors */
+    .applicant-row:hover,
+    .football-row:hover,
+    .sales-row:hover,
+    .universal-row:hover,
+    .groceries-row:hover{
+      background:var(--row-hover);
+    }
+
+    /* Flatten dynamic wrapper cells */
+    .applicant-row [data-col="dyn"],
+    .football-row  [data-col="dyn"],
+    .sales-row     [data-col="dyn"],
+    .universal-row [data-col="dyn"],
+    .groceries-row [data-col="dyn"]{
+      display:contents;
+    }
+
+    /* Thumbnail + action icon helpers */
+    .thumb{ width:4rem; height:2.5rem; object-fit:cover; border-radius:.5rem; } /* w-16 h-10 rounded-md */
+    .icon-btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:2.5rem; height:2.5rem; border-radius:.5rem;
+      color:#6b7280; transition:background .15s, color .15s;
+    }
+    .icon-btn:hover{ background:#fef2f2; color:#dc2626; }
+
+    </style>
   
 <div id="account" class="hidden inset-0 md:fixed absolute mt-14 md:ml-150 h-screen overflow-none md:ml-0 md:mr-0 ml-3 mr-3">
   <div class="w-full max-w-md bg-white px-8 py-5 rounded-2xl border border-gray-200">
