@@ -324,142 +324,232 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
 
     <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
 
-    <!-- same id -->
-    <div id="actionMenuList"
-        class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,28rem)] rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-0 overflow-hidden">
+    <!-- Action menu -->
+  <div id="actionMenuList"
+     role="dialog" aria-modal="true" aria-labelledby="moreTitle"
+     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+           rounded-2xl bg-white/95 backdrop-blur
+            shadow-2xl ring-1 ring-black/5 overflow-hidden">
 
-      <!-- header (tighter) -->
-      <div class="flex items-start justify-between px-4 pt-3 pb-2 border-b border-gray-100">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+      <div class="flex items-center gap-3">
+        <div class="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-blue-700">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm1 13h-2v-2h2v2Zm0-4h-2V7h2v4Z"/>
+          </svg>
+        </div>
         <div>
           <h3 id="moreTitle" class="text-sm font-semibold text-gray-900">More</h3>
           <p class="mt-0.5 text-[11px] text-gray-500">Table actions</p>
         </div>
-        <button data-close-add class="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
-          </svg>
-        </button>
       </div>
 
-      <div class="p-3 space-y-3">
-        <div id="addColumnBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-blue-50/40 hover:border-blue-100 transition">
-          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-blue-100 text-blue-700">
+      <button data-close-add
+              class="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-2 md:w-100 w-90 space-y-5">
+
+      <!-- Add fields (FLEX) -->
+      <div id="addColumnBtn"
+          class="cursor-pointer group flex flex-col md:flex-row md:items-center justify-between gap-3
+                  p-3 rounded-xl border border-transparent ring-1 ring-transparent
+                  hover:bg-blue-50/60 hover:border-blue-200 hover:ring-blue-100 transition">
+        <!-- left: icon + text -->
+        <div class="flex items-start gap-3 md:pr-3 flex-1">
+          <div class="mt-0.5 grid place-items-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 shrink-0">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6Z"/>
             </svg>
           </div>
-
-          <div class="flex-1">
-            <h4 class="text-[13px] font-medium text-gray-900 md:mt-0 mt-1">Add fields</h4>
-            <p class="text-[11px] leading-4 text-gray-500 md:mt-0 mt-1">Create a new column with type and default value.</p>
+          <div class="min-w-0">
+            <h4 class="text-[13px] font-medium text-gray-900">Add fields</h4>
+            <p class="text-[11px] leading-4 text-gray-500">Create a new column with a default value.</p>
           </div>
-
-          <button id="addFieldsBtn" class="self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 md:mt-0 mt-1">Add</button>
         </div>
+        <!-- right: button -->
+        <button id="addFieldsBtn"
+                class="shrink-0 w-full md:w-auto px-4 py-2 text-[12px] font-medium rounded-md
+                      bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          Add
+        </button>
+      </div>
 
-        <div class="h-px bg-gray-100"></div>
+      <div class="h-px bg-gray-100"></div>
 
-        <p class="px-0.5 text-[10px] font-semibold tracking-wide text-red-600/80 uppercase">Danger</p>
+      <!-- Danger chip -->
+      <div class="flex items-center gap-2 px-0.5">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2 1 21h22L12 2Zm1 15h-2v-2h2v2Zm0-4h-2V9h2v4Z"/>
+          </svg>
+          Danger
+        </span>
+      </div>
 
-        <div id="addDeleteBtn" class="cursor-pointer group md:flex items-start gap-2 p-2 rounded-lg border border-transparent hover:bg-red-50/40 hover:border-red-100 transition">
-          <div class="mt-0.5 shrink-0 grid place-items-center w-7 h-7 rounded-full bg-red-100 text-red-600">
+      <!-- Delete fields (FLEX) -->
+      <div id="addDeleteBtn"
+          class="cursor-pointer group flex flex-col md:flex-row md:items-center justify-between gap-3
+                  p-3 rounded-xl border border-transparent ring-1 ring-transparent
+                  hover:bg-red-50/60 hover:border-red-200 hover:ring-red-100 transition">
+        <!-- left: icon + text -->
+        <div class="flex items-start gap-3 md:pr-3 flex-1">
+          <div class="mt-0.5 grid place-items-center w-8 h-8 rounded-full bg-red-100 text-red-600 shrink-0">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/>
             </svg>
           </div>
-
-          <div class="flex-1">
-            <h4 class="md:mt-0 mt-1 text-[13px] font-medium text-gray-900">Delete fields</h4>
-            <p class="md:mt-0 mt-1 text-[11px] leading-4 text-gray-500">Remove selected fields from this table.<span class="text-gray-700 font-medium">This can’t be undone.</span></p>
+          <div class="min-w-0">
+            <h4 class="text-[13px] font-medium text-gray-900">Delete fields</h4>
+            <p class="text-[11px] leading-4 text-gray-500">Remove selected fields from this table.</p>
           </div>
-
-          <button id="deleteFieldsBtn" class="md:mt-0 mt-1 self-center px-2.5 py-1 text-[13px] font-medium rounded-md bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">Delete
-          </button>
         </div>
+        <!-- right: button -->
+        <button id="deleteFieldsBtn"
+                class="shrink-0 w-full md:w-auto px-4 py-2 text-[12px] font-medium rounded-md
+                      bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+          Delete
+        </button>
       </div>
-    </div>
 
-    <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
-      <div class="px-4 py-3 border-b border-gray-100">
-        <div class="flex justify-between items-center gap-2">
-          <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>
-          <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
-          <button data-close-add type="button" class="cursor-pointer p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
-            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <form action="/ItemPilot/categories/Dresses/add_fields.php" method="post">
-          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
-
-          <label for="field_name" class="block text-sm font-medium text-gray-700 mt-4">Field Name</label>
-          <input type="text" id="field_name" name="field_name" required class="w-full mt-1 mb-3 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-
-          <button type="submit" class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition">Add Field</button>
-        </form>
-      </div>
-    </div>
-
-    <div id="addDeletePop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 max-w-[90vw] rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
-      <div class="px-4 py-3 border-b border-gray-100">
-        <div class="flex justify-between items-center gap-2">
-          <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
-          <button data-close-add type="button" class="p-1 rounded-md hover:bg-gray-100" aria-label="Close" id="closeAddColumnPop">
-            <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="flex items-start mt-4 gap-2">
-          <svg class="h-5 w-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="9"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v6M12 17h.01"/>
-          </svg>
-          <p class="text-xs text-gray-500">Select a field to delete. This action can’t be undone.</p>
-        </div>
-
-        <div class="w-full bg-gray-100 h-[1px] mt-2"></div>
-        <form action="/ItemPilot/categories/Dresses/delete_fields.php" method="post" class="mt-3">
-          <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
-
-          <?php
-          $uid = (int)($_SESSION['user_id'] ?? 0);
-          $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
-
-          $sql = "SELECT id, field_name FROM dresses_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
-          $stmt = $conn->prepare($sql);
-          $stmt->bind_param('ii', $uid, $table_id);
-          $stmt->execute();
-          $result = $stmt->get_result();
-          $fields = $result->fetch_all(MYSQLI_ASSOC);
-          $stmt->close();
-          ?>
-
-          <div class="divide-y divide-gray-100">
-            <?php foreach ($fields as $field): ?>
-              <div class="flex items-center justify-between">
-                <input type="text" readonly name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent px-1 py-1 text-base text-gray-900"/>
-
-                <a href="/ItemPilot/categories/Dresses/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Delete this field?')" class="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete" title="Delete">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
-                  </svg>
-                </a>
-              </div>
-            <?php endforeach; ?>
-          </div>
-
-          <div class="pt-3 mt-2 border-t border-gray-100 flex items-center justify-end">
-            <button type="button" data-close-add class="px-3 py-1.5 text-xs rounded-md border bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">Cancel</button>
-          </div>
-        </form>
-      </div>
     </div>
   </div>
+
+
+  <!-- Add Field modal -->
+  <div id="addColumnPop"
+     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+            w-[min(92vw,28rem)] rounded-2xl bg-white/95 backdrop-blur
+            shadow-2xl ring-1 ring-black/5">
+  <!-- Header -->
+  <div class="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <svg class="h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/>
+        </svg>
+        <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
+      </div>
+      <button data-close-add type="button" id="closeAddColumnPop"
+              class="cursor-pointer p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="px-5 py-4">
+    <form action="/ItemPilot/categories/Dresses/add_fields.php" method="post" class="space-y-3">
+      <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
+      <label for="field_name" class="block text-sm font-medium text-gray-700">Field name</label>
+      <input id="field_name" name="field_name" required
+             class="w-full rounded-xl border border-gray-300 bg-slate-50 px-3 py-2
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                    placeholder:text-gray-400"
+             type="text" placeholder="e.g. Price, SKU, Notes" />
+
+      <div class="pt-2">
+        <button type="submit"
+                class="w-full rounded-lg bg-blue-600 px-4 py-2 text-white text-sm font-medium
+                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          Add Field
+        </button>
+      </div>
+    </form>
+  </div>
+  </div>
+
+  <!-- Delete Fields modal -->
+  <div id="addDeletePop"
+     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+            w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur
+            shadow-2xl ring-1 ring-black/5">
+  <!-- Header -->
+  <div class="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+    <div class="flex items-center justify-between gap-3">
+      <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
+      <button data-close-add type="button" id="closeAddColumnPop"
+              class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Close">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Danger hint -->
+    <div class="mt-3 flex items-start gap-2 px-1">
+      <svg class="h-5 w-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="9"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v6M12 17h.01"/>
+      </svg>
+      <p class="text-xs text-gray-600">
+        Select a field to delete. <span class="font-medium text-gray-800">This action can’t be undone.</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="px-5 py-4">
+    <form action="/ItemPilot/categories/Dresses/delete_fields.php" method="post" class="space-y-3">
+      <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
+
+      <?php
+        $uid = (int)($_SESSION['user_id'] ?? 0);
+        $table_id = (int)($_GET['table_id'] ?? $_POST['table_id'] ?? 0);
+        $sql = "SELECT id, field_name FROM dresses_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('ii', $uid, $table_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $fields = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+      ?>
+
+      <div class="divide-y divide-gray-100 rounded-xl overflow-hidden ring-1 ring-gray-100">
+        <?php foreach ($fields as $field): ?>
+          <div class="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50 transition">
+            <input type="text" readonly
+                   name="extra_field_<?= (int)$field['id'] ?>"
+                   value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                   class="w-full bg-transparent border-none px-1 py-1 text-sm text-gray-900
+                          pointer-events-none focus:outline-none" />
+
+            <a href="/ItemPilot/categories/Dresses/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>"
+               onclick="return confirm('Delete this field?')"
+               class="inline-flex items-center justify-center rounded-md p-1.5
+                      text-red-600 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+               aria-label="Delete" title="Delete">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
+              </svg>
+            </a>
+          </div>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="pt-3 mt-1 border-t border-gray-100 flex items-center justify-end">
+        <button type="button" data-close-add
+                class="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+  </div>
+  </div>
+
   
 <!-- THEAD -->
 <div class="universal-table" id="sales-<?= (int)$table_id ?>" data-table-id="<?= (int)$table_id ?>">

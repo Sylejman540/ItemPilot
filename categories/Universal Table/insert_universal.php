@@ -416,10 +416,10 @@ $hasRecord = count($rows) > 0;
     <svg xmlns="http://www.w3.org/2000/svg" id="actionMenuBtn" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
 
     <!-- Action menu -->
-<div id="actionMenuList"
+  <div id="actionMenuList"
      role="dialog" aria-modal="true" aria-labelledby="moreTitle"
      class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-            w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur
+           rounded-2xl bg-white/95 backdrop-blur
             shadow-2xl ring-1 ring-black/5 overflow-hidden">
 
     <!-- Header -->
@@ -446,7 +446,7 @@ $hasRecord = count($rows) > 0;
     </div>
 
     <!-- Body -->
-    <div class="p-2 w-100 space-y-5">
+    <div class="p-2 md:w-100 w-90 space-y-5">
 
       <!-- Add fields (FLEX) -->
       <div id="addColumnBtn"
@@ -514,8 +514,8 @@ $hasRecord = count($rows) > 0;
   </div>
 
 
-<!-- Add Field modal -->
-<div id="addColumnPop"
+  <!-- Add Field modal -->
+  <div id="addColumnPop"
      class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
             w-[min(92vw,28rem)] rounded-2xl bg-white/95 backdrop-blur
             shadow-2xl ring-1 ring-black/5">
@@ -559,10 +559,10 @@ $hasRecord = count($rows) > 0;
       </div>
     </form>
   </div>
-</div>
+  </div>
 
-<!-- Delete Fields modal -->
-<div id="addDeletePop"
+  <!-- Delete Fields modal -->
+  <div id="addDeletePop"
      class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
             w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur
             shadow-2xl ring-1 ring-black/5">
@@ -638,8 +638,7 @@ $hasRecord = count($rows) > 0;
       </div>
     </form>
   </div>
-</div>
-
+  </div>
   </div>
 
 
