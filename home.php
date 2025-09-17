@@ -1757,7 +1757,6 @@ document.body.addEventListener('click', e => {
   if (close && menu) menu.classList.add('hidden');
 });
 
-<<<<<<< HEAD
 (() => {
   const AJAX_FORMS = '.thead-form, .applicant-row, .football-row, .sales-row, .universal-row, .groceries-row, .new-record-form';
 
