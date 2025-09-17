@@ -201,6 +201,7 @@
 .sidebar:hover {
   background-color: #1d2b36;
   color: white;
+  width: 100%;
   box-shadow: inset 3px 0 0 0 #3b82f6; /* visual left bar without layout shift */
 }
 

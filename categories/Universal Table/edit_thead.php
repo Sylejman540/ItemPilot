@@ -107,8 +107,24 @@ try {
   $updField->close();
 
   $conn->commit();
+  $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+  if ($isAjax) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+      'ok' => true,
+      // for INSERT/EDIT optionally send a ready-to-insert row
+      // 'row_html' => $renderedRowHtml,
+      // 'table_id' => (int)$table_id,
+    ]);
+    exit;
+  }
+
+  // Non-AJAX fallback:
   header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
+
 
 } catch (Throwable $e) {
   $conn->rollback();

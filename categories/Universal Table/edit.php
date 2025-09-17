@@ -58,8 +58,17 @@ if (!$stmt->fetch()) {
   exit("Record #{$table_id} not found");
 }
 $stmt->close();
+$isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+          strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-// If you want to render something here, echo the title or a small form.
-// Otherwise, this endpoint is POST-only and you can redirect:
-header("Location: /ItemPilot/home.php?table_id={$table_id}");
+if ($isAjax) {
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode([
+    'ok' => true,
+  ]);
+  exit;
+}
+
+header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
 exit;
+

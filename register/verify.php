@@ -43,9 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Email Verification</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link rel="icon" href="images/icon.png"/>
+  <title>ItemPilot</title>
 </head>
 <body class="flex items-center justify-center h-screen bg-gray-100 w-full">
   <div class="bg-white p-8 rounded-xl shadow-lg md:w-96">
@@ -58,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
     <form method="post" class="space-y-4">
       <input type="text" name="code" placeholder="Enter code"
-        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        class="w-full px-4 py-2 border-gray-200 border-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       <button type="submit"
         class="w-full bg-blue-900 text-white py-2 rounded-lg hover:bg-blue-800">Verify</button>
     </form>

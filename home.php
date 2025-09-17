@@ -1758,37 +1758,80 @@ document.body.addEventListener('click', e => {
 });
 
 (() => {
-  const AJAX_FORMS = '.thead-form, .applicant-row, .football-row, .sales-row, .universal-row, .groceries-row, .new-record-form';
+  const AJAX_FORMS = 'form.thead-form, form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row, form.new-record-form';
+  const ROW_SEL    = '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
 
+  // Map a status string to Tailwind classes
+  function statusClasses(s) {
+    const t = (s || '').toLowerCase().trim();
+    if (t === 'done')        return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 ring-1 ring-green-200';
+    if (t === 'in progress') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200';
+    // default ("To Do" etc.)
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 ring-1 ring-gray-200';
+  }
+
+  // Replace existing row or prepend a new one
+  function insertOrReplaceRow(form, html, tableId) {
+    const currentRow = form.closest(ROW_SEL);
+    if (currentRow) {
+      currentRow.insertAdjacentHTML('beforebegin', html);
+      currentRow.remove();
+      return;
+    }
+    // INSERT from modal: prepend to the list wrapper after header #ut-<table_id>
+    const head = tableId ? document.querySelector(`#ut-${tableId}`) : null;
+    const wrap = head?.nextElementSibling?.classList.contains('divide-y')
+      ? head.nextElementSibling
+      : document.querySelector('.divide-y');
+    wrap?.insertAdjacentHTML('afterbegin', html);
+  }
+
+  // ---------- SAVE (insert + edit) ----------
   document.addEventListener('submit', async (e) => {
     const form = e.target;
     if (!form.matches(AJAX_FORMS)) return;
+
     e.preventDefault();
 
-    const fd = new FormData(form);
+    const btn = form.querySelector('[type="submit"]');
+    const txt = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+
+    const fd     = new FormData(form);
     const method = (form.getAttribute('method') || 'POST').toUpperCase();
     const action = form.getAttribute('action') || window.location.href;
 
     try {
-      const res  = await fetch(action, {
+      const res = await fetch(action, {
         method,
         body: fd,
-        headers: { 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
       });
 
-      const raw = await res.text();
+      const raw  = await res.text();
       let data; try { data = JSON.parse(raw); } catch { console.error(raw); throw new Error('Bad JSON'); }
       if (!res.ok || !data?.ok) throw new Error(data?.error || 'Server error');
 
-      // If server gave us the new row HTML, insert it at the top of the tbody wrapper
-      if (data.row_html && data.table_id) {
-        // table header div has id="ut-<table_id>"; the next sibling is your rows wrapper
-        const tableHead = document.querySelector(`#ut-${data.table_id}`);
-        const rowsWrap = tableHead?.nextElementSibling?.matches('.w-full.divide-y') ? tableHead.nextElementSibling : document.querySelector('.w-full.divide-y');
-        if (rowsWrap) rowsWrap.insertAdjacentHTML('afterbegin', data.row_html);
+      // If server gives us row HTML, inject it (works for both INSERT & EDIT)
+      if (data.row_html) {
+        insertOrReplaceRow(form, data.row_html, data.table_id);
+      } else {
+        // No HTML returned? At least update status badge in place for EDIT flows.
+        const row = form.closest(ROW_SEL);
+        const newStatus = data.status ?? form.querySelector('[name="status"]')?.value;
+        const badge = row?.querySelector('.status-badge');
+        if (badge && newStatus) {
+          badge.textContent = newStatus;
+          badge.className = 'status-badge ' + statusClasses(newStatus);
+        }
+        // Optional: update attachment link if provided
+        if (row && data.attachment_url) {
+          const link = row.querySelector('[data-attachment]');
+          if (link) { link.href = data.attachment_url; link.classList.remove('hidden'); }
+        }
       }
 
-      // If it was the modal form, reset and close it
+      // If it was the “new record” modal, clear & close
       if (form.classList.contains('new-record-form')) {
         form.reset();
         document.querySelector('#addForm [data-close-add]')?.click?.();
@@ -1797,39 +1840,66 @@ document.body.addEventListener('click', e => {
       toast('Saved');
     } catch (err) {
       console.error(err);
-      toast('Save failed', true);
+      toast(err.message || 'Save failed', true);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = txt; }
     }
   });
 
-  // autosave on change still fine
+  // ---------- AUTOSAVE ----------
   document.addEventListener('change', (e) => {
     const t = e.target;
-    if (t.closest(AJAX_FORMS) && (t.hasAttribute('data-autosave') || t.type === 'checkbox')) {
-      t.closest('form')?.requestSubmit();
+    const form = t.closest(AJAX_FORMS);
+    if (!form) return;
+    if (t.hasAttribute('data-autosave') || t.type === 'checkbox' || t.tagName === 'SELECT') {
+      form.requestSubmit();
     }
   });
 
-  // delete handler you already have…
+  // ---------- DELETE ----------
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('a[href*="delete_"], a[href*="/delete.php"], button[data-delete-url]');
+    if (!a) return;
 
+    e.preventDefault();
+    if (!confirm('Delete this item?')) return;
+
+    const url    = a.tagName === 'A' ? a.href : a.getAttribute('data-delete-url');
+    const method = (a.dataset.method || 'POST').toUpperCase();
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+      });
+      const raw  = await res.text();
+      let data; try { data = JSON.parse(raw); } catch { console.error(raw); throw new Error('Bad JSON'); }
+      if (!res.ok || !data?.ok) throw new Error(data?.error || 'Delete failed');
+
+      a.closest(ROW_SEL)?.remove();
+      toast('Deleted');
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Delete failed', true);
+    }
+  });
+
+  // ---------- Toast ----------
   let toastEl;
   function toast(msg, bad) {
     if (!toastEl) {
       toastEl = document.createElement('div');
-      toastEl.style.cssText = 'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
+      toastEl.style.cssText =
+        'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;' +
+        'box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
       document.body.appendChild(toastEl);
     }
     toastEl.textContent = msg;
     toastEl.style.background = bad ? '#dc2626' : '#16a34a';
     toastEl.style.opacity = '1';
-    setTimeout(() => toastEl.style.opacity = '0', 1400);
+    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
   }
 })();
 </script>
-
-
-=======
-
-</script>
->>>>>>> parent of b1badee (Add AJAX support for Universal Table actions)
 </body>
 </html>
