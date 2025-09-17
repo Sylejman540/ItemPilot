@@ -1827,9 +1827,5 @@ document.body.addEventListener('click', e => {
 </script>
 
 
-=======
-
-</script>
->>>>>>> parent of b1badee (Add AJAX support for Universal Table actions)
 </body>
 </html>
