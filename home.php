@@ -1757,6 +1757,7 @@ document.body.addEventListener('click', e => {
   if (close && menu) menu.classList.add('hidden');
 });
 
+<<<<<<< HEAD
 (() => {
   const AJAX_FORMS = '.thead-form, .applicant-row, .football-row, .sales-row, .universal-row, .groceries-row, .new-record-form';
 
@@ -1827,5 +1828,9 @@ document.body.addEventListener('click', e => {
 </script>
 
 
+=======
+
+</script>
+>>>>>>> parent of b1badee (Add AJAX support for Universal Table actions)
 </body>
 </html>

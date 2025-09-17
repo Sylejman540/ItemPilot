@@ -2,12 +2,6 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
-$isAjax = (
-  isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-  strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
-);
-
-
 $uid = $_SESSION['user_id'] ?? 0;
 if (!$uid) {
   header('Location: /ItemPilot/register/login.php');
@@ -49,27 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // (happens when the row belongs to another user or title is unchanged)
   // $_SESSION['flash'] = $affected > 0 ? '✅ Title updated' : 'ℹ️ No changes';
 
-  if ($isAjax) {
-      header('Content-Type: application/json; charset=utf-8');
-      echo json_encode([
-        'ok'       => true,
-        'id'       => isset($row_id) ? (int)$row_id : (int)($_POST['id'] ?? 0),
-        'table_id' => (int)$table_id,
-
-        // include whatever the UI should update instantly:
-        // DRESSES example:
-        'profit'         => $deadlineDb ?? null, // computed on the server
-        'attachment_url' => !empty($attachment) ? ($UPLOAD_URL . '/' . rawurlencode($attachment)) : null,
-
-        // UNIVERSAL example:
-        'status'         => $_POST['status'] ?? null,
-      ]);
-      exit;
-    }
-
-    // Non-AJAX fallback (user hard-submits or JS disabled)
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&table_id={$table_id}"));
-    exit;
+  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+  exit;
 }
 
 // GET: fetch current title (scoped)
@@ -86,25 +61,5 @@ $stmt->close();
 
 // If you want to render something here, echo the title or a small form.
 // Otherwise, this endpoint is POST-only and you can redirect:
-  if ($isAjax) {
-      header('Content-Type: application/json; charset=utf-8');
-      echo json_encode([
-        'ok'       => true,
-        'id'       => isset($row_id) ? (int)$row_id : (int)($_POST['id'] ?? 0),
-        'table_id' => (int)$table_id,
-
-        // include whatever the UI should update instantly:
-        // DRESSES example:
-        'profit'         => $deadlineDb ?? null, // computed on the server
-        'attachment_url' => !empty($attachment) ? ($UPLOAD_URL . '/' . rawurlencode($attachment)) : null,
-
-        // UNIVERSAL example:
-        'status'         => $_POST['status'] ?? null,
-      ]);
-      exit;
-    }
-
-    // Non-AJAX fallback (user hard-submits or JS disabled)
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? "/ItemPilot/home.php?autoload=1&table_id={$table_id}"));
-    exit;
-
+header("Location: /ItemPilot/home.php?table_id={$table_id}");
+exit;
