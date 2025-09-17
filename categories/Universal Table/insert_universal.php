@@ -2,22 +2,6 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
-// Detect AJAX
-$isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-          strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-// Safe JSON responder (prevents stray output from breaking JSON)
-function respond_json(array $payload, int $code = 200) {
-  // kill any buffered output (warnings, BOMs, etc.)
-  while (ob_get_level() > 0) { ob_end_clean(); }
-  header_remove('Location');
-  header('Content-Type: application/json; charset=utf-8');
-  http_response_code($code);
-  echo json_encode($payload);
-  exit;
-}
-
-
 $uid = $_SESSION['user_id'] ?? 0;
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
@@ -193,36 +177,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
   }
+// after successful INSERT (you have $table_id):
+$isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+          strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
 if ($isAjax) {
-  // $row_id for insert, or $rec_id for update
-  $rowPk = isset($row_id) && $row_id ? (int)$row_id : (int)$rec_id;
-
-  // (Optional) re-read the row so computed values are fresh
-  $st = $conn->prepare("SELECT id,name,notes,assignee,status,attachment_summary
-                        FROM universal WHERE user_id=? AND table_id=? AND id=? LIMIT 1");
-  $st->bind_param('iii', $uid, $table_id, $rowPk);
-  $st->execute();
-  $fresh = $st->get_result()->fetch_assoc();
-  $st->close();
-
-  // (Optional) render one row HTML using your template/markup
-  ob_start();
-  // …render your row here; make sure the status element has class="status-badge"…
-  $row_html = ob_get_clean();
-
-  respond_json([
-    'ok'             => true,
-    'id'             => $rowPk,
-    'table_id'       => (int)$table_id,
-    'status'         => $fresh['status'] ?? ($status ?? null),
-    'attachment_url' => !empty($fresh['attachment_summary'])
-                          ? $UPLOAD_URL . '/' . rawurlencode($fresh['attachment_summary'])
-                          : null,
-    'row_html'       => $row_html, // omit if you don’t render HTML
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode([
+    'ok'       => true,
+    'table_id' => (int)$table_id   // ← REQUIRED
   ]);
-}
+  exit;
 }
 
+// Non-AJAX fallback:
+header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+exit;
+
+}
 $stmt = $conn->prepare("SELECT table_title FROM tables WHERE user_id = ? AND table_id = ? LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
 $stmt->execute();
@@ -634,17 +606,17 @@ $hasRecord = count($rows) > 0;
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($r['attachment_summary'] ?? '', ENT_QUOTES) ?>">
 
-      <div class="p-2 text-gray-600" data-col="name">
+      <div class="p-2 text-gray-600" data-col="name" data-rows-for="ut-<?= $table_id ?>">
         <input type="text" name="name" value="<?= htmlspecialchars($r['name'] ?? '', ENT_QUOTES) ?>"
               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
-      <div class="p-2 text-gray-600" data-col="notes">
+      <div class="p-2 text-gray-600" data-col="notes" data-rows-for="ut-<?= $table_id ?>">
         <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES) ?>"
               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
-      <div class="p-2 text-gray-600" data-col="assignee">
+      <div class="p-2 text-gray-600" data-col="assignee" data-rows-for="ut-<?= $table_id ?>">
         <input type="text" name="assignee" value="<?= htmlspecialchars($r['assignee'] ?? '', ENT_QUOTES) ?>"
               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
@@ -657,7 +629,7 @@ $hasRecord = count($rows) > 0;
       ];
       $colorClass = $statusColors[$r['status'] ?? ''] ?? 'bg-white text-gray-900';
       ?>
-      <div class="p-2 text-xs font-semibold" data-col="status">
+      <div class="p-2 text-xs font-semibold" data-col="status" data-rows-for="ut-<?= $table_id ?>">
         <select name="status" style="appearance:none;"
               data-autosave="1"  class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
           <option value="To Do"       <?= ($r['status'] ?? '') === 'To Do' ? 'selected' : '' ?>>To Do</option>
@@ -666,7 +638,7 @@ $hasRecord = count($rows) > 0;
         </select>
       </div>
 
-      <div class="p-2 text-gray-600" data-col="attachment">
+      <div class="p-2 text-gray-600" data-col="attachment" data-rows-for="ut-<?= $table_id ?>">
         <?php if (!empty($r['attachment_summary'])): ?>
           <?php $src = "/ItemPilot/categories/Universal%20Table/uploads/".rawurlencode($r['attachment_summary']); ?>
           <img src="<?= htmlspecialchars($src, ENT_QUOTES) ?>" class="thumb" alt="Attachment">
@@ -676,7 +648,7 @@ $hasRecord = count($rows) > 0;
       </div>
 
       <!-- Dynamic values: use SAME $dynFields as header -->
-      <div class="p-2 text-gray-600" data-col="dyn">
+      <div class="p-2 text-gray-600" data-col="dyn" data-rows-for="ut-<?= $table_id ?>">
         <?php
           $row_id  = (int)$r['id'];
           $user_id = (int)($_SESSION['user_id'] ?? 0);
