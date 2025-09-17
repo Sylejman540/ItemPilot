@@ -1758,32 +1758,58 @@ document.body.addEventListener('click', e => {
 });
 
 (() => {
-  const AJAX_FORMS = 'form.thead-form, form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row, form.new-record-form';
+  const AJAX_FORMS = 'form.thead-form, form.applicants-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row, form.new-record-form';
   const ROW_SEL    = '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
 
-  // Map a status string to Tailwind classes
+  // ---------- Helpers ----------
   function statusClasses(s) {
     const t = (s || '').toLowerCase().trim();
     if (t === 'done')        return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 ring-1 ring-green-200';
     if (t === 'in progress') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200';
-    // default ("To Do" etc.)
     return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 ring-1 ring-gray-200';
   }
 
-  // Replace existing row or prepend a new one
-  function insertOrReplaceRow(form, html, tableId) {
-    const currentRow = form.closest(ROW_SEL);
-    if (currentRow) {
-      currentRow.insertAdjacentHTML('beforebegin', html);
-      currentRow.remove();
-      return;
+  // ---------- Soft refresh (SINGLE, TOP-LEVEL VERSION) ----------
+  // Fetch THIS page's HTML, cache-busted, then swap only the rows wrapper.
+  async function softRefresh(tableId) {
+    if (!tableId) return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('autoload', '1');
+      url.searchParams.set('table_id', tableId);
+      url.searchParams.set('_ts', Date.now()); // cache-bust
+
+      const res  = await fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        cache: 'no-store'
+      });
+      const html = await res.text();
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
+
+      // Prefer the scoped wrapper if present
+      const wrapNew = doc.querySelector(`.divide-y[data-rows-for="ut-${tableId}"]`) || doc.querySelector('.divide-y');
+      const wrapOld = document.querySelector(`.divide-y[data-rows-for="ut-${tableId}"]`) || document.querySelector('.divide-y');
+
+      if (wrapNew && wrapOld) wrapOld.innerHTML = wrapNew.innerHTML;
+    } catch (err) {
+      console.error('Soft refresh failed:', err);
     }
-    // INSERT from modal: prepend to the list wrapper after header #ut-<table_id>
-    const head = tableId ? document.querySelector(`#ut-${tableId}`) : null;
-    const wrap = head?.nextElementSibling?.classList.contains('divide-y')
-      ? head.nextElementSibling
-      : document.querySelector('.divide-y');
-    wrap?.insertAdjacentHTML('afterbegin', html);
+  }
+
+  // Tiny toast
+  let toastEl;
+  function toast(msg, bad) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.style.cssText =
+        'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;' +
+        'box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.style.background = bad ? '#dc2626' : '#16a34a';
+    toastEl.style.opacity = '1';
+    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
   }
 
   // ---------- SAVE (insert + edit) ----------
@@ -1792,7 +1818,6 @@ document.body.addEventListener('click', e => {
     if (!form.matches(AJAX_FORMS)) return;
 
     e.preventDefault();
-
     const btn = form.querySelector('[type="submit"]');
     const txt = btn?.textContent;
     if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
@@ -1808,34 +1833,37 @@ document.body.addEventListener('click', e => {
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
       });
 
-      const raw  = await res.text();
+      const raw = await res.text();
       let data; try { data = JSON.parse(raw); } catch { console.error(raw); throw new Error('Bad JSON'); }
       if (!res.ok || !data?.ok) throw new Error(data?.error || 'Server error');
 
-      // If server gives us row HTML, inject it (works for both INSERT & EDIT)
-      if (data.row_html) {
-        insertOrReplaceRow(form, data.row_html, data.table_id);
-      } else {
-        // No HTML returned? At least update status badge in place for EDIT flows.
-        const row = form.closest(ROW_SEL);
-        const newStatus = data.status ?? form.querySelector('[name="status"]')?.value;
-        const badge = row?.querySelector('.status-badge');
-        if (badge && newStatus) {
+      // Quick in-place touches
+      const row = form.closest(ROW_SEL);
+      const newStatus =
+        data.status ??
+        data.row?.status ??
+        form.querySelector('[name="status"]')?.value;
+      if (row && newStatus) {
+        const badge = row.querySelector('.status-badge');
+        if (badge) {
           badge.textContent = newStatus;
           badge.className = 'status-badge ' + statusClasses(newStatus);
         }
-        // Optional: update attachment link if provided
-        if (row && data.attachment_url) {
-          const link = row.querySelector('[data-attachment]');
-          if (link) { link.href = data.attachment_url; link.classList.remove('hidden'); }
-        }
       }
 
-      // If it was the “new record” modal, clear & close
+      const attachmentUrl = data.attachment_url || data.row?.attachment_url;
+      if (row && attachmentUrl) {
+        const link = row.querySelector('[data-attachment]');
+        if (link) { link.href = attachmentUrl; link.classList.remove('hidden'); }
+      }
+
       if (form.classList.contains('new-record-form')) {
         form.reset();
         document.querySelector('#addForm [data-close-add]')?.click?.();
       }
+
+      // Authoritative refresh from server (no full reload)
+      await softRefresh(data.table_id || data.row?.table_id);
 
       toast('Saved');
     } catch (err) {
@@ -1872,34 +1900,29 @@ document.body.addEventListener('click', e => {
         method,
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
       });
-      const raw  = await res.text();
+      const raw = await res.text();
       let data; try { data = JSON.parse(raw); } catch { console.error(raw); throw new Error('Bad JSON'); }
       if (!res.ok || !data?.ok) throw new Error(data?.error || 'Delete failed');
 
-      a.closest(ROW_SEL)?.remove();
+      // Remove row immediately
+      const row = a.closest(ROW_SEL);
+      const tableId =
+        row?.closest('[id^="ut-"]')?.id?.replace('ut-','') ||
+        document.querySelector('[id^="ut-"]')?.id?.replace('ut-','') ||
+        null;
+      row?.remove();
+
+      // Then soft refresh
+      await softRefresh(tableId);
+
       toast('Deleted');
     } catch (err) {
       console.error(err);
       toast(err.message || 'Delete failed', true);
     }
   });
-
-  // ---------- Toast ----------
-  let toastEl;
-  function toast(msg, bad) {
-    if (!toastEl) {
-      toastEl = document.createElement('div');
-      toastEl.style.cssText =
-        'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;' +
-        'box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
-      document.body.appendChild(toastEl);
-    }
-    toastEl.textContent = msg;
-    toastEl.style.background = bad ? '#dc2626' : '#16a34a';
-    toastEl.style.opacity = '1';
-    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
-  }
 })();
 </script>
+
 </body>
 </html>
