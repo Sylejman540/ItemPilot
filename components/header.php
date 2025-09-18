@@ -4,7 +4,6 @@
   <aside id="sidebar" class="md:w-75 w-65 block bg-[#263544] min-h-screen">
     <a href="/ItemPilot/home.php">
       <div class="flex items-center gap-2 px-6">
-
         <h1 class="text-4xl text-white mb-2 mt-2 font-bold">𝓟𝓲𝓵𝓸𝓽𝓪</h1>
       </div>
     </a>
@@ -30,7 +29,7 @@
             Data
           </li>
           <!-- TABLES -->
-          <button class="w-70 px-6 mt-3 py-3 cursor-pointer flex items-center justify-start sidebar text-[#A7B6CC] hover:text-white">
+          <button class="w-[100%] px-6 mt-3 py-3 cursor-pointer flex items-center justify-between sidebar text-[#A7B6CC] hover:text-white">
             <div>
               <span class="select-none flex justify-center items-center gap-5" id="events">
                 <!-- icon -->
@@ -41,7 +40,7 @@
 
             <div id="tablesItem" type="button">
               <svg
-                class="chev w-4 h-4 transition-transform ml-15"
+                class="chev w-4 h-4"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
