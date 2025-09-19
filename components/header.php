@@ -2,15 +2,14 @@
 <main class="flex text-base font-[Open_Sans]">
   <!-- Aside -->
   <aside id="sidebar" class="md:w-75 w-65 block bg-[#263544] min-h-screen">
-    <a href="/ItemPilot/home.php">
-      <div class="flex items-center gap-2 px-6">
-        <h1 class="text-4xl text-white mb-2 mt-2 font-bold">𝓟𝓲𝓵𝓸𝓽𝓪</h1>
-      </div>
-    </a>
+      <a href="/ItemPilot/home.php">
+        <img src="images/logo.png?v3" alt="an2table logo" class="w-48 h-32 px-6">
+      </a>
+
       <nav>
        <ul class="text-md">
           <!-- ===== GENERAL ===== -->
-          <li class="px-6 mt-2 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
+          <li class="px-6 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
             General
           </li>
           <!-- DASHBOARD -->
