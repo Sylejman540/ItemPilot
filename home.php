@@ -1758,71 +1758,44 @@ document.body.addEventListener('click', e => {
 });
 
 (() => {
-  const AJAX_FORMS = 'form.thead-form, form.applicants-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row, form.new-record-form';
-  const ROW_SEL    = '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
+  const ROWS_WRAPPER = document.querySelector('[data-rows-for^="ut-"]');
 
-  // ---------- Helpers ----------
-  function statusClasses(s) {
-    const t = (s || '').toLowerCase().trim();
-    if (t === 'done')        return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 ring-1 ring-green-200';
-    if (t === 'in progress') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200';
-    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 ring-1 ring-gray-200';
+  // Helper: safely turn an HTML string into a Node
+  function htmlToNode(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
   }
 
-  // ---------- Soft refresh (SINGLE, TOP-LEVEL VERSION) ----------
-  // Fetch THIS page's HTML, cache-busted, then swap only the rows wrapper.
-  async function softRefresh(tableId) {
-    if (!tableId) return;
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set('autoload', '1');
-      url.searchParams.set('table_id', tableId);
-      url.searchParams.set('_ts', Date.now()); // cache-bust
-
-      const res  = await fetch(url, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        cache: 'no-store'
-      });
-      const html = await res.text();
-      const doc  = new DOMParser().parseFromString(html, 'text/html');
-
-      // Prefer the scoped wrapper if present
-      const wrapNew = doc.querySelector(`.divide-y[data-rows-for="ut-${tableId}"]`) || doc.querySelector('.divide-y');
-      const wrapOld = document.querySelector(`.divide-y[data-rows-for="ut-${tableId}"]`) || document.querySelector('.divide-y');
-
-      if (wrapNew && wrapOld) wrapOld.innerHTML = wrapNew.innerHTML;
-    } catch (err) {
-      console.error('Soft refresh failed:', err);
-    }
+  // Insert new row at top
+  function insertRow(rowHtml) {
+    const node = htmlToNode(rowHtml);
+    const tbody = ROWS_WRAPPER || document.querySelector('tbody');
+    tbody.insertBefore(node, tbody.firstChild);
   }
 
-  // Tiny toast
-  let toastEl;
-  function toast(msg, bad) {
-    if (!toastEl) {
-      toastEl = document.createElement('div');
-      toastEl.style.cssText =
-        'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;' +
-        'box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
-      document.body.appendChild(toastEl);
-    }
-    toastEl.textContent = msg;
-    toastEl.style.background = bad ? '#dc2626' : '#16a34a';
-    toastEl.style.opacity = '1';
-    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
+  // Replace a row by data-row-id
+  function replaceRow(rowId, rowHtml) {
+    const old = document.querySelector(`tr[data-row-id="${rowId}"]`);
+    const node = htmlToNode(rowHtml);
+    if (old && old.parentNode) old.parentNode.replaceChild(node, old);
   }
 
-  // ---------- SAVE (insert + edit) ----------
+  // Remove a row
+  function removeRow(rowId) {
+    const tr = document.querySelector(`tr[data-row-id="${rowId}"]`);
+    if (tr) tr.remove();
+  }
+
+  // Intercept ALL CRUD forms (adjust selectors to yours)
+  const CRUD_FORMS = 'form.universal-row, form.new-record-form, form.edit-record-form, form.delete-record-form';
   document.addEventListener('submit', async (e) => {
     const form = e.target;
-    if (!form.matches(AJAX_FORMS)) return;
+    if (!form.matches(CRUD_FORMS)) return;
 
     e.preventDefault();
-    const btn = form.querySelector('[type="submit"]');
-    const txt = btn?.textContent;
-    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
-    const fd     = new FormData(form);
+    const fd = new FormData(form);
     const method = (form.getAttribute('method') || 'POST').toUpperCase();
     const action = form.getAttribute('action') || window.location.href;
 
@@ -1830,95 +1803,59 @@ document.body.addEventListener('click', e => {
       const res = await fetch(action, {
         method,
         body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
       });
 
       const raw = await res.text();
-      let data; try { data = JSON.parse(raw); } catch { console.error(raw); throw new Error('Bad JSON'); }
-      if (!res.ok || !data?.ok) throw new Error(data?.error || 'Server error');
+      let data;
+      try { data = JSON.parse(raw); } catch { console.warn('Non-JSON response, fallback'); return window.location.href = action; }
+      if (!data.ok) throw new Error(data.error || 'Server error');
 
-      // Quick in-place touches
-      const row = form.closest(ROW_SEL);
-      const newStatus =
-        data.status ??
-        data.row?.status ??
-        form.querySelector('[name="status"]')?.value;
-      if (row && newStatus) {
-        const badge = row.querySelector('.status-badge');
-        if (badge) {
-          badge.textContent = newStatus;
-          badge.className = 'status-badge ' + statusClasses(newStatus);
-        }
+      // Decide behavior by what server sent back
+      if (data.row_html && !data.replaced) {
+        insertRow(data.row_html); // insert
+      } else if (data.row_html && data.row_id) {
+        replaceRow(data.row_id, data.row_html); // update
+      } else if (data.row_id && data.deleted) {
+        removeRow(data.row_id); // delete
       }
 
-      const attachmentUrl = data.attachment_url || data.row?.attachment_url;
-      if (row && attachmentUrl) {
-        const link = row.querySelector('[data-attachment]');
-        if (link) { link.href = attachmentUrl; link.classList.remove('hidden'); }
-      }
+      // Optional: close modal & reset form
+      if (form.classList.contains('new-record-form')) form.reset();
+      if (form.closest('.modal')) form.closest('.modal').classList.add('hidden');
 
-      if (form.classList.contains('new-record-form')) {
-        form.reset();
-        document.querySelector('#addForm [data-close-add]')?.click?.();
-      }
-
-      // Authoritative refresh from server (no full reload)
-      await softRefresh(data.table_id || data.row?.table_id);
-
-      toast('Saved');
     } catch (err) {
       console.error(err);
-      toast(err.message || 'Save failed', true);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = txt; }
+      alert('Something went wrong. Please try again.');
     }
   });
 
-  // ---------- AUTOSAVE ----------
-  document.addEventListener('change', (e) => {
-    const t = e.target;
-    const form = t.closest(AJAX_FORMS);
-    if (!form) return;
-    if (t.hasAttribute('data-autosave') || t.type === 'checkbox' || t.tagName === 'SELECT') {
-      form.requestSubmit();
-    }
-  });
-
-  // ---------- DELETE ----------
+  // Example: delete via buttons (if you’re not using a form)
   document.addEventListener('click', async (e) => {
-    const a = e.target.closest('a[href*="delete_"], a[href*="/delete.php"], button[data-delete-url]');
-    if (!a) return;
+    const btn = e.target.closest('.btn-delete');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (!confirm('Delete this record?')) return;
 
-    e.preventDefault();
-    if (!confirm('Delete this item?')) return;
-
-    const url    = a.tagName === 'A' ? a.href : a.getAttribute('data-delete-url');
-    const method = (a.dataset.method || 'POST').toUpperCase();
+    const action = '/ItemPilot/universal/delete.php';
+    const fd = new FormData();
+    fd.append('id', id);
 
     try {
-      const res = await fetch(url, {
-        method,
+      const res = await fetch(action, {
+        method: 'POST',
+        body: fd,
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
       });
-      const raw = await res.text();
-      let data; try { data = JSON.parse(raw); } catch { console.error(raw); throw new Error('Bad JSON'); }
-      if (!res.ok || !data?.ok) throw new Error(data?.error || 'Delete failed');
-
-      // Remove row immediately
-      const row = a.closest(ROW_SEL);
-      const tableId =
-        row?.closest('[id^="ut-"]')?.id?.replace('ut-','') ||
-        document.querySelector('[id^="ut-"]')?.id?.replace('ut-','') ||
-        null;
-      row?.remove();
-
-      // Then soft refresh
-      await softRefresh(tableId);
-
-      toast('Deleted');
+      const data = await res.json();
+      if (data.ok) removeRow(data.row_id);
+      else throw new Error(data.error || 'Delete failed');
     } catch (err) {
       console.error(err);
-      toast(err.message || 'Delete failed', true);
+      alert('Delete failed.');
     }
   });
 })();

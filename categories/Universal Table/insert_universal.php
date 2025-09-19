@@ -174,26 +174,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $stmt->execute();
           $stmt->close();
         }
+        // Non-AJAX fallback:
+        header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+        exit;
       }
     }
   }
-// after successful INSERT (you have $table_id):
-$isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-          strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-if ($isAjax) {
-  header('Content-Type: application/json; charset=utf-8');
-  echo json_encode([
-    'ok'       => true,
-    'table_id' => (int)$table_id   // ← REQUIRED
-  ]);
-  exit;
-}
-
-// Non-AJAX fallback:
-header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
-exit;
-
 }
 $stmt = $conn->prepare("SELECT table_title FROM tables WHERE user_id = ? AND table_id = ? LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
