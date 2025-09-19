@@ -23,6 +23,9 @@ function json_out(array $payload, int $code = 200) {
 
 /* ---------- Config (UNIVERSAL) ---------- */
 $CATEGORY_URL = '/ItemPilot/categories/Universal%20Table';
+$UPLOAD_DIR = __DIR__ . '/uploads/';          // filesystem path
+$UPLOAD_URL = $CATEGORY_URL . '/uploads';     // URL prefix for viewing
+
 
 /* ---------- Resolve table_id ---------- */
 $action   = $_GET['action'] ?? null;
@@ -70,12 +73,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $assignee = trim($_POST['assignee'] ?? '');
   $status = trim($_POST['status'] ?? '');
   // Accept both correct and mis-typed key
-  $attachment_summary = trim($_POST['attachment_summary'] ?? ($_POST['attachment_summaru'] ?? ''));
 
-  /* ---- collect dynamic inputs ----
-     1) From "dyn[colname]"
-     2) From "extra_field_{id}" mapped via universal_fields
-  */
+  $attachment_summary = $_POST['existing_attachment'] ?? '';  // keep existing if no new upload
+
+  if (!empty($_FILES['attachment_summary']) && $_FILES['attachment_summary']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if ($_FILES['attachment_summary']['error'] !== UPLOAD_ERR_OK) {
+      // Optional: handle other errors (size exceeded, etc.)
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Upload failed (PHP error '.$_FILES['attachment_summary']['error'].')'], 400); }
+      $_SESSION['flash_error'] = 'Upload failed.';
+      header("Location: /ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}", true, 303);
+      exit;
+    }
+
+    // Ensure uploads dir exists
+    if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Could not create uploads directory.'], 500); }
+      $_SESSION['flash_error'] = 'Could not create uploads directory.';
+      header("Location: /ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}", true, 303);
+      exit;
+    }
+
+    $tmp   = $_FILES['attachment_summary']['tmp_name'];
+    $orig  = basename($_FILES['attachment_summary']['name']);              // basic basename guard
+    $ext   = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    $safe  = preg_replace('/[^a-zA-Z0-9._-]/', '_', pathinfo($orig, PATHINFO_FILENAME));
+    $fname = $safe . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . ($ext ? ".{$ext}" : '');
+    $dest  = $UPLOAD_DIR . $fname;
+
+    // (optional) basic mime/extension allow list
+    // $allowed = ['png','jpg','jpeg','gif','webp','svg'];
+    // if ($ext && !in_array($ext, $allowed, true)) { ... }
+
+    if (!move_uploaded_file($tmp, $dest)) {
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Failed to save uploaded file.'], 500); }
+      $_SESSION['flash_error'] = 'Failed to save uploaded file.';
+      header("Location: /ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}", true, 303);
+      exit;
+    }
+
+    $attachment_summary = $fname;  // store just the filename in DB
+  }
+
   $dynIn = $_POST['dyn'] ?? [];
 
   $mapStmt = $conn->prepare("
@@ -679,14 +717,14 @@ $hasRecord = count($rows) > 0;
         </select>
       </div>
 
-      <div class="p-2 text-gray-600" data-col="attachment">
-        <?php if (!empty($r['attachment_summary'])): ?>
-          <?php $src = "/ItemPilot/categories/Universal%20Table/uploads/".rawurlencode($r['attachment_summary']); ?>
-          <img src="<?= htmlspecialchars($src, ENT_QUOTES) ?>" class="thumb" alt="Attachment">
-        <?php else: ?>
-          <span class="italic text-gray-400 ml-[5px]">📎 None</span>
-        <?php endif; ?>
-      </div>
+    <div class="p-2 text-gray-600" data-col="attachment">
+      <?php if (!empty($r['attachment_summary'])): ?>
+        <?php $src = "/ItemPilot/categories/Universal%20Table/uploads/".rawurlencode($r['attachment_summary']); ?>
+        <img src="<?= htmlspecialchars($src, ENT_QUOTES) ?>" class="thumb" alt="Attachment">
+      <?php else: ?>
+        <span class="italic text-gray-400 ml-[5px]">📎 None</span>
+      <?php endif; ?>
+    </div>
 
 
       <!-- Dynamic values: use SAME $dynFields as header -->
