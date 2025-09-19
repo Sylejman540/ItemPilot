@@ -136,7 +136,6 @@ try {
   header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
 
-
 } catch (Throwable $e) {
   $conn->rollback();
   $_SESSION['flash_error'] = 'Save failed: '.$e->getMessage();
