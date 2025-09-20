@@ -1758,6 +1758,5 @@ document.body.addEventListener('click', e => {
 });
 
 </script>
-
 </body>
 </html>
