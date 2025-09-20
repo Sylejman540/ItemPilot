@@ -3,7 +3,7 @@
   <!-- Aside -->
   <aside id="sidebar" class="md:w-75 w-65 block bg-[#263544] min-h-screen">
 <!-- Sidebar brand -->
-<a href="/" class="flex items-center gap-3 px-4 py-4">
+<a href="/ItemPilot/home.php" class="flex items-center gap-3 px-4 py-4">
   <img src="images/icon.png" alt="an2table"
        class="h-7 w-auto md:h-8 block shrink-0 select-none" />
   <span class="brand-text normal-case antialiased leading-none tracking-tight">
