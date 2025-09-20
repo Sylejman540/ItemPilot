@@ -336,10 +336,10 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
 <body>
 
 <header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
-  <section class="flex mt-6 justify-between ml-3">
-    <form action="<?= $CATEGORY_URL ?>/edit.php" method="POST" class="flex gap-2">
+<section class="flex mt-6 justify-between ml-3">
+    <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php" class="flex gap-2 thead-form">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-      <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Untitled Applicants Table"/>
+      <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Untitled table"/>
     </form>
 
     <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-600 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">

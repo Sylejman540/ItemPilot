@@ -1758,42 +1758,52 @@ document.body.addEventListener('click', e => {
 });
 
 (() => {
-  // One selector list for AJAX-able forms and rows
-  const AJAX_FORMS = 'form.thead-form, form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row, form.new-record-form';
-  const ROW_SEL    = '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
+  // Prevent double-binding if this file gets included twice
+  if (window.__IP_AJAX_BOUND__) return;
+  window.__IP_AJAX_BOUND__ = true;
 
-  // --- helpers ---
+  // ---------- Selectors ----------
+  const AJAX_FORMS =
+    'form.thead-form, form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row, form.new-record-form';
+
+  // Only the inline-row forms (used for autosave); keep in sync with AJAX_FORMS
+  const ROW_FORMS =
+    'form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row';
+
+  const ROW_SEL =
+    '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
+
+  // ---------- Helpers ----------
+  const norm = (s) => (s || '').toString().trim().toLowerCase();
+
   function statusClasses(s) {
-    const t = (s || '').toLowerCase().trim();
-    if (t === 'done')        return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 ring-1 ring-green-200';
-    if (t === 'in progress') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200';
+    const t = norm(s);
+    if (t === 'done')
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 ring-1 ring-green-200';
+    if (t === 'in progress' || t === 'in-progress')
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200';
     return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 ring-1 ring-gray-200';
   }
 
-  // recolor the status <select> immediately on change / insert
   function applyStatusColor(selectEl, status) {
     if (!selectEl) return;
+    const t = norm(status);
     selectEl.classList.remove(
       'bg-red-100','text-red-800',
       'bg-yellow-100','text-yellow-800',
       'bg-green-100','text-green-800',
       'bg-white','text-gray-900'
     );
-    switch ((status || '').trim()) {
-      case 'Done':
-        selectEl.classList.add('bg-green-100','text-green-800');
-        break;
-      case 'In Progress':
-        selectEl.classList.add('bg-yellow-100','text-yellow-800');
-        break;
-      case 'To Do':
-      default:
-        selectEl.classList.add('bg-red-100','text-red-800');
-        break;
+    if (t === 'done') {
+      selectEl.classList.add('bg-green-100','text-green-800');
+    } else if (t === 'in progress' || t === 'in-progress') {
+      selectEl.classList.add('bg-yellow-100','text-yellow-800');
+    } else {
+      // treat anything else as "To Do"
+      selectEl.classList.add('bg-red-100','text-red-800');
     }
   }
 
-  // Find the wrapper that holds the rows for this table
   function findRowsWrap(tableId) {
     let wrap = document.querySelector(`#rows-${tableId}`);
     if (wrap) return wrap;
@@ -1804,26 +1814,30 @@ document.body.addEventListener('click', e => {
     return document.querySelector('.w-full.divide-y, .divide-y');
   }
 
-  // Remove any "No records found" placeholder
   function hideEmptyState(wrap) {
     wrap?.querySelectorAll('[data-empty], .empty-state, .text-center.text-gray-500')
         .forEach(el => el.remove());
   }
 
-  // Insert new (from modal) or replace existing (edit within a row)
+  function extractTableId(form, fallback) {
+    const fromInput = form.querySelector('[name="table_id"]')?.value;
+    return Number(fromInput || fallback || 0) || 0;
+  }
+
   function insertOrReplaceRow(form, html, tableId) {
     const currentRow = form.closest(ROW_SEL);
+
     if (currentRow) {
-      // EDIT flow: replace the row in place
+      // EDIT: replace in place
       currentRow.insertAdjacentHTML('beforebegin', html);
       const inserted = currentRow.previousElementSibling;
       currentRow.remove();
-      // recolor status select in the new row
       const sel = inserted?.querySelector('select[name="status"]');
       if (sel) applyStatusColor(sel, sel.value);
       return;
     }
-    // CREATE flow: prepend (DESC ordering)
+
+    // CREATE: prepend (assume DESC order)
     const wrap = findRowsWrap(tableId);
     if (!wrap) return;
     hideEmptyState(wrap);
@@ -1833,37 +1847,92 @@ document.body.addEventListener('click', e => {
     if (sel) applyStatusColor(sel, sel.value);
   }
 
-  // ---------- SAVE (insert + edit) ----------
+  async function fetchJSON(url, options = {}) {
+    const res = await fetch(url, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      ...options,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+
+    // If server redirected (likely PHP didn't detect AJAX)
+    if (res.redirected || res.type === 'opaqueredirect') {
+      throw new Error('Server redirected (AJAX not detected).');
+    }
+
+    const text = await res.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      // Not JSON → likely an HTML error / login page etc.
+      throw new Error('Unexpected non-JSON response from server.');
+    }
+
+    if (!res.ok || (data && data.ok === false)) {
+      const msg = (data && (data.error || data.message)) || `Server error (${res.status})`;
+      throw new Error(msg);
+    }
+    return data ?? { ok: res.ok };
+  }
+
+  // ---------- Toast ----------
+  let toastEl;
+  function toast(msg, bad) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.style.cssText =
+        'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;' +
+        'box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s;opacity:0';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.style.background = bad ? '#dc2626' : '#16a34a';
+    toastEl.style.opacity = '1';
+    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
+  }
+
+  // ---------- SUBMIT (create + edit) ----------
   document.addEventListener('submit', async (e) => {
     const form = e.target;
     if (!form.matches(AJAX_FORMS)) return;
+
     e.preventDefault();
 
+    // Busy guard
     if (form.dataset.busy === '1') return;
     form.dataset.busy = '1';
 
     const btn = form.querySelector('[type="submit"]');
-    const txt = btn?.textContent;
+    const btnText = btn?.textContent;
     if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
     try {
-      const res = await fetch(form.getAttribute('action') || window.location.href, {
-        method: (form.getAttribute('method') || 'POST').toUpperCase(),
-        body: new FormData(form),
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-      });
+      const url = form.getAttribute('action') || window.location.href;
+      const method = (form.getAttribute('method') || 'POST').toUpperCase();
+      const body = new FormData(form);
 
-      const raw  = await res.text();
-      const data = raw ? JSON.parse(raw) : { ok: res.ok };
-      if (!res.ok || data?.ok === false) throw new Error(data?.error || 'Server error');
+      const data = await fetchJSON(url, { method, body });
 
-      if (data.row_html) {
-        insertOrReplaceRow(form, data.row_html, data.table_id);
+      // Prefer `row_html`/`table_id` from server; fall back to DOM
+      const rowHtml = data.row_html || data.rowHtml || '';
+      const tId = data.table_id ?? data.tableId ?? extractTableId(form, 0);
+
+      if (rowHtml) {
+        insertOrReplaceRow(form, rowHtml, tId);
       } else {
-        // fallback: minimal in-place UI updates for EDIT
+        // Fallback: minimally update existing row in place (status badge, attachment)
         const row = form.closest(ROW_SEL);
         if (row) {
-          const newStatus = data?.status ?? form.querySelector('[name="status"]')?.value;
+          const newStatus =
+            data.status ??
+            form.querySelector('[name="status"]')?.value ??
+            row.querySelector('[name="status"]')?.value;
+
           const badge = row.querySelector('.status-badge');
           if (badge && newStatus) {
             badge.textContent = newStatus;
@@ -1871,13 +1940,15 @@ document.body.addEventListener('click', e => {
           }
           const sel = row.querySelector('select[name="status"]');
           if (sel) applyStatusColor(sel, newStatus);
-          if (data?.attachment_url) {
+
+          if (data.attachment_url) {
             const link = row.querySelector('[data-attachment]');
             if (link) { link.href = data.attachment_url; link.classList.remove('hidden'); }
           }
         }
       }
 
+      // If it was the modal "new-record" form, reset and close modal
       if (form.classList.contains('new-record-form')) {
         form.reset();
         document.querySelector('#addForm [data-close-add]')?.click?.();
@@ -1889,22 +1960,29 @@ document.body.addEventListener('click', e => {
       toast(err.message || 'Save failed', true);
     } finally {
       form.dataset.busy = '0';
-      if (btn) { btn.disabled = false; btn.textContent = txt; }
+      if (btn) { btn.disabled = false; btn.textContent = btnText; }
     }
   });
 
   // ---------- AUTOSAVE (rows only) ----------
+  // Triggers when a field with data-autosave or any checkbox changes.
   document.addEventListener('change', (e) => {
     const t = e.target;
-    const form = t.closest('form.universal-row'); // rows only, not modal
+    const form = t.closest(ROW_FORMS);
     if (!form) return;
 
     if (t.name === 'status') {
-      // instant recolor when user picks a new status
-      applyStatusColor(t, t.value);
+      applyStatusColor(t, t.value); // instant recolor
     }
+
     if (t.hasAttribute('data-autosave') || t.type === 'checkbox') {
-      form.requestSubmit();
+      // Prefer requestSubmit; fall back to dispatching a submit event (NOT form.submit, which bypasses listeners)
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      } else {
+        const ev = new Event('submit', { bubbles: true, cancelable: true });
+        form.dispatchEvent(ev);
+      }
     }
   });
 
@@ -1920,19 +1998,11 @@ document.body.addEventListener('click', e => {
     const method = (a.dataset.method || 'POST').toUpperCase();
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-      });
-      const raw  = await res.text();
-      const data = raw ? JSON.parse(raw) : { ok: res.ok };
-      if (!res.ok || data?.ok === false) throw new Error(data?.error || 'Delete failed');
-
+      const data = await fetchJSON(url, { method });
       const row  = a.closest(ROW_SEL);
       const wrap = row?.parentElement;
       row?.remove();
 
-      // if no rows left, show empty-state again
       if (wrap && !wrap.querySelector(ROW_SEL)) {
         const empty = document.createElement('div');
         empty.className = 'empty-state px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300';
@@ -1948,30 +2018,16 @@ document.body.addEventListener('click', e => {
     }
   });
 
-  // ---------- Toast ----------
-  let toastEl;
-  function toast(msg, bad) {
-    if (!toastEl) {
-      toastEl = document.createElement('div');
-      toastEl.style.cssText =
-        'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;' +
-        'box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
-      document.body.appendChild(toastEl);
-    }
-    toastEl.textContent = msg;
-    toastEl.style.background = bad ? '#dc2626' : '#16a34a';
-    toastEl.style.opacity = '1';
-    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
-  }
-
   // ---------- Modal open/close ----------
   const addBtn  = document.getElementById('addIcon');
   const addForm = document.getElementById('addForm');
   addBtn?.addEventListener('click', () => addForm?.classList.remove('hidden'));
-  addForm?.querySelectorAll('[data-close-add]')?.forEach(el => el.addEventListener('click', (e) => {
-    e.preventDefault();
-    addForm.classList.add('hidden');
-  }));
+  addForm?.querySelectorAll('[data-close-add]')?.forEach(el =>
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      addForm.classList.add('hidden');
+    })
+  );
 })();
 </script>
 </body>
