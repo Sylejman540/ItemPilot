@@ -292,19 +292,19 @@ $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NA
 <body>
 
 <header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
-  <section class="flex mt-6 justify-between ml-3" id="randomHeader">
-    <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php">
-      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
-      <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-    </form>
+  <section class="flex mt-6 justify-between ml-3">
+      <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php" class="flex gap-2 thead-form">
+        <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+        <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Untitled table"/>
+      </form>
 
-    <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 py-[10px] cursor-pointer px-2 rounded-lg text-white">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-      </svg>
-      <span class="text-sm">New Record</span>
-    </button>
-  </section>
+      <button id="addIcon" type="button" class="flex items-center gap-1 bg-blue-600 py-[10px] cursor-pointer hover:bg-blue-700 px-2 rounded-lg text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span class="text-sm">New Record</span>
+      </button>
+    </section>
 
   <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
     <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-240">
@@ -628,7 +628,7 @@ $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NA
 <div class="w-full divide-y divide-gray-200">
   <?php if ($hasRecord): foreach ($rows as $r): ?>
     <form method="POST"
-          action="<?= $CATEGORY_URL ?>/insert_groceries.php"
+          action="<?= $CATEGORY_URL ?>/edit_tbody.php"
           enctype="multipart/form-data"
           class="groceries-row border-b border-gray-200 hover:bg-gray-50 text-sm"
           style="--cols: <?= (int)$totalCols ?>;">
@@ -722,7 +722,6 @@ $deptClass = $deptColors[$r['department'] ?? ''] ?? 'bg-white text-gray-900';
       <!-- Action -->
       <div class="p-2">
         <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$r['id'] ?>&table_id=<?= (int)$table_id ?>"
-           onclick="return confirm('Are you sure?')"
            class="icon-btn" aria-label="Delete row">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
