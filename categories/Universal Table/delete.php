@@ -22,5 +22,16 @@ if ($stmt->affected_rows === 0) {
 }
 
 $stmt->close();
+$isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+if ($isAjax) {
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode([
+    'ok' => true,
+  ]);
+  exit;
+}
+
 header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
 exit;
+

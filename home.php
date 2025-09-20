@@ -1757,6 +1757,222 @@ document.body.addEventListener('click', e => {
   if (close && menu) menu.classList.add('hidden');
 });
 
+(() => {
+  // One selector list for AJAX-able forms and rows
+  const AJAX_FORMS = 'form.thead-form, form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row, form.new-record-form';
+  const ROW_SEL    = '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
+
+  // --- helpers ---
+  function statusClasses(s) {
+    const t = (s || '').toLowerCase().trim();
+    if (t === 'done')        return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 ring-1 ring-green-200';
+    if (t === 'in progress') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200';
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 ring-1 ring-gray-200';
+  }
+
+  // recolor the status <select> immediately on change / insert
+  function applyStatusColor(selectEl, status) {
+    if (!selectEl) return;
+    selectEl.classList.remove(
+      'bg-red-100','text-red-800',
+      'bg-yellow-100','text-yellow-800',
+      'bg-green-100','text-green-800',
+      'bg-white','text-gray-900'
+    );
+    switch ((status || '').trim()) {
+      case 'Done':
+        selectEl.classList.add('bg-green-100','text-green-800');
+        break;
+      case 'In Progress':
+        selectEl.classList.add('bg-yellow-100','text-yellow-800');
+        break;
+      case 'To Do':
+      default:
+        selectEl.classList.add('bg-red-100','text-red-800');
+        break;
+    }
+  }
+
+  // Find the wrapper that holds the rows for this table
+  function findRowsWrap(tableId) {
+    let wrap = document.querySelector(`#rows-${tableId}`);
+    if (wrap) return wrap;
+    const head = document.querySelector(`#ut-${tableId}`);
+    if (head && head.nextElementSibling?.classList?.contains('divide-y')) {
+      return head.nextElementSibling;
+    }
+    return document.querySelector('.w-full.divide-y, .divide-y');
+  }
+
+  // Remove any "No records found" placeholder
+  function hideEmptyState(wrap) {
+    wrap?.querySelectorAll('[data-empty], .empty-state, .text-center.text-gray-500')
+        .forEach(el => el.remove());
+  }
+
+  // Insert new (from modal) or replace existing (edit within a row)
+  function insertOrReplaceRow(form, html, tableId) {
+    const currentRow = form.closest(ROW_SEL);
+    if (currentRow) {
+      // EDIT flow: replace the row in place
+      currentRow.insertAdjacentHTML('beforebegin', html);
+      const inserted = currentRow.previousElementSibling;
+      currentRow.remove();
+      // recolor status select in the new row
+      const sel = inserted?.querySelector('select[name="status"]');
+      if (sel) applyStatusColor(sel, sel.value);
+      return;
+    }
+    // CREATE flow: prepend (DESC ordering)
+    const wrap = findRowsWrap(tableId);
+    if (!wrap) return;
+    hideEmptyState(wrap);
+    wrap.insertAdjacentHTML('afterbegin', html);
+    const inserted = wrap.firstElementChild;
+    const sel = inserted?.querySelector('select[name="status"]');
+    if (sel) applyStatusColor(sel, sel.value);
+  }
+
+  // ---------- SAVE (insert + edit) ----------
+  document.addEventListener('submit', async (e) => {
+    const form = e.target;
+    if (!form.matches(AJAX_FORMS)) return;
+    e.preventDefault();
+
+    if (form.dataset.busy === '1') return;
+    form.dataset.busy = '1';
+
+    const btn = form.querySelector('[type="submit"]');
+    const txt = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+    try {
+      const res = await fetch(form.getAttribute('action') || window.location.href, {
+        method: (form.getAttribute('method') || 'POST').toUpperCase(),
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+      });
+
+      const raw  = await res.text();
+      const data = raw ? JSON.parse(raw) : { ok: res.ok };
+      if (!res.ok || data?.ok === false) throw new Error(data?.error || 'Server error');
+
+      if (data.row_html) {
+        insertOrReplaceRow(form, data.row_html, data.table_id);
+      } else {
+        // fallback: minimal in-place UI updates for EDIT
+        const row = form.closest(ROW_SEL);
+        if (row) {
+          const newStatus = data?.status ?? form.querySelector('[name="status"]')?.value;
+          const badge = row.querySelector('.status-badge');
+          if (badge && newStatus) {
+            badge.textContent = newStatus;
+            badge.className = 'status-badge ' + statusClasses(newStatus);
+          }
+          const sel = row.querySelector('select[name="status"]');
+          if (sel) applyStatusColor(sel, newStatus);
+          if (data?.attachment_url) {
+            const link = row.querySelector('[data-attachment]');
+            if (link) { link.href = data.attachment_url; link.classList.remove('hidden'); }
+          }
+        }
+      }
+
+      if (form.classList.contains('new-record-form')) {
+        form.reset();
+        document.querySelector('#addForm [data-close-add]')?.click?.();
+      }
+
+      toast('Saved');
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Save failed', true);
+    } finally {
+      form.dataset.busy = '0';
+      if (btn) { btn.disabled = false; btn.textContent = txt; }
+    }
+  });
+
+  // ---------- AUTOSAVE (rows only) ----------
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    const form = t.closest('form.universal-row'); // rows only, not modal
+    if (!form) return;
+
+    if (t.name === 'status') {
+      // instant recolor when user picks a new status
+      applyStatusColor(t, t.value);
+    }
+    if (t.hasAttribute('data-autosave') || t.type === 'checkbox') {
+      form.requestSubmit();
+    }
+  });
+
+  // ---------- DELETE ----------
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('a[href*="delete_"], a[href*="/delete.php"], button[data-delete-url]');
+    if (!a) return;
+
+    e.preventDefault();
+    if (!confirm('Delete this item?')) return;
+
+    const url    = a.tagName === 'A' ? a.href : a.getAttribute('data-delete-url');
+    const method = (a.dataset.method || 'POST').toUpperCase();
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+      });
+      const raw  = await res.text();
+      const data = raw ? JSON.parse(raw) : { ok: res.ok };
+      if (!res.ok || data?.ok === false) throw new Error(data?.error || 'Delete failed');
+
+      const row  = a.closest(ROW_SEL);
+      const wrap = row?.parentElement;
+      row?.remove();
+
+      // if no rows left, show empty-state again
+      if (wrap && !wrap.querySelector(ROW_SEL)) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state px-4 py-4 text-center text-gray-500 w-full border-b border-gray-300';
+        empty.setAttribute('data-empty', '1');
+        empty.textContent = 'No records found.';
+        wrap.appendChild(empty);
+      }
+
+      toast('Deleted');
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Delete failed', true);
+    }
+  });
+
+  // ---------- Toast ----------
+  let toastEl;
+  function toast(msg, bad) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.style.cssText =
+        'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:10px;color:#fff;font-size:12px;z-index:9999;' +
+        'box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .2s';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.style.background = bad ? '#dc2626' : '#16a34a';
+    toastEl.style.opacity = '1';
+    setTimeout(() => { toastEl.style.opacity = '0'; }, 1400);
+  }
+
+  // ---------- Modal open/close ----------
+  const addBtn  = document.getElementById('addIcon');
+  const addForm = document.getElementById('addForm');
+  addBtn?.addEventListener('click', () => addForm?.classList.remove('hidden'));
+  addForm?.querySelectorAll('[data-close-add]')?.forEach(el => el.addEventListener('click', (e) => {
+    e.preventDefault();
+    addForm.classList.add('hidden');
+  }));
+})();
 </script>
 </body>
 </html>
