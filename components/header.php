@@ -2,10 +2,29 @@
 <main class="flex text-base font-[Open_Sans]">
   <!-- Aside -->
   <aside id="sidebar" class="md:w-75 w-65 block bg-[#263544] min-h-screen">
-      <a href="/ItemPilot/home.php">
-        <img src="images/logo.png?v3" alt="an2table logo" class="w-48 h-32 px-6">
-      </a>
+<!-- Sidebar brand -->
+<a href="/" class="flex items-center gap-3 px-4 py-4">
+  <img src="images/icon.png" alt="an2table"
+       class="h-7 w-auto md:h-8 block shrink-0 select-none" />
+  <span class="brand-text normal-case antialiased leading-none tracking-tight">
+    an2table
+  </span>
+</a>
 
+
+<style>
+  /* Sidebar brand text – force weight & color */
+.brand-text{
+  color:#A7B6CC !important;
+  font-weight:400 !important;     /* not bold */
+  font-size:17px;                 /* matches your spec */
+  line-height:1 !important;
+  letter-spacing:-0.01em;
+}
+/* Optional hover */
+a:hover .brand-text{ color:#B8C6DD; }
+
+</style>
       <nav>
        <ul class="text-md">
           <!-- ===== GENERAL ===== -->
