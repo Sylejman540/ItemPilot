@@ -32,7 +32,7 @@ $action   = $_GET['action'] ?? null;
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
 if ($action === 'create_blank') {
-  $stmt = $conn->prepare("INSERT INTO universal_table (user_id, created_at) VALUES (?, NOW())");
+  $stmt = $conn->prepare("INSERT INTO tables (user_id, created_at) VALUES (?, NOW())");
   $stmt->bind_param('i', $uid);
   $stmt->execute();
   $table_id = (int)$stmt->insert_id;
@@ -46,13 +46,13 @@ if ($action === 'create_blank') {
   $table_id = (int)($_SESSION['current_table_id'] ?? 0);
 
   if ($table_id <= 0) {
-    $q = $conn->prepare("SELECT table_id FROM universal_table WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+    $q = $conn->prepare("SELECT table_id FROM tables WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
     $q->bind_param('i', $uid);
     $q->execute(); $q->bind_result($latestId); $q->fetch(); $q->close();
     $table_id = (int)$latestId;
   }
   if ($table_id <= 0) {
-    $stmt = $conn->prepare("INSERT INTO universal_table (user_id, created_at) VALUES (?, NOW())");
+    $stmt = $conn->prepare("INSERT INTO tables (user_id, created_at) VALUES (?, NOW())");
     $stmt->bind_param('i', $uid);
     $stmt->execute();
     $table_id = (int)$stmt->insert_id;
@@ -398,7 +398,7 @@ $fixedCount = 5; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($ha
   </section>
 
 <main class="md:mt-0 mt-10 overflow-x-auto md:overflow-x-hidden">
-  <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[60rem]">
+  <div class="mx-auto mt-12 mb-2 mr-5 bg-white p-4 md:p-8 lg:p-10 rounded-xl shadow-md border border-gray-100 md:w-full w-[80rem]">
 
   <div class="flex justify-between">
     <div>
