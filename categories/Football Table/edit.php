@@ -39,10 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $affected = $stmt->affected_rows;
   $stmt->close();
 
-  // Optional: if nothing was updated, surface a clearer message
-  // (happens when the row belongs to another user or title is unchanged)
-  // $_SESSION['flash'] = $affected > 0 ? '✅ Title updated' : 'ℹ️ No changes';
+  $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
+  if ($isAjax) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+      'ok' => true,
+    ]);
+    exit;
+  }
   header("Location: /ItemPilot/home.php?autoload=1&type=football&table_id={$table_id}");
   exit;
 }
