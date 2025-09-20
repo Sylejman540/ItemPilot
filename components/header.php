@@ -1,34 +1,19 @@
  <!-- Header -->
 <main class="flex text-base font-[Open_Sans]">
   <!-- Aside -->
-  <aside id="sidebar" class="md:w-75 w-65 block bg-[#263544] min-h-screen">
-<!-- Sidebar brand -->
-<a href="/ItemPilot/home.php" class="flex items-center gap-3 px-4 py-4">
-  <img src="images/icon.png" alt="an2table"
-       class="h-7 w-auto md:h-8 block shrink-0 select-none" />
-  <span class="brand-text normal-case antialiased leading-none tracking-tight">
-    an2table
-  </span>
-</a>
+  <aside id="sidebar" class="md:w-70 w-65 block bg-[#263544] min-h-screen shadow-2xl">
+      <a href="/ItemPilot/home.php" class="flex items-center gap-3 px-4 py-4">
+        <img src="images/logo2.png" alt="an2table"
+            class="h-7 p-2 bg-blue-500 rounded-lg ml-2 w-auto md:h-8 block shrink-0 select-none" />
+        <span class="brand-text normal-case text-white antialiased leading-none tracking-tight">
+          An2table
+        </span>
+      </a>
 
-
-<style>
-  /* Sidebar brand text – force weight & color */
-.brand-text{
-  color:#A7B6CC !important;
-  font-weight:400 !important;     /* not bold */
-  font-size:17px;                 /* matches your spec */
-  line-height:1 !important;
-  letter-spacing:-0.01em;
-}
-/* Optional hover */
-a:hover .brand-text{ color:#B8C6DD; }
-
-</style>
       <nav>
        <ul class="text-md">
           <!-- ===== GENERAL ===== -->
-          <li class="px-6 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
+          <li class="px-6 mt-2 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
             General
           </li>
           <!-- DASHBOARD -->
