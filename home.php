@@ -2261,7 +2261,250 @@ $(document)
         $el.data('loading', false).removeClass('opacity-50 pointer-events-none');
       });
   });
+// ======== PART 1: helpers to refresh pieces from current page ========
 
+// Re-pull only the sidebar <li> items
+function refreshSidebarOnly(htmlDoc) {
+  // if we already have the full HTML, use it; otherwise fetch the page
+  if (htmlDoc) {
+    const $new = $(htmlDoc).find('#dropdown').children();
+    if ($new.length) $('#dropdown').html($new);
+    return $.Deferred().resolve().promise();
+  }
+  return $.get(window.location.href.split('#')[0]).done(function (html) {
+    const $new = $('<div>').append($.parseHTML(html)).find('#dropdown').children();
+    if ($new.length) $('#dropdown').html($new);
+  });
+}
+
+// Re-pull only the dashboard grid (the <ul class="grid ..."> inside #event-right)
+function refreshDashboardOnly(htmlDoc) {
+  if (htmlDoc) {
+    const $new = $(htmlDoc).find('#event-right ul.grid').children();
+    if ($new.length) $('#event-right ul.grid').html($new);
+    return $.Deferred().resolve().promise();
+  }
+  return $.get(window.location.href.split('#')[0]).done(function (html) {
+    const $new = $('<div>').append($.parseHTML(html)).find('#event-right ul.grid').children();
+    if ($new.length) $('#event-right ul.grid').html($new);
+  });
+}
+
+// Convenience: refresh both
+function refreshSidebarAndDashboard(htmlDoc) {
+  if (htmlDoc) {
+    refreshSidebarOnly(htmlDoc);
+    refreshDashboardOnly(htmlDoc);
+    return;
+  }
+  $.when(refreshSidebarOnly(), refreshDashboardOnly());
+}
+
+// Keep track of current selection for highlight re-apply
+let currentTable = window.currentTable || { id: null, src: null };
+
+function reapplyActive() {
+  if (!currentTable.id) return;
+  $('#dropdown .navitem').removeClass('text-white').addClass('text-[#A7B6CC]');
+  const sel = `#dropdown a[data-src="${currentTable.src}"][data-table-id="${currentTable.id}"]`;
+  const $a  = $(sel);
+  if ($a.length) $a.closest('li').removeClass('text-[#A7B6CC]').addClass('text-white');
+}
+
+// ======== PART 2: Create (Blank) — no full reload, uses GET (your PHP reads $_GET) ========
+
+$(document)
+  .off('click.createBlank', '#blank')
+  .on('click.createBlank', '#blank', function (e) {
+    e.preventDefault();
+
+    const $el = $(this);
+    if ($el.data('loading')) return;
+    $el.data('loading', true).addClass('opacity-50 pointer-events-none');
+
+    const url = window.location.pathname + '?action=create_blank';
+
+    // Use GET because your PHP checks ONLY $_GET['action']
+    $.get(url)
+      .done(function (html) {
+        // Parse returned full HTML once
+        const $doc = $('<div>').append($.parseHTML(html));
+
+        // 1) Replace sidebar items
+        const $newSidebarItems = $doc.find('#dropdown').children();
+        if ($newSidebarItems.length) $('#dropdown').html($newSidebarItems);
+
+        // 2) Replace dashboard grid cards
+        const $newGridItems = $doc.find('#event-right ul.grid').children();
+        if ($newGridItems.length) $('#event-right ul.grid').html($newGridItems);
+
+        // 3) Detect the newest Universal table id (largest id among src="tables")
+        let newestId = null;
+        $('#dropdown a[data-src="tables"][data-table-id]').each(function () {
+          const id = parseInt(this.getAttribute('data-table-id'), 10);
+          if (!Number.isNaN(id)) {
+            if (newestId === null || id > newestId) newestId = id;
+          }
+        });
+        if (newestId !== null) {
+          currentTable = window.currentTable = { id: newestId, src: 'tables' };
+          reapplyActive();
+          // 4) Update dashboard title immediately (placeholder, since PHP doesn't set it on create)
+          $('.js-current-table-title').text('Untitled');
+          // 5) Load the new table into main area (your existing loader/event)
+          if (typeof loadTableIntoMain === 'function') {
+            loadTableIntoMain('tables', newestId);
+          } else {
+            $(document).trigger('table:open', { id: newestId, src: 'tables' });
+          }
+        } else {
+          console.warn('Create: could not detect the new table id. Sidebar/grid still refreshed.');
+        }
+      })
+      .fail(function (xhr) {
+        console.error('Create GET failed', { status: xhr.status, text: xhr.statusText, body: xhr.responseText });
+        alert('Create failed: ' + (xhr.responseText || (xhr.status + ' ' + xhr.statusText)));
+      })
+      .always(function () {
+        $el.data('loading', false).removeClass('opacity-50 pointer-events-none');
+      });
+  });
+
+// ======== PART 3: Auto-refresh after any CRUD AJAX you already have ========
+
+$(document).off('ajaxSuccess.tablesSync')
+.on('ajaxSuccess.tablesSync', function (_evt, _xhr, settings) {
+  try {
+    const u = (settings && settings.url ? settings.url : '').toLowerCase();
+    if (!u) return;
+    // Add/adjust endpoints you use:
+    const looksLikeCrud =
+      u.includes('create_blank') ||
+      u.includes('create_table.php') ||
+      u.includes('rename_table.php') ||
+      u.includes('delete_table.php') ||
+      u.includes('edit_table_title.php');
+
+    if (looksLikeCrud) {
+      // Pull fresh sidebar + dashboard
+      refreshSidebarAndDashboard();
+      // Reapply highlight shortly after DOM swap
+      setTimeout(reapplyActive, 0);
+    }
+  } catch (e) {
+    console.warn('ajaxSuccess.tablesSync error:', e);
+  }
+});
+
+// Optional: on page load, ensure dashboard list is fresh (and reapply selection if any)
+$(function () {
+  // no hard refresh needed; if you want an initial sync uncomment:
+  // refreshSidebarAndDashboard();
+  reapplyActive();
+});
+
+function updateTitleEverywhere(tableId, src, newTitle) {
+  if (!tableId || !newTitle) return;
+
+  // 1) Header title (detail view)
+  $('.js-current-table-title').text(newTitle);
+
+  // 2) Sidebar item text
+  const selSidebar = `#dropdown a[data-table-id="${tableId}"][data-src="${src||'tables'}"]`;
+  const $a = $(selSidebar);
+  if ($a.length) $a.text(newTitle);
+
+  // 3) Dashboard cards grid (update the <h3> and the filterable data-name)
+  //    We match cards by their <a href> because your markup already has that.
+  //    Covers: /home.php?autoload=1&table_id=ID  (Universal)
+  //            /home.php?autoload=1&type=XXX&table_id=ID (Other categories)
+  const hrefNeedle = `table_id=${tableId}`;
+  $('#event-right ul.grid a[href*="' + hrefNeedle + '"]').each(function () {
+    const $card = $(this).closest('li');
+    $card.find('h3').text(newTitle);
+    $card.attr('data-name', String(newTitle).toLowerCase());
+  });
+}
+
+// ---- Helper to read src if your form doesn't include it ----
+function inferSrcFallback() {
+  // Prefer the current selection if you track it
+  if (window.currentTable && window.currentTable.src) return window.currentTable.src;
+  // Fallback to 'tables' (Universal)
+  return 'tables';
+}
+
+// ---- Intercept the rename form submit (no full reload) ----
+// Expected form fields: table_id (hidden), table_title (text input)
+// Optional: src (hidden) — if not present we infer 'tables'
+$(document)
+  .off('submit.renameTitle', '.rename-table-form')
+  .on('submit.renameTitle', '.rename-table-form', function (e) {
+    e.preventDefault();
+
+    const $form  = $(this);
+    if ($form.data('submitting')) return;
+    $form.data('submitting', true);
+
+    const tableId  = parseInt($form.find('[name="table_id"]').val(), 10);
+    const src      = String($form.find('[name="src"]').val() || inferSrcFallback());
+    const newTitle = String($form.find('[name="table_title"]').val() || '').trim();
+    const url      = $form.attr('action');
+
+    if (!tableId || !newTitle) { $form.data('submitting', false); return; }
+
+    $.post(url, $form.serialize())
+      .done(function (res) {
+        // Try to parse JSON, but we don't rely on it — we already know the new title.
+        try { if (typeof res === 'string') res = JSON.parse(res); } catch (_) {}
+        updateTitleEverywhere(tableId, src, newTitle);
+
+        // Keep your sidebar/grid in sync if you also want server-sourced re-render later:
+        if (typeof window.notifyTablesUpdated === 'function') window.notifyTablesUpdated();
+
+        // Remember current selection so the sidebar highlight persists
+        window.currentTable = { id: tableId, src: src };
+      })
+      .fail(function (xhr) {
+        alert('Rename failed: ' + (xhr.responseText || 'Unknown error'));
+      })
+      .always(function () {
+        $form.data('submitting', false);
+      });
+  });
+
+// ---- Nice UX: submit on Enter and/or on blur ----
+$(document)
+  .off('keydown.renameTitle', '.rename-table-input')
+  .on('keydown.renameTitle', '.rename-table-input', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $(this).closest('form').trigger('submit'); }
+  })
+  .off('blur.renameTitle', '.rename-table-input')
+  .on('blur.renameTitle',  '.rename-table-input', function () {
+    const $form = $(this).closest('form');
+    if (!$form.data('submitting')) $form.trigger('submit');
+  });
+
+// ---- Safety net: if rename happens elsewhere via AJAX, catch it globally ----
+$(document).off('ajaxSuccess.renameHook')
+.on('ajaxSuccess.renameHook', function (_evt, _xhr, settings) {
+  const u = (settings && settings.url || '').toLowerCase();
+  if (!u) return;
+  if (u.includes('rename_table.php') || u.includes('edit_table_title.php')) {
+    // Try to extract table_id and title from the sent data string
+    const d = settings.data || '';
+    const idMatch = d.match(/(?:^|&|\?)table_id=(\d+)/);
+    const titleMatch = d.match(/(?:^|&|\?)table_title=([^&]+)/);
+    const srcMatch = d.match(/(?:^|&|\?)src=([^&]+)/);
+
+    const tableId  = idMatch ? parseInt(idMatch[1], 10) : (window.currentTable && window.currentTable.id);
+    const newTitle = titleMatch ? decodeURIComponent(titleMatch[1].replace(/\+/g, ' ')) : null;
+    const src      = srcMatch ? decodeURIComponent(srcMatch[1]) : inferSrcFallback();
+
+    if (tableId && newTitle) updateTitleEverywhere(tableId, src, newTitle);
+  }
+});
 </script>
+
 </body>
 </html>
