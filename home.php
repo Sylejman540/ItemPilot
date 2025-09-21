@@ -2088,7 +2088,7 @@ $(document).off('click.sidebarDelete', '#dropdown a[href*="delete_table.php"]')
 .on('click.sidebarDelete', '#dropdown a[href*="delete_table.php"]', function (e) {
   e.preventDefault();
   var url = this.href;
-  if (!confirm('Delete this table?')) return;
+
 
   // If your app needs a CSRF token, add it here (example):
   // var token = $('meta[name="csrf-token"]').attr('content');
@@ -2203,6 +2203,65 @@ $(document)
         $form.data('submitting', false);
       });
   });
+
+  // Create "blank" table without full reload (works with your current PHP)
+$(document)
+  .off('click.createBlank', '#blank')
+  .on('click.createBlank', '#blank', function (e) {
+    e.preventDefault();
+
+    const $el = $(this);
+    if ($el.data('loading')) return;
+    $el.data('loading', true).addClass('opacity-50 pointer-events-none');
+
+    // Your resolver only checks $_GET['action'], so use GET:
+    const url = window.location.pathname + '?action=create_blank';
+
+    $.get(url)
+      .done(function (html) {
+        // Parse the returned page HTML and swap in the fresh sidebar
+        const $dom = $('<div>').append($.parseHTML(html));
+        const $newItems = $dom.find('#dropdown').children();
+        if ($newItems.length) $('#dropdown').html($newItems);
+
+        // Find the newest table in the "tables" group (max id)
+        let newestId = null;
+        $('#dropdown a[data-src="tables"][data-table-id]').each(function () {
+          const id = parseInt(this.getAttribute('data-table-id'), 10);
+          if (!Number.isNaN(id)) newestId = (newestId === null || id > newestId) ? id : newestId;
+        });
+
+        if (newestId == null) {
+          console.warn('Could not detect new table_id; sidebar refreshed though.');
+          $('.js-current-table-title').text('Untitled');
+          return;
+        }
+
+        // Remember & highlight
+        window.currentTable = { id: newestId, src: 'tables' };
+        const $a = $(`#dropdown a[data-src="tables"][data-table-id="${newestId}"]`);
+        $('#dropdown .navitem').removeClass('text-white').addClass('text-[#A7B6CC]');
+        $a.closest('li').removeClass('text-[#A7B6CC]').addClass('text-white');
+
+        // Dashboard title (your PHP doesn’t set it on create, so set placeholder)
+        $('.js-current-table-title').text('Untitled');
+
+        // Load the new table into main (use your existing loader)
+        if (typeof loadTableIntoMain === 'function') {
+          loadTableIntoMain('tables', newestId);
+        } else {
+          $(document).trigger('table:open', { id: newestId, src: 'tables' });
+        }
+      })
+      .fail(function (xhr) {
+        console.error('Create (GET) failed', { status: xhr.status, text: xhr.statusText, body: xhr.responseText });
+        alert('Create failed: ' + (xhr.responseText || (xhr.status + ' ' + xhr.statusText)));
+      })
+      .always(function () {
+        $el.data('loading', false).removeClass('opacity-50 pointer-events-none');
+      });
+  });
+
 </script>
 </body>
 </html>
