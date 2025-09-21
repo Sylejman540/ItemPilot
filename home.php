@@ -402,10 +402,11 @@ $barData  = fillMissingMonthlyWithNull($barData);
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-  <title>Pilota</title>
+  <title>An2table</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link href="images/icon.png" rel="icon">
   <style>
     body { font-family: 'Poppins', sans-serif; }
   </style>

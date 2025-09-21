@@ -3,9 +3,8 @@
   <!-- Aside -->
   <aside id="sidebar" class="md:w-70 w-65 block bg-[#263544] min-h-screen shadow-2xl">
       <a href="/ItemPilot/home.php" class="flex items-center gap-3 px-4 py-4">
-        <img src="images/logo2.png" alt="an2table"
-            class="h-7 p-2 bg-blue-500 rounded-lg ml-2 w-auto md:h-8 block shrink-0 select-none" />
-        <span class="brand-text normal-case text-white antialiased leading-none tracking-tight">
+        <img src="images/logo2.png" alt="an2table" class="bg-blue-500 w-9 ml-2 h-9 p-2 rounded-lg" />
+        <span class="text-white text-lg">
           An2table
         </span>
       </a>
@@ -13,7 +12,7 @@
       <nav>
        <ul class="text-md">
           <!-- ===== GENERAL ===== -->
-          <li class="px-6 mt-2 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
+          <li class="px-6 mt-4 mb-2 text-xs font-semibold tracking-wider text-white uppercase">
             General
           </li>
           <!-- DASHBOARD -->
