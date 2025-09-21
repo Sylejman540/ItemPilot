@@ -2594,6 +2594,154 @@ $(document).off('ajaxSuccess.renameHook')
     });
   });
 })();
+
+// ---------- polyfills ----------
+if (!window.CSS || !CSS.escape) {
+  window.CSS = window.CSS || {};
+  CSS.escape = CSS.escape || function (s) {
+    return String(s).replace(/([!"#$%&'()*+,.\/:;<=>?@\[\\\]^`{|}~])/g, '\\$1');
+  };
+}
+
+(() => {
+  // Prevent double-binding if file is included twice
+  if (window.__IP_DELETE_FIELDS_BOUND__) return;
+  window.__IP_DELETE_FIELDS_BOUND__ = true;
+
+  // --- helper: remove field from THEAD, all rows, and decrement grid cols ---
+  function removeFieldEverywhere(tableId, fieldId, fieldName) {
+    if (!tableId) return;
+    let removedSomething = false;
+
+    // THEAD cell (prefer id match, fallback to value text)
+    const theadForm = document.querySelector(`.universal-table form.thead-form[data-table-id="${tableId}"]`);
+    if (theadForm) {
+      const byId = fieldId ? theadForm.querySelector(`input[name="extra_field_${fieldId}"]`) : null;
+      if (byId) {
+        byId.closest('.p-2')?.remove();
+        removedSomething = true;
+      } else if (fieldName) {
+        for (const i of theadForm.querySelectorAll('.p-2 input[name^="extra_field_"]')) {
+          if ((i.value || '').trim() === fieldName) { i.closest('.p-2')?.remove(); removedSomething = true; break; }
+        }
+      }
+    }
+
+    // TBODY dyn input (one per row)
+    if (fieldName) {
+      const dynName = `dyn[${fieldName}]`;
+      document.querySelectorAll('.universal-row [data-col="dyn"]').forEach(dynCell => {
+        let inp = dynCell.querySelector(`input[name="${CSS.escape(dynName)}"]`);
+        if (!inp) {
+          inp = [...dynCell.querySelectorAll('input[name^="dyn["]')].find(el =>
+            el.name.replace(/^dyn\[|\]$/g,'') === fieldName
+          );
+        }
+        if (inp) { inp.remove(); removedSomething = true; }
+      });
+    }
+
+    // Only adjust grids if we actually removed a column
+    if (removedSomething) {
+      document.querySelectorAll('.universal-table .app-grid, .universal-row').forEach(el => {
+        // use computed style so it works whether --cols is inline or inherited
+        const cur = parseInt(getComputedStyle(el).getPropertyValue('--cols') || '0', 10) || 0;
+        if (cur > 0) el.style.setProperty('--cols', String(cur - 1));
+      });
+    }
+  }
+
+  // Resolve the delete_fields endpoint safely (works in static .js too)
+  const DELETE_FIELDS_ENDPOINT = (() => {
+    const probe = document.querySelector('#addDeletePop a[href*="/delete_fields.php"]');
+    if (probe) return probe.href.split('?')[0];
+    // Fallback to your known path
+    return '/ItemPilot/categories/Universal%20Table/delete_fields.php';
+  })();
+
+  async function ajaxJSON(url, opts = {}) {
+    const res  = await fetch(url, {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', ...(opts.headers || {}) },
+      ...opts
+    });
+    const txt  = await res.text();
+    let data   = null;
+    try { data = txt ? JSON.parse(txt) : null; } catch { /* ignore */ }
+    if (!res.ok || !data || data.ok === false) {
+      throw new Error((data && (data.error || data.message)) || `HTTP ${res.status}`);
+    }
+    return data;
+  }
+
+  // --- modal delete (works for both <a .../delete_fields.php> and <button class="delete-field-btn">) ---
+  document.addEventListener('click', async (e) => {
+    const el =
+      e.target.closest('#addDeletePop a[href*="/delete_fields.php"]') ||
+      e.target.closest('#addDeletePop button.delete-field-btn');
+    if (!el) return;
+
+    e.preventDefault();
+
+    // Confirm once (keeps parity with your inline confirm)
+    if (!confirm('Delete this field?')) return;
+
+    // Robust row container (add data-field-row on your <div> if you like; we also fallback)
+    let rowEl = el.closest('[data-field-row]');
+    if (!rowEl) rowEl = el.closest('.flex');
+
+    // Extract hints so we can still patch UI even if server returns minimal info
+    const hintedName  = (rowEl?.querySelector('input[readonly]')?.value || '').trim();
+    const hintedIdStr = el.tagName === 'A'
+      ? ((el.href.match(/[?&]id=(\d+)/) || [])[1] || '')
+      : (el.dataset.id || '');
+    const hintedId    = hintedIdStr ? parseInt(hintedIdStr, 10) : 0;
+    const hintedTid   = el.dataset?.tableId ? parseInt(el.dataset.tableId, 10) : 0;
+
+    try {
+      // Prefer POST; anchors fall back to GET but still XHR via header
+      let data;
+      if (el.tagName === 'A') {
+        data = await ajaxJSON(el.href);
+      } else {
+        const body = new URLSearchParams({ id: String(hintedId), table_id: String(hintedTid || '') });
+        data = await ajaxJSON(DELETE_FIELDS_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        });
+      }
+
+      const tableId = data.table_id || hintedTid;
+      const fieldId = data.field_id || hintedId;
+      const colKey  = data.field_name || hintedName;
+
+      removeFieldEverywhere(tableId, fieldId, colKey);
+
+      // Remove the row from the modal list
+      rowEl?.remove();
+
+      // Hide modals if list is empty
+      if (!document.querySelector('#addDeletePop a[href*="/delete_fields.php"], #addDeletePop button.delete-field-btn')) {
+        document.getElementById('addDeletePop')?.classList.add('hidden');
+        document.getElementById('actionMenuList')?.classList.add('hidden');
+      }
+    } catch (err) {
+      console.error(err);
+      // As a last resort, if we know the name, attempt UI-only removal so user doesn’t see stale UI
+      if (hintedName) {
+        const tForm = document.querySelector('.universal-table form.thead-form');
+        const fallbackTid = parseInt(tForm?.getAttribute('data-table-id') || '0', 10) || hintedTid || 0;
+        removeFieldEverywhere(fallbackTid, hintedId, hintedName);
+        rowEl?.remove();
+      } else {
+        alert(err.message || 'Delete failed');
+      }
+    }
+  });
+})();
+
+
 </script>
 
 </body>

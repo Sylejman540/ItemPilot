@@ -551,7 +551,7 @@ $fixedCount = 5; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($ha
         <?php foreach ($fields2 as $field): ?>
           <div class="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50 transition">
             <input type="text" readonly name="extra_field_<?= (int)$field['id'] ?>" value="<?= htmlspecialchars($field['field_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="w-full bg-transparent border-none px-1 py-1 text-sm text-gray-900 pointer-events-none focus:outline-none" />
-            <a href="<?= $CATEGORY_URL ?>/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>" onclick="return confirm('Delete this field?')" class="inline-flex items-center justify-center rounded-md p-1.5 text-red-600 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete" title="Delete">
+            <a href="<?= $CATEGORY_URL ?>/delete_fields.php?id=<?= (int)$field['id'] ?>&table_id=<?= (int)$table_id ?>" class="inline-flex items-center justify-center rounded-md p-1.5 text-red-600 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete" title="Delete">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
               </svg>
