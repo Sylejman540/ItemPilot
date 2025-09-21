@@ -2203,9 +2203,6 @@ $(document)
         $form.data('submitting', false);
       });
   });
-
-// Also let the global ajaxSuccess hook pick this up if your endpoint name differs
-// (You alrea
 </script>
 </body>
 </html>
