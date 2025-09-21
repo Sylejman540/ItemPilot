@@ -503,7 +503,7 @@ $fixedCount = 5; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($ha
   </div>
 
   <div class="px-5 py-4">
-    <form action="<?= $CATEGORY_URL ?>/add_fields.php" method="post" class="space-y-3">
+    <form action="<?= $CATEGORY_URL ?>/add_fields.php" method="post" class="add-field-form space-y-3">
       <input type="hidden" name="table_id" value="<?= (int)($table_id ?? 0) ?>">
       <label for="field_name" class="block text-sm font-medium text-gray-700">Field name</label>
       <input id="field_name" name="field_name" required class="w-full rounded-xl border border-gray-300 bg-slate-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-400" type="text" placeholder="e.g. Price, SKU, Notes" />

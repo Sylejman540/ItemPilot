@@ -2504,6 +2504,96 @@ $(document).off('ajaxSuccess.renameHook')
     if (tableId && newTitle) updateTitleEverywhere(tableId, src, newTitle);
   }
 });
+
+(function () {
+  // small helpers
+  function bumpCols(selector) {
+    document.querySelectorAll(selector).forEach(el => {
+      const st = el.getAttribute('style') || '';
+      const m = st.match(/--cols:\s*(\d+)/);
+      const current = m ? parseInt(m[1], 10) : 0;
+      if (current > 0) {
+        const next = current + 1;
+        el.style.setProperty('--cols', next);
+      }
+    });
+  }
+
+  function closeAddFieldModal() {
+    // hide the modal & action menu if present
+    const pop = document.getElementById('addColumnPop');
+    if (pop) pop.classList.add('hidden');
+    const menu = document.getElementById('actionMenuList');
+    if (menu) menu.classList.add('hidden');
+  }
+
+  document.addEventListener('submit', async (e) => {
+    const form = e.target;
+    if (!form.matches('.add-field-form')) return;
+
+    e.preventDefault();
+    if (form.dataset.submitting === '1') return;
+    form.dataset.submitting = '1';
+
+    try {
+      const fd = new FormData(form);
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Add field failed');
+
+      // 1) THEAD: insert new header input (before the last “action” empty cell if present)
+      const theadForm = document.querySelector(`.universal-table form.thead-form[data-table-id="${data.table_id}"]`);
+      if (theadForm) {
+        const grid = theadForm.querySelector('.app-grid');
+        if (grid) {
+          const actionCell = grid.lastElementChild; // your code adds an empty last cell when hasAction = true
+          if (actionCell && actionCell.childElementCount === 0) {
+            actionCell.insertAdjacentHTML('beforebegin', data.thead_html);
+          } else {
+            grid.insertAdjacentHTML('beforeend', data.thead_html);
+          }
+        }
+      }
+
+      // 2) TBODY: append a new input to each row’s dynamic area
+      document.querySelectorAll('.universal-row [data-col="dyn"]').forEach(dynCell => {
+        dynCell.insertAdjacentHTML('beforeend', data.cell_html_template);
+      });
+
+      // 3) Bump CSS grid column counts
+      bumpCols(`.universal-row`);
+      bumpCols(`.universal-table .app-grid`);
+
+      // 4) Close modal + reset
+      closeAddFieldModal();
+      form.reset();
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Something went wrong while adding the field.');
+    } finally {
+      form.dataset.submitting = '0';
+    }
+  });
+
+  // (Optional) Wire your "Add" button to show the modal if not already done
+  const addBtn = document.getElementById('addFieldsBtn');
+  const addPop = document.getElementById('addColumnPop');
+  if (addBtn && addPop) {
+    addBtn.addEventListener('click', () => addPop.classList.remove('hidden'));
+  }
+  document.querySelectorAll('[data-close-add]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('addColumnPop')?.classList.add('hidden');
+      document.getElementById('addDeletePop')?.classList.add('hidden');
+      document.getElementById('actionMenuList')?.classList.add('hidden');
+    });
+  });
+})();
 </script>
 
 </body>
