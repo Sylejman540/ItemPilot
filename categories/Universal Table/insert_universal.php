@@ -383,8 +383,8 @@ $fixedCount = 5; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($ha
 <body>
 
 <header id="appHeader" class="absolute md:mt-13 mt-20 transition-all duration-300 ease-in-out" style="padding-left:1.25rem;padding-right:1.25rem;">
-  <section class="flex mt-6 justify-between ml-3">
-    <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php" class="flex gap-2 thead-form">
+  <section class="flex mt-6 justify-between ml-3 rename-table-form">
+    <form method="POST" action="<?= $CATEGORY_URL ?>/edit.php" class="rename-table-form flex gap-2 thead-form">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <input type="text" name="table_title" value="<?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?>" class="w-full px-4 py-2 text-lg font-bold text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Untitled table"/>
     </form>

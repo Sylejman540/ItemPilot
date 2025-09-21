@@ -2030,6 +2030,182 @@ document.body.addEventListener('click', e => {
     })
   );
 })();
+
+// =============== GLOBAL SIDEBAR SYNC =================
+
+// 0) Guard: requires jQuery
+if (!window.jQuery) { console.error('Sidebar script: jQuery not found'); }
+
+// Keep track of the currently open table (for re-highlighting)
+window.currentTable = { id: null, src: null };
+
+// Expose a small API you can call from anywhere if needed:
+//   window.notifyTablesUpdated();
+window.notifyTablesUpdated = function notifyTablesUpdated() { refreshSidebar(); };
+
+// 1) Reload ONLY the #dropdown list from the current page (no full reload)
+function refreshSidebar() {
+  var base = window.location.href.split('#')[0];
+  // Pull just the children of #dropdown and swap them in
+  $('#dropdown').load(base + ' #dropdown > *', function (_res, status, xhr) {
+    if (status !== 'success') {
+      console.error('Sidebar refresh failed:', xhr && (xhr.status + ' ' + xhr.statusText));
+      return;
+    }
+    reapplyActive();
+  });
+}
+
+// 2) Reapply highlight after refresh (uses window.currentTable)
+function reapplyActive() {
+  if (!window.currentTable || !window.currentTable.id) return;
+  var sel = '#dropdown a[data-table-id="' + window.currentTable.id + '"][data-src="' + window.currentTable.src + '"]';
+  var $a  = $(sel);
+  $('#dropdown .navitem').removeClass('text-white').addClass('text-[#A7B6CC]');
+  if ($a.length) $a.closest('li').removeClass('text-[#A7B6CC]').addClass('text-white');
+}
+
+// 3) Open table via AJAX (adjust to your loader if different)
+$(document).off('click.sidebarOpen', '#dropdown a[data-table-id]')
+.on('click.sidebarOpen', '#dropdown a[data-table-id]', function (e) {
+  e.preventDefault();
+  var $a  = $(this);
+  var id  = parseInt($a.data('table-id'), 10);
+  var src = String($a.data('src') || '');
+
+  window.currentTable = { id: id, src: src };
+  // highlight immediately for snappy UX
+  $('#dropdown .navitem').removeClass('text-white').addClass('text-[#A7B6CC]');
+  $a.closest('li').removeClass('text-[#A7B6CC]').addClass('text-white');
+
+  // If you already have a loader, call it here. Otherwise emit an event.
+  // Example: loadTableIntoMain(src, id);
+  $(document).trigger('table:open', { id: id, src: src });
+});
+
+// 4) Intercept DELETE links and do them via AJAX, then refresh
+$(document).off('click.sidebarDelete', '#dropdown a[href*="delete_table.php"]')
+.on('click.sidebarDelete', '#dropdown a[href*="delete_table.php"]', function (e) {
+  e.preventDefault();
+  var url = this.href;
+  if (!confirm('Delete this table?')) return;
+
+  // If your app needs a CSRF token, add it here (example):
+  // var token = $('meta[name="csrf-token"]').attr('content');
+
+  $.ajax({
+    url: url,
+    method: 'POST',
+    data: { _method: 'DELETE' } // or include token: token
+  })
+  .done(function () {
+    // Clear selection if we deleted the current one
+    if (window.currentTable.id && url.indexOf('table_id=' + window.currentTable.id) !== -1) {
+      window.currentTable = { id: null, src: null };
+    }
+    refreshSidebar();
+  })
+  .fail(function (xhr) {
+    alert('Delete failed: ' + (xhr.responseText || 'Unknown error'));
+  });
+});
+
+// 5) Auto-refresh the sidebar after ANY AJAX call that looks like CRUD
+//    (works even if different pages/forms do the requests)
+$(document).off('ajaxSuccess.sidebarCrud')
+.on('ajaxSuccess.sidebarCrud', function (_evt, _xhr, settings) {
+  try {
+    var u = settings && settings.url ? settings.url.toLowerCase() : '';
+    if (!u) return;
+
+    // List here the endpoints that mutate tables
+    // (add/adjust to match your actual paths)
+    var isCrud =
+      u.indexOf('create_table.php') !== -1 ||
+      u.indexOf('rename_table.php') !== -1 ||
+      u.indexOf('delete_table.php') !== -1 ||
+      u.indexOf('edit_table_title.php') !== -1 ||
+      u.indexOf('insert_table.php') !== -1;
+
+    if (isCrud) refreshSidebar();
+  } catch (e) {
+    console.warn('ajaxSuccess sidebar hook error:', e);
+  }
+});
+
+// 6) Initial sync (in case the HTML was cached or server updated)
+$(function(){ refreshSidebar(); });
+
+$(document)
+  // Submit on Enter without reloading
+  .off('keydown.renameTitle', '.rename-table-input')
+  .on('keydown.renameTitle', '.rename-table-input', function(e){
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $(this).closest('form').trigger('submit');
+    }
+  })
+
+  // Auto-submit on blur (optional—remove if you want explicit Save only)
+  .off('blur.renameTitle', '.rename-table-input')
+  .on('blur.renameTitle', '.rename-table-input', function(){
+    const $form = $(this).closest('form');
+    // Avoid double submit if already submitting
+    if ($form.data('submitting')) return;
+    $form.trigger('submit');
+  })
+
+  // AJAX submit
+  .off('submit.renameTitle', '.rename-table-form')
+  .on('submit.renameTitle', '.rename-table-form', function(e){
+    e.preventDefault();
+    const $form = $(this);
+    const data = $form.serialize();
+    const url  = $form.attr('action');
+
+    $form.data('submitting', true);
+
+    $.post(url, data)
+      .done(function(res){
+        // Optional: if your endpoint returns JSON {table_id, src, title}
+        try {
+          if (typeof res === 'string') res = JSON.parse(res);
+        } catch (_) {}
+
+        // Update any on-page title text instantly (nice UX)
+        if (res && res.title) {
+          $('.js-current-table-title').text(res.title);
+        } else {
+          // or read from the input
+          $('.js-current-table-title').text($form.find('[name="table_title"]').val());
+        }
+
+        // Remember the active table so highlight re-applies after sidebar refresh
+        if (window.currentTable && !window.currentTable.id) {
+          window.currentTable = {
+            id: parseInt($form.find('[name="table_id"]').val(), 10),
+            src: String($form.find('[name="src"]').val() || '')
+          };
+        }
+
+        // Refresh the sidebar (uses the helper you already installed)
+        if (typeof window.notifyTablesUpdated === 'function') {
+          window.notifyTablesUpdated();
+        } else {
+          // fallback if helper not present
+          $('#dropdown').load(location.href.split('#')[0] + ' #dropdown > *');
+        }
+      })
+      .fail(function(xhr){
+        alert('Rename failed: ' + (xhr.responseText || 'Unknown error'));
+      })
+      .always(function(){
+        $form.data('submitting', false);
+      });
+  });
+
+// Also let the global ajaxSuccess hook pick this up if your endpoint name differs
+// (You alrea
 </script>
 </body>
 </html>
