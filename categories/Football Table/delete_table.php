@@ -31,6 +31,15 @@ if ($stmt->affected_rows === 0) {
   die("No record found with table_id {$table_id}");
 }
 $stmt->close();
+$isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-header("Location: /ItemPilot/home.php?autoload=1");
+if ($isAjax) {
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode([
+    'ok' => true,
+  ]);
+  exit;
+}
+
+header("Location: /ItemPilot/home.php?autoload=1&type=football&table_id={$table_id}");
 exit;

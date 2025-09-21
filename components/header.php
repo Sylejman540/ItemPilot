@@ -121,7 +121,6 @@
               </a>
 
               <a href="categories/<?= $dir ?>/delete_table.php?table_id=<?= $tid ?>"
-                onclick="return confirm('Are you sure you want to delete this entire table?');"
                 class="text-red-500 hover:text-red-700 mt-2">
                 <button class="text-gray-400 hover:text-red-500 transition mt-1" title="Delete table">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none"
