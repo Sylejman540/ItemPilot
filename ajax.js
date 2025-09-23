@@ -337,10 +337,6 @@ window.ROW_SEL = '.applicant-row, .football-row, .sales-row, .universal-row, .gr
   // Only the inline-row forms (used for autosave); keep in sync with AJAX_FORMS
   const ROW_FORMS =
     'form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row';
-
-  const ROW_SEL =
-    '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
-
   // ---------- Helpers ----------
   const norm = (s) => (s || '').toString().trim().toLowerCase();
 
@@ -1227,7 +1223,7 @@ if (!window.CSS || !CSS.escape) {
     let removedSomething = false;
 
     // 1) THEAD
-    const theadForm = document.querySelector(`ROW_SEL + form.thead-form[data-table-id="${tableId}"]`);
+    const theadForm = document.querySelector(`form.thead-form[data-table-id="${tableId}"]`);
     if (theadForm) {
       const byId = fieldId ? theadForm.querySelector(`input[name="extra_field_${fieldId}"]`) : null;
       if (byId) {
@@ -1247,7 +1243,7 @@ if (!window.CSS || !CSS.escape) {
     // 2) TBODY
     if (fieldName) {
       const dynName = `dyn[${fieldName}]`;
-      document.querySelectorAll('ROW_SEL + [data-col="dyn"]').forEach(dynCell => {
+      document.querySelectorAll('[data-col="dyn"]').forEach(dynCell => {
         let inp = fieldId ? dynCell.querySelector(`input[name="extra_field_${fieldId}"]`) : null;
         if (!inp) inp = dynCell.querySelector(`input[name="${CSS.escape(dynName)}"]`);
         if (!inp) {
