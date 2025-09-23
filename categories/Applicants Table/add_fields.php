@@ -50,7 +50,7 @@ if ($cnt > 0) {
   $suffix = 2;
   do {
     $try = substr($col . '_' . $suffix, 0, 64);
-    $existsQ = $conn->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='universal_base' AND COLUMN_NAME=?");
+    $existsQ = $conn->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='applicants_base' AND COLUMN_NAME=?");
     $existsQ->bind_param('s', $try);
     $existsQ->execute();
     $existsQ->bind_result($cnt2);
@@ -62,15 +62,15 @@ if ($cnt > 0) {
 }
 
 /* ---------- add column to universal_base if missing ---------- */
-$alterSql = "ALTER TABLE applicants_base ADD COLUMN `$col` VARCHAR(255) NULL";
+$alterSql = "ALTER TABLE universal_base ADD COLUMN `$col` VARCHAR(255) NULL";
 if (!$conn->query($alterSql)) {
   // If it already exists due to race, ignore; otherwise error
   if (stripos($conn->error, 'Duplicate column name') === false) {
-    json_out(['ok'=>false, 'error'=>'Failed to alter applicants_base: '.$conn->error], 500);
+    json_out(['ok'=>false, 'error'=>'Failed to alter universal_base: '.$conn->error], 500);
   }
 }
 
-/* ---------- insert into universal_fields (metadata) ---------- */
+/* ---------- insert into applicants_fields (metadata) ---------- */
 $ins = $conn->prepare("INSERT INTO applicants_fields (user_id, table_id, field_name) VALUES (?,?,?)");
 $ins->bind_param('iis', $uid, $table_id, $col); // store canonical column key in field_name
 if (!$ins->execute()) {

@@ -77,7 +77,7 @@ try {
   if ($stmt->affected_rows === 0) throw new RuntimeException("Delete failed or already removed.");
   $stmt->close();
 
-  // 3) Drop column in universal_base if no other mapping references it
+  // 3) Drop column in applicants_base if no other mapping references it
   $stmt = $conn->prepare("SELECT COUNT(*) FROM applicants_fields WHERE user_id=? AND table_id=? AND field_name=?");
   $stmt->bind_param('iis', $uid, $table_id, $storedName);
   $stmt->execute();
@@ -120,7 +120,7 @@ try {
   }
 
   // Non-AJAX: keep your old redirect
-  header("Location: /ItemPilot/home.php?autoload=1&type=applicant&table_id={$table_id}");
+  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
   exit;
 
 } catch (Throwable $e) {
