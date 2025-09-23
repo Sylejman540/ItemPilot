@@ -120,7 +120,7 @@ try {
   }
 
   // Non-AJAX: keep your old redirect
-  header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+  header("Location: /ItemPilot/home.php?autoload=1&type=groceries&table_id={$table_id}");
   exit;
 
 } catch (Throwable $e) {
