@@ -31,7 +31,6 @@ if ($stmt->affected_rows === 0) {
   die("No record found with table_id {$table_id}");
 }
 $stmt->close();
-
 $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
 if ($isAjax) {
@@ -42,5 +41,5 @@ if ($isAjax) {
   exit;
 }
 
-header("Location: /ItemPilot/home.php?autoload=1&table_id={$table_id}");
+header("Location: /ItemPilot/home.php?autoload=1&type=applicant&table_id={$table_id}");
 exit;

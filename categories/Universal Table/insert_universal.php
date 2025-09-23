@@ -46,7 +46,7 @@ if ($action === 'create_blank') {
   $table_id = (int)($_SESSION['current_table_id'] ?? 0);
 
   if ($table_id <= 0) {
-    $q = $conn->prepare("SELECT table_id FROM tables WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+    $q = $conn->prepare("SELECT table_id FROM tables WHERE user_id = ? ORDER BY table_id ASC LIMIT 1");
     $q->bind_param('i', $uid);
     $q->execute(); $q->bind_result($latestId); $q->fetch(); $q->close();
     $table_id = (int)$latestId;
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // Dynamic inputs mapping
   $dynIn = $_POST['dyn'] ?? [];
-  $mapStmt = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id  DESC");
+  $mapStmt = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id  ASC");
   $mapStmt->bind_param('ii', $uid, $table_id);
   $mapStmt->execute();
   $mapRes = $mapStmt->get_result();
@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (is_ajax()) {
     // Compute totalCols for inline row (same logic as page)
     $fieldsAjax = [];
-    $stmtF = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id  DESC");
+    $stmtF = $conn->prepare("SELECT id, field_name FROM universal_fields WHERE user_id = ? AND table_id = ? ORDER BY id  ASC");
     $stmtF->bind_param('ii', $uid, $table_id);
     $stmtF->execute();
     $resF = $stmtF->get_result();
@@ -328,7 +328,7 @@ $stmt->close();
 $tableTitle = $row['table_title'] ?? 'Untitled table';
 
 // --------- THEAD (load or create default) ----------
-$stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment FROM universal_thead WHERE user_id = ? AND table_id = ? ORDER BY id DESC LIMIT 1");
+$stmt = $conn->prepare("SELECT id, table_id, thead_name, thead_notes, thead_assignee, thead_status, thead_attachment FROM universal_thead WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT 1");
 $stmt->bind_param('ii', $uid, $table_id);
 $stmt->execute();
 $theadRes = $stmt->get_result();
@@ -353,7 +353,7 @@ $countStmt->execute(); $countStmt->bind_result($totalRows); $countStmt->fetch();
 
 $totalPages = (int)ceil($totalRows / $limit);
 
-$dataStmt = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary FROM universal WHERE user_id = ? AND table_id = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+$dataStmt = $conn->prepare("SELECT id, name, notes, assignee, status, attachment_summary FROM universal WHERE user_id = ? AND table_id = ? ORDER BY id ASC LIMIT ? OFFSET ?");
 $dataStmt->bind_param('iiii', $uid, $table_id, $limit, $offset);
 $dataStmt->execute();
 $rows = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
