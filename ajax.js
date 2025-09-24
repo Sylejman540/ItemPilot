@@ -1120,9 +1120,20 @@ $(document).off('ajaxSuccess.renameHook')
       }
 
       // 2) TBODY
-      document.querySelectorAll(ROW_SEL + ' [data-col="dyn"]').forEach(dynCell => {
-        dynCell.insertAdjacentHTML('beforeend', data.cell_html_template);
+      document.querySelectorAll(ROW_SEL).forEach(row => {
+        const dynCell = row.querySelector('[data-col="dyn"]');
+        if (!dynCell) return;
+
+        const trashCell = row.querySelector('.delete-field-btn')?.closest('td, div');
+        if (trashCell && trashCell.parentElement === row) {
+          // Insert before the trash cell in the row
+          trashCell.insertAdjacentHTML('beforebegin', data.cell_html_template);
+        } else {
+          // Fallback: append inside dynCell
+          dynCell.insertAdjacentHTML('beforeend', data.cell_html_template);
+        }
       });
+
 
       // 3) CREATE FORM
       (function injectIntoCreateForm(){
