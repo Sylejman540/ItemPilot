@@ -1,12 +1,27 @@
 <?php
-// /ItemPilot/categories/Dresses/insert_dresses.php
 require_once __DIR__ . '/../../db.php';
 session_start();
 
 $uid = (int)($_SESSION['user_id'] ?? 0);
-if ($uid <= 0) { header("Location: /ItemPilot/register/login.php"); exit; }
+if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
-/* ---------- Paths ---------- */
+/* ---------- AJAX helpers ---------- */
+function is_ajax(): bool {
+  return (
+    isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+  ) || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
+}
+function json_out(array $payload, int $code = 200) {
+  while (ob_get_level()) { ob_end_clean(); }
+  header_remove('Location');
+  http_response_code($code);
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode($payload);
+  exit;
+}
+
+/* ---------- Config (DRESSES) ---------- */
 $CATEGORY_URL = '/ItemPilot/categories/Dresses';
 $UPLOAD_DIR   = __DIR__ . '/uploads/';
 $UPLOAD_URL   = $CATEGORY_URL . '/uploads';
@@ -16,38 +31,40 @@ $action   = $_GET['action'] ?? null;
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
 if ($action === 'create_blank') {
-  $stmt = $conn->prepare("INSERT INTO dresses_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
+  $stmt = $conn->prepare("INSERT INTO dresses_table (user_id, created_at) VALUES (?, NOW())");
   $stmt->bind_param('i', $uid);
   $stmt->execute();
-  $table_id = (int)$conn->insert_id;
+  $table_id = (int)$stmt->insert_id;
   $stmt->close();
-  $_SESSION['current_sales_table_id'] = $table_id;
+  $_SESSION['current_table_id'] = $table_id;
+
 } elseif ($table_id > 0) {
-  $_SESSION['current_sales_table_id'] = $table_id;
+  $_SESSION['current_table_id'] = $table_id;
+
 } else {
-  $table_id = (int)($_SESSION['current_sales_table_id'] ?? 0);
+  $table_id = (int)($_SESSION['current_table_id'] ?? 0);
+
   if ($table_id <= 0) {
-    $q = $conn->prepare("SELECT table_id FROM dresses_table WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+    $q = $conn->prepare("SELECT table_id FROM dresses_table WHERE user_id = ? ORDER BY table_id ASC LIMIT 1");
     $q->bind_param('i', $uid);
     $q->execute(); $q->bind_result($latestId); $q->fetch(); $q->close();
     $table_id = (int)$latestId;
   }
   if ($table_id <= 0) {
-    $stmt = $conn->prepare("INSERT INTO dresses_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
+    $stmt = $conn->prepare("INSERT INTO dresses_table (user_id, created_at) VALUES (?, NOW())");
     $stmt->bind_param('i', $uid);
     $stmt->execute();
-    $table_id = (int)$conn->insert_id;
+    $table_id = (int)$stmt->insert_id;
     $stmt->close();
   }
-  $_SESSION['current_sales_table_id'] = $table_id;
+  $_SESSION['current_table_id'] = $table_id;
 }
 
-/* ---------------------------
-   Create / Update (POST)
-----------------------------*/
+/* ---------- Create/Update (dresses + base) ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $id                 = isset($_POST['id']) && $_POST['id'] !== '' ? (int)$_POST['id'] : 0;
-  $table_id           = (int)($_POST['table_id'] ?? $table_id);
+  $id       = $_POST['id'] ?? '';
+  $rec_id   = is_numeric($id) ? (int)$id : 0;
+  $table_id = (int)($_POST['table_id'] ?? $table_id);
 
   $linked_initiatives = trim($_POST['linked_initiatives'] ?? '');
   $notes              = trim($_POST['notes'] ?? '');
@@ -58,136 +75,237 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $owner              = trim($_POST['owner'] ?? '');    // Material cost
   $attachment         = trim($_POST['existing_attachment'] ?? '');
 
-  if (!empty($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+  // Handle upload
+  if (!empty($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Upload failed (PHP error '.$_FILES['photo']['error'].')'], 400); }
+      header("Location: /ItemPilot/home.php?autoload=1&type=dresses&table_id={$table_id}", true, 303);
+      exit;
+    }
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
-      http_response_code(500); exit('Could not create uploads directory.');
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Could not create uploads directory.'], 500); }
+      header("Location: /ItemPilot/home.php?autoload=1&type=dresses&table_id={$table_id}", true, 303);
+      exit;
     }
-    $tmp  = $_FILES['attachment']['tmp_name'];
-    $orig = basename($_FILES['attachment']['name']);
-    if (!move_uploaded_file($tmp, $UPLOAD_DIR . $orig)) {
-      http_response_code(500); exit('Failed to save uploaded file.');
-    }
-    $attachment = $orig;
+    $tmp   = $_FILES['photo']['tmp_name'];
+    $orig  = basename($_FILES['photo']['name']);
+    $ext   = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    $safe  = preg_replace('/[^a-zA-Z0-9._-]/', '_', pathinfo($orig, PATHINFO_FILENAME));
+    $fname = $safe . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . ($ext ? ".{$ext}" : '');
+    $dest  = $UPLOAD_DIR . $fname;
+    move_uploaded_file($tmp, $dest);
+    $photo = $fname;
   }
 
-  // Profit = Price - Material cost
-  $parse_money = static function ($s) {
-    if ($s === '' || $s === null) return null;
-    if (preg_match('/-?\d+(?:[.,]\d+)?/', (string)$s, $m)) return (float)str_replace(',', '.', $m[0]);
-    return null;
-  };
-  $priceNum    = $parse_money($priority);
-  $costNum     = $parse_money($owner);
-  $deadlineNum = (is_null($priceNum) && is_null($costNum)) ? null : round((float)$priceNum - (float)$costNum, 2);
-  $deadlineDb  = is_null($deadlineNum) ? null : number_format($deadlineNum, 2, '.', '');
-
-  // Gather dynamic values from either dyn[col] or extra_field_ID
+  // Dynamic fields
   $dynIn = $_POST['dyn'] ?? [];
-  $map   = $conn->prepare("SELECT id, field_name FROM dresses_fields WHERE user_id=? AND table_id=? ORDER BY id ASC");
-  $map->bind_param('ii', $uid, $table_id);
-  $map->execute();
-  $rs = $map->get_result();
-  while ($m = $rs->fetch_assoc()) {
-    $k = 'extra_field_'.(int)$m['id'];
-    if (array_key_exists($k, $_POST)) {
-      $dynIn[$m['field_name']] = ($_POST[$k] === '') ? null : $_POST[$k];
+  $mapStmt = $conn->prepare("SELECT id, field_name FROM dresses_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
+  $mapStmt->bind_param('ii', $uid, $table_id);
+  $mapStmt->execute();
+  $mapRes = $mapStmt->get_result();
+  while ($m = $mapRes->fetch_assoc()) {
+    $key = 'extra_field_' . (int)$m['id'];
+    if (array_key_exists($key, $_POST)) {
+      $val = $_POST[$key];
+      $dynIn[$m['field_name']] = ($val === '') ? null : $val;
     }
   }
-  $map->close();
+  $mapStmt->close();
 
-  // Whitelist against dresses_base
-  $colsRes  = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='dresses_base'");
-  $validCols= $colsRes ? array_column($colsRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
-  $exclude  = ['id','user_id','table_id','row_id','created_at','updated_at'];
-  $editable = array_values(array_diff($validCols, $exclude));
+  // Whitelist dynamic columns
+  $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dresses_base'");
+  $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
+  $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
+  $editable  = array_values(array_diff($validCols, $exclude));
 
   $toSave = [];
   foreach ($dynIn as $k => $v) {
     if (in_array($k, $editable, true)) $toSave[$k] = ($v === '') ? null : $v;
   }
 
-  mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-  $conn->begin_transaction();
-  try {
-    if ($id <= 0) {
-      $stmt = $conn->prepare("
-        INSERT INTO dresses
-          (linked_initiatives, notes, executive_sponsor, status, complete,
-           priority, owner, deadline, attachment, table_id, user_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)
-      ");
-      $stmt->bind_param(
-        'sssssssssii',
-        $linked_initiatives, $notes, $executive_sponsor, $status, $complete,
-        $priority, $owner, $deadlineDb, $attachment, $table_id, $uid
-      );
+  $actionPerformed = ($rec_id <= 0) ? 'create' : 'update';
+
+  if ($rec_id <= 0) {
+    // INSERT into dresses
+    $stmt = $conn->prepare("INSERT INTO dresses (linked_initiatives, notes, executive_sponsor, status, complete, priority, owner, attachment, table_id, user_id) VALUES (?,?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param('ssssssssii', $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $priority, $owner, $attachment, $table_id, $uid);
+    $stmt->execute();
+    $row_id = (int)$stmt->insert_id;
+    $stmt->close();
+
+    // dresses_base
+    if ($toSave) {
+      $cols  = array_keys($toSave);
+      $place = array_fill(0, count($cols), '?');
+      $sql   = "INSERT INTO dresses_base (`table_id`,`user_id`,`row_id`,`" . implode("`,`", $cols) . "`) VALUES (?,?,?," . implode(',', $place) . ")";
+      $stmt  = $conn->prepare($sql);
+      $types = 'iii' . str_repeat('s', count($cols));
+      $params = [$table_id, $uid, $row_id];
+      foreach ($cols as $c) { $params[] = $toSave[$c]; }
+      $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
+      call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($params)));
       $stmt->execute();
-      $row_id = (int)$stmt->insert_id;
       $stmt->close();
-
-      if ($toSave) {
-        $cols  = array_keys($toSave);
-        $place = array_fill(0, count($cols), '?');
-        $sql   = "INSERT INTO dresses_base (`table_id`,`user_id`,`row_id`,`".implode("`,`",$cols)."`) VALUES (?,?,?,".implode(',',$place).")";
-        $stmt  = $conn->prepare($sql);
-        $types = 'iii'.str_repeat('s', count($cols));
-        $params = [$table_id, $uid, $row_id];
-        foreach ($cols as $c) $params[] = $toSave[$c];
-        $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
-        call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($params)));
-        $stmt->execute(); $stmt->close();
-      } else {
-        $insb = $conn->prepare("INSERT INTO dresses_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
-        $insb->bind_param('iii', $table_id, $uid, $row_id);
-        $insb->execute(); $insb->close();
-      }
-
     } else {
-      $stmt = $conn->prepare("
-        UPDATE dresses
-           SET linked_initiatives=?, notes=?, executive_sponsor=?, status=?, complete=?,
-               priority=?, owner=?, deadline=?, attachment=?
-         WHERE id=? AND table_id=? AND user_id=?
-      ");
-      $stmt->bind_param(
-        'sssssssssiii',
-        $linked_initiatives, $notes, $executive_sponsor, $status, $complete,
-        $priority, $owner, $deadlineDb, $attachment, $id, $table_id, $uid
-      );
-      $stmt->execute(); $stmt->close();
-
-      $chk = $conn->prepare("SELECT id FROM dresses_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
-      $chk->bind_param('iii', $table_id, $uid, $id);
-      $chk->execute(); $base = $chk->get_result()->fetch_assoc(); $chk->close();
-      if (!$base) {
-        $insb = $conn->prepare("INSERT INTO dresses_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
-        $insb->bind_param('iii', $table_id, $uid, $id);
-        $insb->execute(); $insb->close();
-      }
-      if ($toSave) {
-        $set=[]; $vals=[]; $types='';
-        foreach ($toSave as $c=>$v) {
-          if ($v === null) $set[]="`$c`=NULL"; else { $set[]="`$c`=?"; $vals[]=$v; $types.='s'; }
-        }
-        if (in_array('updated_at',$validCols,true)) $set[]="`updated_at`=NOW()";
-        if ($set) {
-          $sql = "UPDATE dresses_base SET ".implode(', ',$set)." WHERE table_id=? AND user_id=? AND row_id=?";
-          $types.='iii'; $vals[]=$table_id; $vals[]=$uid; $vals[]=$id;
-          $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
-          $stmt=$conn->prepare($sql);
-          call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($vals)));
-          $stmt->execute(); $stmt->close();
-        }
-      }
+      $insb = $conn->prepare("INSERT INTO dresses_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
+      $insb->bind_param('iii', $table_id, $uid, $row_id);
+      $insb->execute();
+      $insb->close();
     }
 
-    $conn->commit();
-  } catch (Throwable $e) {
-    $conn->rollback();
-    http_response_code(500); exit('Save failed: '.$e->getMessage());
+  } else {
+    // UPDATE dresses
+    $stmt = $conn->prepare("UPDATE dresses SET linked_initiatives=?, notes=?, executve_sponsor=?, status=?, complete=?, priority=?, owner=?, attachment=? WHERE id=? AND table_id=? AND user_id=?");
+    $stmt->bind_param('ssssssssiii', $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $priority, $owner, $attachment, $rec_id, $table_id, $uid);
+    $stmt->execute();
+    $stmt->close();
+
+    // ensure dresses_base exists
+    $chk = $conn->prepare("SELECT id FROM dresses_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
+    $chk->bind_param('iii', $table_id, $uid, $rec_id);
+    $chk->execute();
+    $base = $chk->get_result()->fetch_assoc();
+    $chk->close();
+    if (!$base) {
+      $insb = $conn->prepare("INSERT INTO dresses_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
+      $insb->bind_param('iii', $table_id, $uid, $rec_id);
+      $insb->execute();
+      $insb->close();
+    }
+
+    // UPDATE dynamic columns
+    if ($toSave) {
+      $setParts = [];
+      $vals  = [];
+      $types = '';
+      foreach ($toSave as $col => $val) {
+        if ($val === null) { $setParts[] = "`$col`=NULL"; }
+        else { $setParts[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
+      }
+      if (in_array('updated_at', $validCols, true)) { $setParts[] = "`updated_at`=NOW()"; }
+      if ($setParts) {
+        $sql = "UPDATE dresses_base SET ".implode(', ', $setParts)." WHERE table_id=? AND user_id=? AND row_id=?";
+        $types .= 'iii';
+        $vals[]  = $table_id;
+        $vals[]  = $uid;
+        $vals[]  = $rec_id;
+        $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
+        $stmt = $conn->prepare($sql);
+        call_user_func_array([$stmt, 'bind_param'], array_merge([$types], $byRef($vals)));
+        $stmt->execute();
+        $stmt->close();
+      }
+    }
+    $row_id = $rec_id;
   }
 
-  header("Location: /ItemPilot/home.php?autoload=1&type=dresses&table_id={$table_id}");
+  /* ---------- AJAX response ---------- */
+  if (is_ajax()) {
+     // Compute totalCols for inline row (same logic as page)
+    $fieldsAjax = [];
+    $stmtF = $conn->prepare("SELECT id, field_name FROM dresses_fields WHERE user_id = ? AND table_id = ? ORDER BY id  ASC");
+    $stmtF->bind_param('ii', $uid, $table_id);
+    $stmtF->execute();
+    $resF = $stmtF->get_result();
+    while ($f = $resF->fetch_assoc()) { $fieldsAjax[] = $f; }
+    $stmtF->close();
+
+    $validColsAjax = $validCols; // from earlier query
+    $dynCount = 0; foreach ($fieldsAjax as $m) { if (in_array($m['field_name'], $validColsAjax, true)) $dynCount++; }
+    $fixedCount = 5; $hasAction = true; $totalColsInline = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
+
+    $statusColors = [ 'To Do' => 'bg-red-100 text-red-800', 'In Progress' => 'bg-yellow-100 text-yellow-800', 'Done' => 'bg-green-100 text-green-800' ];
+    $colorClass = $statusColors[$status] ?? 'bg-white text-gray-900';
+
+    // Build markup identical to list rows
+    ob_start();
+    ?>
+    <form method="POST"
+          action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$row_id ?>"
+          enctype="multipart/form-data"
+          class="universal-row border-b border-gray-200 hover:bg-gray-50 text-sm"
+          style="--cols: <?= (int)$totalColsInline ?>;"
+          data-status="<?= htmlspecialchars($status, ENT_QUOTES) ?>">
+
+      <input type="hidden" name="id" value="<?= (int)$row_id ?>">
+      <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
+      <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($attachment_summary, ENT_QUOTES) ?>">
+
+      <div class="p-2 text-gray-600" data-col="name">
+        <input type="text" name="name" value="<?= htmlspecialchars($name, ENT_QUOTES) ?>"
+              class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="p-2 text-gray-600" data-col="notes">
+        <input type="text" name="notes" value="<?= htmlspecialchars($notes, ENT_QUOTES) ?>"
+              class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="p-2 text-gray-600" data-col="assignee">
+        <input type="text" name="assignee" value="<?= htmlspecialchars($assignee, ENT_QUOTES) ?>"
+              class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="p-2 text-xs font-semibold" data-col="status" data-rows-for="ut-<?= (int)$table_id ?>">
+        <select name="status" style="appearance:none;" class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
+          <option value="To Do"       <?= $status === 'To Do' ? 'selected' : '' ?>>To Do</option>
+          <option value="In Progress" <?= $status === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+          <option value="Done"        <?= $status === 'Done' ? 'selected' : '' ?>>Done</option>
+        </select>
+      </div>
+
+      <div class="p-2 text-gray-600" data-col="attachment">
+        <?php if (!empty($attachment_summary)): ?>
+          <?php $src = $UPLOAD_URL . '/' . rawurlencode($attachment_summary); ?>
+          <img src="<?= htmlspecialchars($src, ENT_QUOTES) ?>" class="thumb" alt="Attachment">
+        <?php else: ?>
+          <span class="italic text-gray-400 ml-[5px]">📎 None</span>
+        <?php endif; ?>
+      </div>
+
+      <div class="p-2 text-gray-600" data-col="dyn">
+        <?php
+          // Fetch dynamic values for this new row (could be empty on create)
+          $baseRowAjax = [];
+          $stmtX = $conn->prepare("SELECT * FROM universal_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
+          $stmtX->bind_param('iii', $table_id, $uid, $row_id);
+          $stmtX->execute();
+          $baseRowAjax = $stmtX->get_result()->fetch_assoc() ?: [];
+          $stmtX->close();
+          foreach ($fieldsAjax as $colMeta) {
+            $colName = $colMeta['field_name'];
+            $val = $baseRowAjax[$colName] ?? '';
+            ?>
+            <input type="text" name="dyn[<?= htmlspecialchars($colName, ENT_QUOTES) ?>]"
+                   value="<?= htmlspecialchars($val, ENT_QUOTES) ?>"
+                   class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+            <?php
+          }
+        ?>
+      </div>
+
+      <div class="p-2">
+        <a href="<?= $CATEGORY_URL ?>/delete.php?id=<?= (int)$row_id ?>&table_id=<?= (int)$table_id ?>" class="icon-btn" aria-label="Delete row">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m2 4H7l1 12h8l1-12z"/>
+          </svg>
+        </a>
+      </div>
+    </form>
+    <?php
+    $row_html = ob_get_clean();
+
+    json_out([
+      'ok'        => true,
+      'action'    => $actionPerformed,
+      'row_id'    => $row_id,
+      'table_id'  => $table_id,
+      'row_html'  => $row_html
+    ]);
+  }
+
+  // Non-AJAX fallback
+  header("Location: /ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}");
   exit;
 }
 
@@ -729,7 +847,7 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
 
-    <form action="<?= $CATEGORY_URL ?>/insert_dresses.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="<?= $CATEGORY_URL ?>/insert_dresses.php" method="POST" enctype="multipart/form-data" class="new-record-form space-y-6">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <h1 class="w-full px-4 py-2 text-center text-2xl"><?= htmlspecialchars($tableTitle, ENT_QUOTES) ?></h1>
 

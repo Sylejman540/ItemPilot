@@ -786,7 +786,7 @@ $deptClass = $deptColors[$r['department'] ?? ''] ?? 'bg-white text-gray-900';
       $fstmt->close();
     ?>
 
-    <form action="<?= $CATEGORY_URL ?>/insert_groceries.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="<?= $CATEGORY_URL ?>/insert_groceries.php" method="POST" enctype="multipart/form-data" class="new-record-form space-y-6">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <h1 class="w-full px-4 py-2 text-center text-2xl"><?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?></h1>
 

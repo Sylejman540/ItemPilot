@@ -5,8 +5,24 @@ session_start();
 $uid = (int)($_SESSION['user_id'] ?? 0);
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
-/* ---------- Config ---------- */
-$CATEGORY_URL = '/ItemPilot/categories/Football%20Table'; // encoded space
+/* ---------- AJAX helpers ---------- */
+function is_ajax(): bool {
+  return (
+    isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+  ) || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
+}
+function json_out(array $payload, int $code = 200) {
+  while (ob_get_level()) { ob_end_clean(); }
+  header_remove('Location');
+  http_response_code($code);
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode($payload);
+  exit;
+}
+
+/* ---------- Config (DRESSES) ---------- */
+$CATEGORY_URL = '/ItemPilot/categories/Football%20Table';
 $UPLOAD_DIR   = __DIR__ . '/uploads/';
 $UPLOAD_URL   = $CATEGORY_URL . '/uploads';
 
@@ -29,7 +45,7 @@ if ($action === 'create_blank') {
   $table_id = (int)($_SESSION['current_table_id'] ?? 0);
 
   if ($table_id <= 0) {
-    $q = $conn->prepare("SELECT table_id FROM football_table WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+    $q = $conn->prepare("SELECT table_id FROM football_table WHERE user_id = ? ORDER BY table_id ASC LIMIT 1");
     $q->bind_param('i', $uid);
     $q->execute(); $q->bind_result($latestId); $q->fetch(); $q->close();
     $table_id = (int)$latestId;
@@ -44,11 +60,11 @@ if ($action === 'create_blank') {
   $_SESSION['current_table_id'] = $table_id;
 }
 
-/* ---------- Create/Update row (with dynamic fields) ---------- */
+/* ---------- Create/Update (football + base) ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $id            = $_POST['id'] ?? '';
-  $rec_id        = is_numeric($id) ? (int)$id : 0;
-  $table_id      = (int)($_POST['table_id'] ?? $table_id);
+  $id       = $_POST['id'] ?? '';
+  $rec_id   = is_numeric($id) ? (int)$id : 0;
+  $table_id = (int)($_POST['table_id'] ?? $table_id);
 
   $full_name     = trim($_POST['full_name'] ?? '');
   $position      = trim($_POST['position'] ?? '');
@@ -57,24 +73,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $notes         = trim($_POST['notes'] ?? '');
   $photo         = $_POST['existing_photo'] ?? '';
 
-  // handle photo upload
-  if (!empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+  // Handle upload
+  if (!empty($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Upload failed (PHP error '.$_FILES['photo']['error'].')'], 400); }
+      header("Location: /ItemPilot/home.php?autoload=1&type=fotoball&table_id={$table_id}", true, 303);
+      exit;
+    }
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
-      die("Could not create uploads directory.");
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Could not create uploads directory.'], 500); }
+      header("Location: /ItemPilot/home.php?autoload=1&type=football&table_id={$table_id}", true, 303);
+      exit;
     }
-    $tmp  = $_FILES['photo']['tmp_name'];
-    $orig = basename($_FILES['photo']['name']);
-    $dest = $UPLOAD_DIR . $orig;
-    if (!move_uploaded_file($tmp, $dest)) {
-      die("Failed to save uploaded file.");
-    }
-    $photo = $orig;
+    $tmp   = $_FILES['photo']['tmp_name'];
+    $orig  = basename($_FILES['photo']['name']);
+    $ext   = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    $safe  = preg_replace('/[^a-zA-Z0-9._-]/', '_', pathinfo($orig, PATHINFO_FILENAME));
+    $fname = $safe . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . ($ext ? ".{$ext}" : '');
+    $dest  = $UPLOAD_DIR . $fname;
+    move_uploaded_file($tmp, $dest);
+    $photo = $fname;
   }
 
-  /* ---- collect dynamic inputs ----
-     1) From "dyn[colname]" (tbody edit rows)
-     2) From "extra_field_{id}" (create form using field ids)
-  */
+  // Dynamic fields
   $dynIn = $_POST['dyn'] ?? [];
   $mapStmt = $conn->prepare("SELECT id, field_name FROM football_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
   $mapStmt->bind_param('ii', $uid, $table_id);
@@ -89,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
   $mapStmt->close();
 
-  // whitelist columns in football_base
+  // Whitelist dynamic columns
   $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'football_base'");
   $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
   $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
@@ -97,23 +118,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $toSave = [];
   foreach ($dynIn as $k => $v) {
-    if (in_array($k, $editable, true)) {
-      $toSave[$k] = ($v === '') ? null : $v;
-    }
+    if (in_array($k, $editable, true)) $toSave[$k] = ($v === '') ? null : $v;
   }
 
+  $actionPerformed = ($rec_id <= 0) ? 'create' : 'update';
+
   if ($rec_id <= 0) {
-    // CREATE football row
-    $stmt = $conn->prepare("
-      INSERT INTO football (photo, full_name, position, home_address, email_address, notes, table_id, user_id)
-      VALUES (?,?,?,?,?,?,?,?)
-    ");
-    $stmt->bind_param('ssssssii', $photo, $full_name, $position, $home_address, $email_address, $notes, $table_id, $uid);
+    // INSERT into football
+    $stmt = $conn->prepare("INSERT INTO football (full_name, position, home_address, email_address, notes, photo, table_id, user_id) VALUES (?,?,?,?,?,?,?,?)");
+    $stmt->bind_param('ssssssii',  $full_name, $position, $home_address, $email_address, $notes, $photo, $table_id, $uid);
     $stmt->execute();
     $row_id = (int)$stmt->insert_id;
     $stmt->close();
 
-    // CREATE football_base row (with dynamic values if any)
+    // football_base
     if ($toSave) {
       $cols  = array_keys($toSave);
       $place = array_fill(0, count($cols), '?');
@@ -127,7 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt->execute();
       $stmt->close();
     } else {
-      // ensure base row exists for later updates
       $insb = $conn->prepare("INSERT INTO football_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
       $insb->bind_param('iii', $table_id, $uid, $row_id);
       $insb->execute();
@@ -135,23 +152,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
   } else {
-    // UPDATE football row
-    $stmt = $conn->prepare("
-      UPDATE football
-         SET photo=?, full_name=?, position=?, home_address=?, email_address=?, notes=?
-       WHERE id=? AND table_id=? AND user_id=?
-    ");
-    $stmt->bind_param('ssssssiii', $photo, $full_name, $position, $home_address, $email_address, $notes, $rec_id, $table_id, $uid);
+    // UPDATE football
+    $stmt = $conn->prepare("UPDATE football SET full_name=?, position=?, home_address=?, email_address=?, notes=?, photo=? WHERE id=? AND table_id=? AND user_id=?");
+    $stmt->bind_param('ssssssiii', $full_name, $position, $home_address, $email_address, $notes, $photo, $rec_id, $table_id, $uid);
     $stmt->execute();
     $stmt->close();
 
-    // ensure football_base row exists
+    // ensure football_base exists
     $chk = $conn->prepare("SELECT id FROM football_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
     $chk->bind_param('iii', $table_id, $uid, $rec_id);
     $chk->execute();
     $base = $chk->get_result()->fetch_assoc();
     $chk->close();
-
     if (!$base) {
       $insb = $conn->prepare("INSERT INTO football_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
       $insb->bind_param('iii', $table_id, $uid, $rec_id);
@@ -168,16 +180,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($val === null) { $setParts[] = "`$col`=NULL"; }
         else { $setParts[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
       }
-      if (in_array('updated_at', $validCols, true)) {
-        $setParts[] = "`updated_at`=NOW()";
-      }
+      if (in_array('updated_at', $validCols, true)) { $setParts[] = "`updated_at`=NOW()"; }
       if ($setParts) {
         $sql = "UPDATE football_base SET ".implode(', ', $setParts)." WHERE table_id=? AND user_id=? AND row_id=?";
         $types .= 'iii';
         $vals[]  = $table_id;
         $vals[]  = $uid;
         $vals[]  = $rec_id;
-
         $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
         $stmt = $conn->prepare($sql);
         call_user_func_array([$stmt, 'bind_param'], array_merge([$types], $byRef($vals)));
@@ -185,8 +194,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
       }
     }
+    $row_id = $rec_id;
   }
 
+  ob_start();
+  $row_html = ob_get_clean();
+
+
+  /* ---------- AJAX response ---------- */
+  if (is_ajax()) {
+    json_out([
+      'ok'        => true,
+      'action'    => $actionPerformed,
+      'row_id'    => $row_id,
+      'table_id'  => $table_id,
+      'row_html'  => $row_html  // <-- send HTML to JS
+    ]);
+  }
+
+  // Non-AJAX
   header("Location: /ItemPilot/home.php?autoload=1&type=football&table_id={$table_id}");
   exit;
 }
@@ -692,7 +718,7 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5"  cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
 
-    <form action="<?= $CATEGORY_URL ?>/insert_football.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="<?= $CATEGORY_URL ?>/insert_football.php" method="POST" enctype="multipart/form-data" class="new-record-form space-y-6">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <h1 class="w-full px-4 py-2 text-center text-2xl"><?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?></h1>
 

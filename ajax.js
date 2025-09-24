@@ -322,7 +322,6 @@ document.body.addEventListener('click', e => {
 });
 
 // Global row selector (used in multiple modules)
-window.ROW_SEL = '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
 
 
 (() => {
@@ -337,6 +336,8 @@ window.ROW_SEL = '.applicant-row, .football-row, .sales-row, .universal-row, .gr
   // Only the inline-row forms (used for autosave); keep in sync with AJAX_FORMS
   const ROW_FORMS =
     'form.applicant-row, form.football-row, form.sales-row, form.universal-row, form.groceries-row';
+
+    window.ROW_SEL = '.applicant-row, .football-row, .sales-row, .universal-row, .groceries-row';
   // ---------- Helpers ----------
   const norm = (s) => (s || '').toString().trim().toLowerCase();
 
@@ -404,6 +405,7 @@ window.ROW_SEL = '.applicant-row, .football-row, .sales-row, .universal-row, .gr
     // CREATE: prepend (assume DESC order)
     const wrap = findRowsWrap(tableId);
     if (!wrap) return;
+    if (!wrap.querySelector(ROW_SEL)) {}
     hideEmptyState(wrap);
     wrap.insertAdjacentHTML('afterbegin', html);
     const inserted = wrap.firstElementChild;
@@ -1083,7 +1085,77 @@ $(document).off('ajaxSuccess.renameHook')
 
   function closeAddFieldModal() {
     document.getElementById('addColumnPop')?.classList.add('hidden');
+    document.getElementById('addDeletePop')?.classList.add('hidden');
     document.getElementById('actionMenuList')?.classList.add('hidden');
+  }
+
+  // ---------- inject helpers ----------
+  function injectIntoThead(tableId, theadHTML) {
+    const theadForm = document.querySelector(`form.thead-form[data-table-id="${tableId}"]`);
+    if (!theadForm) return;
+    const grid = theadForm.querySelector('.app-grid');
+    if (!grid) return;
+
+    const actionCell = grid.lastElementChild;
+    if (actionCell && actionCell.childElementCount === 0) {
+      actionCell.insertAdjacentHTML('beforebegin', theadHTML);
+    } else {
+      grid.insertAdjacentHTML('beforeend', theadHTML);
+    }
+  }
+
+  function injectIntoRows(cellHTML) {
+    document.querySelectorAll(ROW_SEL).forEach(row => {
+      const dynCell = row.querySelector('[data-col="dyn"]');
+      if (!dynCell) return;
+
+      const trashCell = row.querySelector('.delete-field-btn')?.closest('td, div');
+      if (trashCell && trashCell.parentElement === row) {
+        trashCell.insertAdjacentHTML('beforebegin', cellHTML);
+      } else {
+        dynCell.insertAdjacentHTML('beforeend', cellHTML);
+      }
+    });
+  }
+
+  function injectIntoCreateForm(fid, fname, createHTML) {
+    const html = createHTML || `
+      <div class="dynamic-field" data-field-id="${fid}">
+        <label class="block text-sm font-medium text-gray-700 mb-1">${fname}</label>
+        <input type="text" name="extra_field_${fid}" placeholder="${fname}"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+      </div>
+    `;
+
+    document.querySelectorAll('#addForm form.new-record-form').forEach(f => {
+      const submit = f.querySelector('button[type="submit"], [type="submit"]');
+      if (submit && submit.parentElement) {
+        submit.parentElement.insertAdjacentHTML('beforebegin', html);
+      } else {
+        f.insertAdjacentHTML('beforeend', html);
+      }
+    });
+  }
+
+  function injectIntoDeleteModal(tableId, fid, fname) {
+    const deleteList = document.querySelector('#addDeletePop .divide-y');
+    if (!deleteList) return;
+    const rowHTML = `
+      <div class="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50 transition" data-field-row>
+        <input type="text" readonly value="${fname}" 
+               class="w-full bg-transparent border-none px-1 py-1 text-sm text-gray-900 pointer-events-none focus:outline-none" />
+        <button type="button"
+                class="delete-field-btn inline-flex items-center justify-center rounded-md p-1.5 text-red-600 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                data-id="${fid}"
+                data-table-id="${tableId}"
+                data-delete-url="/ItemPilot/categories/Universal%20Table/delete_fields.php?id=${fid}&table_id=${tableId}">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
+          </svg>
+        </button>
+      </div>
+    `;
+    deleteList.insertAdjacentHTML('beforeend', rowHTML);
   }
 
   // ---------- ADD FIELD ----------
@@ -1106,84 +1178,16 @@ $(document).off('ajaxSuccess.renameHook')
       if (!data.ok) throw new Error(data.error || 'Add field failed');
 
       // 1) THEAD
-      const theadForm = document.querySelector(`form.thead-form[data-table-id="${data.table_id}"]`);
-      if (theadForm) {
-        const grid = theadForm.querySelector('.app-grid');
-        if (grid) {
-          const actionCell = grid.lastElementChild;
-          if (actionCell && actionCell.childElementCount === 0) {
-            actionCell.insertAdjacentHTML('beforebegin', data.thead_html);
-          } else {
-            grid.insertAdjacentHTML('beforeend', data.thead_html);
-          }
-        }
-      }
+      injectIntoThead(data.table_id, data.thead_html);
 
       // 2) TBODY
-      document.querySelectorAll(ROW_SEL).forEach(row => {
-        const dynCell = row.querySelector('[data-col="dyn"]');
-        if (!dynCell) return;
-
-        const trashCell = row.querySelector('.delete-field-btn')?.closest('td, div');
-        if (trashCell && trashCell.parentElement === row) {
-          // Insert before the trash cell in the row
-          trashCell.insertAdjacentHTML('beforebegin', data.cell_html_template);
-        } else {
-          // Fallback: append inside dynCell
-          dynCell.insertAdjacentHTML('beforeend', data.cell_html_template);
-        }
-      });
-
+      injectIntoRows(data.cell_html_template);
 
       // 3) CREATE FORM
-      (function injectIntoCreateForm(){
-        const createForms = document.querySelectorAll('#addForm form.new-record-form');
-        let createFieldHTML = data.create_input_html;
-        if (!createFieldHTML) {
-          const fname = (data.field_name || '').trim();
-          const fid   = data.field_id;
-          if (!fname || !fid) return;
-          createFieldHTML = `
-            <div class="dynamic-field" data-field-id="${fid}">
-              <label class="block text-sm font-medium text-gray-700 mb-1">${fname}</label>
-              <input type="text" name="extra_field_${fid}" placeholder="${fname}"
-                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-            </div>
-          `;
-        }
-        createForms.forEach(f => {
-          const submit = f.querySelector('button[type="submit"], [type="submit"]');
-          if (submit && submit.parentElement) {
-            submit.parentElement.insertAdjacentHTML('beforebegin', createFieldHTML);
-          } else {
-            f.insertAdjacentHTML('beforeend', createFieldHTML);
-          }
-        });
-      })();
+      injectIntoCreateForm(data.field_id, data.field_name, data.create_input_html);
 
       // 4) DELETE MODAL
-      (function injectIntoDeleteModal(){
-        const deleteList = document.querySelector('#addDeletePop .divide-y');
-        if (!deleteList) return;
-        const fid = data.field_id;
-        const fname = (data.field_name || '').trim();
-        const rowHTML = `
-          <div class="flex items-center justify-between gap-2 px-3 py-2 hover:bg-gray-50 transition" data-field-row>
-            <input type="text" readonly value="${fname}" 
-                   class="w-full bg-transparent border-none px-1 py-1 text-sm text-gray-900 pointer-events-none focus:outline-none" />
-            <button type="button"
-                    class="delete-field-btn inline-flex items-center justify-center rounded-md p-1.5 text-red-600 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                    data-id="${fid}"
-                    data-table-id="${data.table_id}"
-                    data-delete-url="/ItemPilot/categories/Universal%20Table/delete_fields.php?id=${fid}&table_id=${data.table_id}">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
-              </svg>
-            </button>
-          </div>
-        `;
-        deleteList.insertAdjacentHTML('beforeend', rowHTML);
-      })();
+      injectIntoDeleteModal(data.table_id, data.field_id, data.field_name);
 
       // 5) Bump cols
       bumpCols(ROW_SEL);
@@ -1209,9 +1213,7 @@ $(document).off('ajaxSuccess.renameHook')
   }
   document.querySelectorAll('[data-close-add]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.getElementById('addColumnPop')?.classList.add('hidden');
-      document.getElementById('addDeletePop')?.classList.add('hidden');
-      document.getElementById('actionMenuList')?.classList.add('hidden');
+      closeAddFieldModal();
     });
   });
 })();
@@ -1224,16 +1226,56 @@ if (!window.CSS || !CSS.escape) {
   };
 }
 
+
 // ---------- DELETE FIELD ----------
 (() => {
   if (window.__IP_DELETE_FIELDS_BOUND__) return;
   window.__IP_DELETE_FIELDS_BOUND__ = true;
 
+  // --- Helper: remove field inputs/cells from all rows ---
+  function removeFieldFromRows(tableId, fieldId, fieldName) {
+    let removed = false;
+
+    document.querySelectorAll(`${ROW_SEL} [data-col="dyn"]`).forEach(dynCell => {
+      const parentRow = dynCell.closest(ROW_SEL);
+      const rowTableId = parentRow?.dataset.tableId;
+      if (String(rowTableId) !== String(tableId)) return; // skip other tables
+
+      // Locate input
+      let inp = fieldId
+        ? dynCell.querySelector(`input[name="extra_field_${fieldId}"]`)
+        : dynCell.querySelector(`input[name="dyn[${CSS.escape(fieldName)}]"]`);
+
+      if (!inp && fieldName) {
+        inp = [...dynCell.querySelectorAll('input[name^="dyn["], input[name^="extra_field_"]')].find(el =>
+          el.name.replace(/^dyn\[|\]$/g, '') === fieldName
+        );
+      }
+
+      if (inp) {
+        inp.remove();
+        removed = true;
+      }
+
+      // Remove wrapper if empty
+      const cell = inp?.closest('[data-field-id], td, div, span') ||
+                   dynCell.querySelector(`[data-field-id="${fieldId}"]`) ||
+                   dynCell.querySelector(`[data-field-name="${CSS.escape(fieldName)}"]`);
+      if (cell && cell.children.length === 0) {
+        cell.remove();
+        removed = true;
+      }
+    });
+
+    return removed;
+  }
+
   function removeFieldEverywhere(tableId, fieldId, fieldName) {
     if (!tableId) return;
+
     let removedSomething = false;
 
-    // 1) THEAD – remove the whole header cell, not just input
+    // 1) THEAD
     const theadForm = document.querySelector(`form.thead-form[data-table-id="${tableId}"]`);
     if (theadForm) {
       const headerCell = theadForm.querySelector(`[data-field-id="${fieldId}"]`)
@@ -1245,37 +1287,12 @@ if (!window.CSS || !CSS.escape) {
       }
     }
 
-    // 2) TBODY – remove the entire cell in each row
-// 2) TBODY – remove the input and/or the full cell
-document.querySelectorAll(`${ROW_SEL}[data-table-id="${tableId}"] [data-col="dyn"]`).forEach(dynCell => {
-  // Try input first
-  let inp = fieldId
-    ? dynCell.querySelector(`input[name="extra_field_${fieldId}"]`)
-    : dynCell.querySelector(`input[name="dyn[${CSS.escape(fieldName)}]"]`);
+    // 2) TBODY
+    if (removeFieldFromRows(tableId, fieldId, fieldName)) {
+      removedSomething = true;
+    }
 
-  if (!inp && fieldName) {
-    inp = [...dynCell.querySelectorAll('input[name^="dyn["], input[name^="extra_field_"]')].find(el =>
-      el.name.replace(/^dyn\[|\]$/g, '') === fieldName
-    );
-  }
-
-  if (inp) {
-    inp.remove();            // remove the actual input
-    removedSomething = true;
-  }
-
-  // If wrapper cell still exists and is now empty, remove it too
-  const cell = inp?.closest('[data-field-id], td, div, span') ||
-               dynCell.querySelector(`[data-field-id="${fieldId}"]`) ||
-               dynCell.querySelector(`[data-field-name="${CSS.escape(fieldName)}"]`);
-  if (cell && cell.children.length === 0) {
-    cell.remove();
-    removedSomething = true;
-  }
-});
-
-
-    // 3) CREATE FORM – remove the wrapper
+    // 3) CREATE FORM
     document.querySelectorAll('#addForm form.new-record-form').forEach(form => {
       const wrapper = form.querySelector(`.dynamic-field[data-field-id="${fieldId}"]`)
                    || form.querySelector(`.dynamic-field[data-field-name="${CSS.escape(fieldName)}"]`)
@@ -1286,7 +1303,7 @@ document.querySelectorAll(`${ROW_SEL}[data-table-id="${tableId}"] [data-col="dyn
       }
     });
 
-    // 4) DELETE MODAL – remove the whole row
+    // 4) DELETE MODAL
     document.querySelectorAll('#addDeletePop [data-field-row]').forEach(row => {
       const btn = row.querySelector('.delete-field-btn');
       const input = row.querySelector('input[readonly]');
@@ -1296,7 +1313,7 @@ document.querySelectorAll(`${ROW_SEL}[data-table-id="${tableId}"] [data-col="dyn
       }
     });
 
-    // 5) Adjust grid cols
+    // 5) Adjust grid cols if needed
     if (removedSomething) {
       document.querySelectorAll(ROW_SEL).forEach(el => {
         const cur = parseInt(getComputedStyle(el).getPropertyValue('--cols') || '0', 10) || 0;
@@ -1381,3 +1398,4 @@ document.querySelectorAll(`${ROW_SEL}[data-table-id="${tableId}"] [data-col="dyn
     }
   });
 })();
+
