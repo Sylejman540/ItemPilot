@@ -156,7 +156,6 @@ if ($uid <= 0) {
   colors: ['#3b82f6','#10b981','#f59e0b','#ef4444'],
   legend: { position: 'bottom' }
   });
-
 })();
 </script>
 <script src="ajax.js"></script>
