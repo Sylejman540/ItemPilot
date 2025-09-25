@@ -369,6 +369,48 @@ document.body.addEventListener('click', e => {
     }
   }
 
+  function departmentClasses(dep) {
+  const t = norm(dep);
+  switch (t) {
+    case 'produce':
+      return 'bg-green-100 text-green-800';
+    case 'bakery':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'dairy':
+      return 'bg-blue-100 text-blue-800';
+    case 'frozen':
+      return 'bg-cyan-100 text-cyan-800';
+    case 'meat/seafood':
+    case 'meat-seafood':
+      return 'bg-rose-100 text-rose-800';
+    case 'dry goods':
+    case 'dry-goods':
+      return 'bg-amber-100 text-amber-800';
+    case 'household':
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-white text-gray-900';
+  }
+}
+
+function applyDepartmentColor(selectEl, dep) {
+  if (!selectEl) return;
+  // remove any existing dept classes
+  selectEl.classList.remove(
+    'bg-green-100','text-green-800',
+    'bg-yellow-100','text-yellow-800',
+    'bg-blue-100','text-blue-800',
+    'bg-cyan-100','text-cyan-800',
+    'bg-rose-100','text-rose-800',
+    'bg-amber-100','text-amber-800',
+    'bg-gray-100','text-gray-800',
+    'bg-white','text-gray-900'
+  );
+  // add new classes
+  selectEl.classList.add(...departmentClasses(dep).split(' '));
+}
+
+
   function findRowsWrap(tableId) {
     let wrap = document.querySelector(`#rows-${tableId}`);
     if (wrap) return wrap;
@@ -407,8 +449,8 @@ document.body.addEventListener('click', e => {
     if (!wrap) return;
     if (!wrap.querySelector(ROW_SEL)) {}
     hideEmptyState(wrap);
-    wrap.insertAdjacentHTML('afterbegin', html);
-    const inserted = wrap.firstElementChild;
+    wrap.insertAdjacentHTML('beforeend', html);
+    const inserted = wrap.lastElementChild;
     const sel = inserted?.querySelector('select[name="status"]');
     if (sel) applyStatusColor(sel, sel.value);
   }

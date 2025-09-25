@@ -440,11 +440,7 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
 
 
   <!-- Add Field modal -->
-  <div id="addColumnPop"
-     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-            w-[min(92vw,28rem)] rounded-2xl bg-white/95 backdrop-blur
-            shadow-2xl ring-1 ring-black/5">
-  <!-- Header -->
+   <div id="addColumnPop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,28rem)] rounded-2xl bg-white/95 backdrop-blur shadow-2xl ring-1 ring-black/5">
   <div class="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
     <div class="flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
@@ -453,9 +449,7 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
         </svg>
         <h3 class="text-sm font-semibold text-gray-900">Add new field</h3>
       </div>
-      <button data-close-add type="button" id="closeAddColumnPop"
-              class="cursor-pointer p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Close">
+      <button data-close-add type="button" id="closeAddColumnPop" class="cursor-pointer p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -487,17 +481,11 @@ $totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
   </div>
 
   <!-- Delete Fields modal -->
-  <div id="addDeletePop"
-     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-            w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur
-            shadow-2xl ring-1 ring-black/5">
-  <!-- Header -->
+  <div id="addDeletePop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur shadow-2xl ring-1 ring-black/5">
   <div class="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
     <div class="flex items-center justify-between gap-3">
       <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
-      <button data-close-add type="button" id="closeAddColumnPop"
-              class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Close">
+      <button data-close-add type="button" id="closeDeleteFieldsPop" class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>

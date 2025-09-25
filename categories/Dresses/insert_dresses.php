@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   } else {
     // UPDATE dresses
-    $stmt = $conn->prepare("UPDATE dresses SET linked_initiatives=?, notes=?, executve_sponsor=?, status=?, complete=?, priority=?, owner=?, attachment=? WHERE id=? AND table_id=? AND user_id=?");
+    $stmt = $conn->prepare("UPDATE dresses SET linked_initiatives=?, notes=?, executive_sponsor=?, status=?, complete=?, priority=?, owner=?, attachment=? WHERE id=? AND table_id=? AND user_id=?");
     $stmt->bind_param('ssssssssiii', $linked_initiatives, $notes, $executive_sponsor, $status, $complete, $priority, $owner, $attachment, $rec_id, $table_id, $uid);
     $stmt->execute();
     $stmt->close();
@@ -220,10 +220,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Build markup identical to list rows
     ob_start();
     ?>
-    <form method="POST"
-          action="/ItemPilot/categories/Universal%20Table/edit_tbody.php?id=<?= (int)$row_id ?>"
+  <form method="POST"
+          action="/ItemPilot/categories/Dresses/edit_tbody.php?id=<?= (int)$row_id ?>"
           enctype="multipart/form-data"
-          class="universal-row border-b border-gray-200 hover:bg-gray-50 text-sm"
+          class="sales-row border-b border-gray-200 hover:bg-gray-50 text-sm"
           style="--cols: <?= (int)$totalColsInline ?>;"
           data-status="<?= htmlspecialchars($status, ENT_QUOTES) ?>">
 
@@ -231,33 +231,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <input type="hidden" name="existing_attachment" value="<?= htmlspecialchars($attachment_summary, ENT_QUOTES) ?>">
 
-      <div class="p-2 text-gray-600" data-col="name">
-        <input type="text" name="name" value="<?= htmlspecialchars($name, ENT_QUOTES) ?>"
-              class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+<div class="p-2 text-gray-600" data-col="linked_initiatives">
+        <input type="text" name="linked_initiatives" value="<?= htmlspecialchars($r['linked_initiatives'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
       <div class="p-2 text-gray-600" data-col="notes">
-        <input type="text" name="notes" value="<?= htmlspecialchars($notes, ENT_QUOTES) ?>"
-              class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+        <input type="text" name="notes" value="<?= htmlspecialchars($r['notes'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
-      <div class="p-2 text-gray-600" data-col="assignee">
-        <input type="text" name="assignee" value="<?= htmlspecialchars($assignee, ENT_QUOTES) ?>"
-              class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      <div class="p-2 text-gray-600" data-col="executive_sponsor">
+        <input type="text" name="executive_sponsor" value="<?= htmlspecialchars($r['executive_sponsor'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
       </div>
 
-      <div class="p-2 text-xs font-semibold" data-col="status" data-rows-for="ut-<?= (int)$table_id ?>">
-        <select name="status" style="appearance:none;" class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
-          <option value="To Do"       <?= $status === 'To Do' ? 'selected' : '' ?>>To Do</option>
-          <option value="In Progress" <?= $status === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-          <option value="Done"        <?= $status === 'Done' ? 'selected' : '' ?>>Done</option>
+      <?php
+      $statusColors = [
+        'To Do'       => 'bg-red-100 text-red-800',
+        'In Progress' => 'bg-yellow-100 text-yellow-800',
+        'Done'        => 'bg-green-100 text-green-800',
+      ];
+      $colorClass = $statusColors[$r['status'] ?? ''] ?? 'bg-white text-gray-900';
+      ?>
+      <div class="p-2 text-gray-600 text-xs font-semibold" data-col="status">
+        <select data-autosave="1" name="status" style="appearance:none;"
+                class="w-full px-2 py-1 rounded-xl <?= $colorClass ?>">
+          <option value="To Do"       <?= ($r['status'] ?? '') === 'To Do' ? 'selected' : '' ?>>To Do</option>
+          <option value="In Progress" <?= ($r['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+          <option value="Done"        <?= ($r['status'] ?? '') === 'Done' ? 'selected' : '' ?>>Done</option>
         </select>
       </div>
 
-      <div class="p-2 text-gray-600" data-col="attachment">
-        <?php if (!empty($attachment_summary)): ?>
-          <?php $src = $UPLOAD_URL . '/' . rawurlencode($attachment_summary); ?>
-          <img src="<?= htmlspecialchars($src, ENT_QUOTES) ?>" class="thumb" alt="Attachment">
+
+      <div class="p-2 text-gray-600" data-col="complete">
+        <input type="text" name="complete" value="<?= htmlspecialchars($r['complete'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="p-2 text-gray-600" data-col="priority">
+        <input type="text" name="priority" value="<?= htmlspecialchars($r['priority'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="p-2 text-gray-600" data-col="owner">
+        <input type="text" name="owner" value="<?= htmlspecialchars($r['owner'] ?? '', ENT_QUOTES) ?>"
+               class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="flex p-2 gap-1 text-gray-600 whitespace-normal break-words" data-col="deadline">
+        <data class="py-2">&euro;</data>
+        <input type="text" name="deadline" value="<?= htmlspecialchars($r['deadline'] ?? '', ENT_QUOTES) ?>" readonly
+               class="w-full bg-transparent border-none py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
+      </div>
+
+      <div class="p-2 flex items-center gap-2" data-col="attachment">
+        <?php if (!empty($r['attachment'])): ?>
+          <img src="<?= $UPLOAD_URL . '/' . rawurlencode($r['attachment']) ?>" class="thumb"
+               alt="<?= htmlspecialchars($r['linked_initiatives'] ?? 'Attachment', ENT_QUOTES) ?>">
         <?php else: ?>
           <span class="italic text-gray-400 ml-[5px]">📎 None</span>
         <?php endif; ?>
@@ -267,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php
           // Fetch dynamic values for this new row (could be empty on create)
           $baseRowAjax = [];
-          $stmtX = $conn->prepare("SELECT * FROM universal_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
+          $stmtX = $conn->prepare("SELECT * FROM dresses_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
           $stmtX->bind_param('iii', $table_id, $uid, $row_id);
           $stmtX->execute();
           $baseRowAjax = $stmtX->get_result()->fetch_assoc() ?: [];
@@ -292,20 +323,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </a>
       </div>
     </form>
+
     <?php
     $row_html = ob_get_clean();
+json_out([
+  'ok' => true,
+  'table_id' => $table_id,
+  'table_type' => 'Dresses', // <-- add this in your PHP response
+  'field_id' => $field_id,
+  'field_name' => $field_name,
+  'thead_html' => $theadHTML,
+  'cell_html_template' => $cellHTML,
+  'create_input_html' => $createHTML,
+]);
 
-    json_out([
-      'ok'        => true,
-      'action'    => $actionPerformed,
-      'row_id'    => $row_id,
-      'table_id'  => $table_id,
-      'row_html'  => $row_html
-    ]);
   }
 
   // Non-AJAX fallback
-  header("Location: /ItemPilot/home.php?autoload=1&type=universal&table_id={$table_id}");
+  header("Location: /ItemPilot/home.php?autoload=1&type=dresses&table_id={$table_id}");
   exit;
 }
 

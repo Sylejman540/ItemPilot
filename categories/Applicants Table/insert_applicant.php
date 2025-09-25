@@ -2,73 +2,70 @@
 require_once __DIR__ . '/../../db.php';
 session_start();
 
-$uid = $_SESSION['user_id'] ?? 0;
+$uid = (int)($_SESSION['user_id'] ?? 0);
 if ($uid <= 0) { header("Location: register/login.php"); exit; }
 
+/* ---------- AJAX helpers ---------- */
+function is_ajax(): bool {
+  return (
+    isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+  ) || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
+}
+function json_out(array $payload, int $code = 200) {
+  while (ob_get_level()) { ob_end_clean(); }
+  header_remove('Location');
+  http_response_code($code);
+  header('Content-Type: application/json; charset=utf-8');
+  echo json_encode($payload);
+  exit;
+}
+
+/* ---------- Config (DRESSES) ---------- */
 $CATEGORY_URL = '/ItemPilot/categories/Applicants%20Table';
 $UPLOAD_DIR   = __DIR__ . '/uploads/';
+$UPLOAD_URL   = $CATEGORY_URL . '/uploads';
 
+/* ---------- Resolve table_id ---------- */
 $action   = $_GET['action'] ?? null;
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
-/* ---------------------------
-   Resolve current table_id
-----------------------------*/
 if ($action === 'create_blank') {
-  $stmt = $conn->prepare("INSERT INTO applicants_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
+  $stmt = $conn->prepare("INSERT INTO applicants_table (user_id, created_at) VALUES (?, NOW())");
   $stmt->bind_param('i', $uid);
   $stmt->execute();
-  $table_id = (int)$conn->insert_id;
+  $table_id = (int)$stmt->insert_id;
   $stmt->close();
-  $_SESSION['current_applicants_table_id'] = $table_id;
+  $_SESSION['current_table_id'] = $table_id;
 
 } elseif ($table_id > 0) {
-  $_SESSION['current_applicants_table_id'] = $table_id;
+  $_SESSION['current_table_id'] = $table_id;
 
 } else {
-  $table_id = (int)($_SESSION['current_applicants_table_id'] ?? 0);
+  $table_id = (int)($_SESSION['current_table_id'] ?? 0);
 
   if ($table_id <= 0) {
-    $q = $conn->prepare("SELECT table_id FROM applicants_table WHERE user_id = ? ORDER BY table_id DESC LIMIT 1");
+    $q = $conn->prepare("SELECT table_id FROM applicants_table WHERE user_id = ? ORDER BY table_id ASC LIMIT 1");
     $q->bind_param('i', $uid);
     $q->execute(); $q->bind_result($latestId); $q->fetch(); $q->close();
     $table_id = (int)$latestId;
   }
   if ($table_id <= 0) {
-    $stmt = $conn->prepare("INSERT INTO applicants_table (user_id, created_at) VALUES (?, CURRENT_TIMESTAMP)");
+    $stmt = $conn->prepare("INSERT INTO applicants_table (user_id, created_at) VALUES (?, NOW())");
     $stmt->bind_param('i', $uid);
     $stmt->execute();
-    $table_id = (int)$conn->insert_id;
+    $table_id = (int)$stmt->insert_id;
     $stmt->close();
   }
-
-  $_SESSION['current_applicants_table_id'] = $table_id;
+  $_SESSION['current_table_id'] = $table_id;
 }
 
-/* ---------------------------
-   Helpers for dynamic fields
-----------------------------*/
-// Fetch metadata fields (name list for this table)
-function fetch_applicant_fields(mysqli $conn, int $uid, int $table_id): array {
-  $sql = "SELECT id, field_name FROM applicants_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param('ii', $uid, $table_id);
-  $stmt->execute();
-  $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-  $stmt->close();
-  return $res ?: [];
-}
-// Valid columns in applicants_base
-function base_valid_columns(mysqli $conn): array {
-  $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'applicants_base'");
-  return $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
-}
-
-/* ---------------------------
-   Create / Update row (POST)
-----------------------------*/
+/* ---------- Create/Update (applicants + base) ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $id              = $_POST['id'] ?? '';
+  $id       = $_POST['id'] ?? '';
+  $rec_id   = is_numeric($id) ? (int)$id : 0;
+  $table_id = (int)($_POST['table_id'] ?? $table_id);
+
   $name            = trim($_POST['name'] ?? '');
   $stage           = trim($_POST['stage'] ?? '');
   $applying_for    = trim($_POST['applying_for'] ?? '');
@@ -79,65 +76,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $interview_score = trim($_POST['interview_score'] ?? '');
   $notes           = trim($_POST['notes'] ?? '');
 
-  // Keep existing attachment unless a new one is uploaded
-  $attachment = $_POST['existing_attachment'] ?? '';
-
-  if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+  // Handle upload
+  if (!empty($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Upload failed (PHP error '.$_FILES['photo']['error'].')'], 400); }
+      header("Location: /ItemPilot/home.php?autoload=1&type=applicants&table_id={$table_id}", true, 303);
+      exit;
+    }
     if (!is_dir($UPLOAD_DIR) && !mkdir($UPLOAD_DIR, 0755, true)) {
-      die("Could not create uploads directory.");
+      if (is_ajax()) { json_out(['ok'=>false, 'error'=>'Could not create uploads directory.'], 500); }
+      header("Location: /ItemPilot/home.php?autoload=1&type=applicants&table_id={$table_id}", true, 303);
+      exit;
     }
-    $tmp  = $_FILES['attachment']['tmp_name'];
-    $orig = basename($_FILES['attachment']['name']);
-    $dest = $UPLOAD_DIR . $orig;
-    if (!move_uploaded_file($tmp, $dest)) {
-      die("Failed to save uploaded file.");
-    }
-    $attachment = $orig;
+    $tmp   = $_FILES['photo']['tmp_name'];
+    $orig  = basename($_FILES['photo']['name']);
+    $ext   = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    $safe  = preg_replace('/[^a-zA-Z0-9._-]/', '_', pathinfo($orig, PATHINFO_FILENAME));
+    $fname = $safe . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . ($ext ? ".{$ext}" : '');
+    $dest  = $UPLOAD_DIR . $fname;
+    move_uploaded_file($tmp, $dest);
+    $photo = $fname;
   }
 
-  $interview_date_db = ($interview_date === '') ? null : $interview_date;
-
-  // ---- NEW: collect dynamic field inputs ----
-  $dynIn = [];
-  $metaFields = fetch_applicant_fields($conn, (int)$uid, (int)$table_id);
-  foreach ($metaFields as $m) {
+  // Dynamic fields
+  $dynIn = $_POST['dyn'] ?? [];
+  $mapStmt = $conn->prepare("SELECT id, field_name FROM applicants_fields WHERE user_id = ? AND table_id = ? ORDER BY id ASC");
+  $mapStmt->bind_param('ii', $uid, $table_id);
+  $mapStmt->execute();
+  $mapRes = $mapStmt->get_result();
+  while ($m = $mapRes->fetch_assoc()) {
     $key = 'extra_field_' . (int)$m['id'];
     if (array_key_exists($key, $_POST)) {
       $val = $_POST[$key];
       $dynIn[$m['field_name']] = ($val === '') ? null : $val;
     }
   }
-  // Intersect with real columns
-  $validCols = base_valid_columns($conn);
+  $mapStmt->close();
+
+  // Whitelist dynamic columns
+  $colRes = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'applicants_base'");
+  $validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
   $exclude   = ['id','user_id','table_id','row_id','created_at','updated_at'];
   $editable  = array_values(array_diff($validCols, $exclude));
 
   $toSave = [];
   foreach ($dynIn as $k => $v) {
-    if (in_array($k, $editable, true)) {
-      $toSave[$k] = $v; // null OK
-    }
+    if (in_array($k, $editable, true)) $toSave[$k] = ($v === '') ? null : $v;
   }
 
-  if ($id === '' || $id === null) {
-    // INSERT applicants
-    $stmt = $conn->prepare("
-      INSERT INTO applicants
-        (user_id, table_id, name, stage, applying_for, attachment, email_address, phone,
-         interview_date, interviewer, interview_score, notes, created_at)
-      VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-    ");
-    $stmt->bind_param(
-      'iissssssssss',
-      $uid, $table_id, $name, $stage, $applying_for, $attachment, $email_address, $phone,
-      $interview_date_db, $interviewer, $interview_score, $notes
-    );
+  $actionPerformed = ($rec_id <= 0) ? 'create' : 'update';
+
+  if ($rec_id <= 0) {
+    // INSERT into applicants
+    $stmt = $conn->prepare("INSERT INTO applicants (name, stage, applying_for, email_address, phone, interview_date, interviewer, interviewer_score, notes, table_id, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param('sssssssssii', $name, $stage, $applying_for, $email_address, $phone, $interview_date, $interviewer, $interviewer_score, $notes, $table_id, $uid);
     $stmt->execute();
     $row_id = (int)$stmt->insert_id;
     $stmt->close();
 
-    // INSERT applicants_base
+    // applicants_base
     if ($toSave) {
       $cols  = array_keys($toSave);
       $place = array_fill(0, count($cols), '?');
@@ -151,7 +148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt->execute();
       $stmt->close();
     } else {
-      // create an empty base row so later updates can find it
       $insb = $conn->prepare("INSERT INTO applicants_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
       $insb->bind_param('iii', $table_id, $uid, $row_id);
       $insb->execute();
@@ -160,66 +156,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   } else {
     // UPDATE applicants
-    $stmt = $conn->prepare("
-      UPDATE applicants
-         SET name            = ?,
-             stage           = ?,
-             applying_for    = ?,
-             attachment      = ?,
-             email_address   = ?,
-             phone           = ?,
-             interview_date  = ?,
-             interviewer     = ?,
-             interview_score = ?,
-             notes           = ?
-       WHERE id = ? AND table_id = ? AND user_id = ?
-    ");
-    $stmt->bind_param(
-      'ssssssssssiii',
-      $name, $stage, $applying_for, $attachment, $email_address, $phone,
-      $interview_date_db, $interviewer, $interview_score, $notes,
-      $id, $table_id, $uid
-    );
+    $stmt = $conn->prepare("UPDATE applicants SET name=?, stage=?, applying_for=?, email_address=?, phone=?, interview_date=?, interviewer=?, interviewer_score, notes WHERE id=? AND table_id=? AND user_id=?");
+    $stmt->bind_param('sssssssssiii', $name, $stage, $applying_for, $email_address, $phone, $interview_date, $interviewer, $interviewer_score, $notes, $rec_id, $table_id, $uid);
     $stmt->execute();
     $stmt->close();
 
-    // UPSERT applicants_base
-    // ensure a base row exists
+    // ensure applicants_base exists
     $chk = $conn->prepare("SELECT id FROM applicants_base WHERE table_id=? AND user_id=? AND row_id=? LIMIT 1");
-    $chk->bind_param('iii', $table_id, $uid, $id);
+    $chk->bind_param('iii', $table_id, $uid, $rec_id);
     $chk->execute();
-    $exists = $chk->get_result()->fetch_assoc();
+    $base = $chk->get_result()->fetch_assoc();
     $chk->close();
-    if (!$exists) {
+    if (!$base) {
       $insb = $conn->prepare("INSERT INTO applicants_base (`table_id`,`user_id`,`row_id`) VALUES (?,?,?)");
-      $insb->bind_param('iii', $table_id, $uid, $id);
+      $insb->bind_param('iii', $table_id, $uid, $rec_id);
       $insb->execute();
       $insb->close();
     }
 
+    // UPDATE dynamic columns
     if ($toSave) {
-      $set   = [];
+      $setParts = [];
       $vals  = [];
       $types = '';
       foreach ($toSave as $col => $val) {
-        if ($val === null) { $set[] = "`$col`=NULL"; }
-        else { $set[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
+        if ($val === null) { $setParts[] = "`$col`=NULL"; }
+        else { $setParts[] = "`$col`=?"; $vals[] = $val; $types .= 's'; }
       }
-      if (in_array('updated_at', $validCols, true)) { $set[] = "`updated_at`=NOW()"; }
-      if ($set) {
-        $sql = "UPDATE applicants_base SET " . implode(', ', $set) . " WHERE table_id=? AND user_id=? AND row_id=?";
+      if (in_array('updated_at', $validCols, true)) { $setParts[] = "`updated_at`=NOW()"; }
+      if ($setParts) {
+        $sql = "UPDATE applicants_base SET ".implode(', ', $setParts)." WHERE table_id=? AND user_id=? AND row_id=?";
         $types .= 'iii';
-        $vals[] = $table_id; $vals[] = $uid; $vals[] = (int)$id;
-
+        $vals[]  = $table_id;
+        $vals[]  = $uid;
+        $vals[]  = $rec_id;
         $byRef = static function(array &$a){ $r=[]; foreach($a as &$v){ $r[]=&$v; } return $r; };
         $stmt = $conn->prepare($sql);
-        call_user_func_array([$stmt,'bind_param'], array_merge([$types], $byRef($vals)));
+        call_user_func_array([$stmt, 'bind_param'], array_merge([$types], $byRef($vals)));
         $stmt->execute();
         $stmt->close();
       }
     }
+    $row_id = $rec_id;
   }
 
+  /* ---------- AJAX response ---------- */
+  if (is_ajax()) {
+    json_out([
+      'ok'        => true,
+      'action'    => $actionPerformed,
+      'row_id'    => $row_id,
+      'table_id'  => $table_id
+    ]);
+  }
+
+  // Non-AJAX
   header("Location: /ItemPilot/home.php?autoload=1&type=applicant&table_id={$table_id}");
   exit;
 }
@@ -303,16 +294,22 @@ if (!$headRow) {
 /* ---------------------------
    Dynamic fields for rendering
 ----------------------------*/
-$fields    = fetch_applicant_fields($conn, (int)$uid, (int)$table_id);
-$validCols = base_valid_columns($conn);
-$dynFields = array_values(array_filter($fields, function($m) use ($validCols) {
-  return in_array($m['field_name'], $validCols, true);
-}));
+/* ---------------------------
+   Dynamic fields metadata
+----------------------------*/
+$fieldsStmt = $conn->prepare("SELECT id, field_name FROM applicants_fields WHERE user_id=? AND table_id=? ORDER BY id ASC");
+$fieldsStmt->bind_param('ii', $uid, $table_id);
+$fieldsStmt->execute(); $fields = $fieldsStmt->get_result()->fetch_all(MYSQLI_ASSOC); $fieldsStmt->close();
 
-// Column math for CSS grid (10 fixed + dynamic + actions)
-$fixedCount = 10; // the fixed applicants columns we render below
+$colRes    = $conn->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='applicants_base'");
+$validCols = $colRes ? array_column($colRes->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME') : [];
+$dynCount  = 0;
+foreach ($fields as $f) if (in_array($f['field_name'], $validCols, true)) $dynCount++;
+
+/* Fixed columns in grid: 9 (name, delivery, country, status, age, price, material, profit, model) */
+$fixedCount = 10;
 $hasAction  = true;
-$totalCols  = $fixedCount + count($dynFields) + ($hasAction ? 1 : 0);
+$totalCols  = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
 
 /* ---------------------------
    Title (table name)
@@ -508,17 +505,11 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
   </div>
 
   <!-- Delete Fields modal -->
-  <div id="addDeletePop"
-     class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-            w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur
-            shadow-2xl ring-1 ring-black/5">
-  <!-- Header -->
+  <div id="addDeletePop" class="hidden fixed z-[70] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,32rem)] rounded-2xl bg-white/95 backdrop-blur shadow-2xl ring-1 ring-black/5">
   <div class="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
     <div class="flex items-center justify-between gap-3">
       <h3 class="text-sm font-semibold text-gray-900">Delete fields</h3>
-      <button data-close-add type="button" id="closeAddColumnPop"
-              class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Close">
+      <button data-close-add type="button" id="closeDeleteFieldsPop" class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Close">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -787,7 +778,7 @@ $tableTitle = $tableTitleRow['table_title'] ?? 'Untitled Applicants Table';
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </div>
 
-    <form action="<?= $CATEGORY_URL ?>/insert_applicant.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="<?= $CATEGORY_URL ?>/insert_applicant.php" method="POST" enctype="multipart/form-data" class="new-record-form space-y-6">
       <input type="hidden" name="table_id" value="<?= (int)$table_id ?>">
       <h1 class="w-full px-4 py-2 text-center text-2xl"><?= htmlspecialchars($tableTitle, ENT_QUOTES, 'UTF-8') ?></h1>
 
