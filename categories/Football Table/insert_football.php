@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dynCount = 0; foreach ($fieldsAjax as $m) { if (in_array($m['field_name'], $validColsAjax, true)) $dynCount++; }
     $fixedCount = 6; $hasAction = true; $totalColsInline = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
 
-    $posClass = $POSITIONS = ['GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'];
+    $POSITIONS = ['GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'];
     $posColors = [
       'GoalKeeper'      => 'bg-green-100 text-green-800',
       'Sweeper'         => 'bg-yellow-100 text-yellow-800',
@@ -232,9 +232,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       'Midfielder'      => 'bg-cyan-100 text-cyan-800',
       'Forward Striker' => 'bg-rose-100 text-rose-800',
     ];
-    $posClass = $posColors[$position ?? ''] ?? 'bg-white text-gray-900';
-
-
+    $currentPos = $r['position'] ?? '';
+    $posClass = $posColors[$currentPos] ?? 'bg-white text-gray-900';
+    
     // Build markup identical to list rows
     ob_start();
     ?>
@@ -259,22 +259,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 
       <?php
-      $posClass = $POSITIONS = ['GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'];
-       $posColors = [
-      'GoalKeeper'      => 'bg-green-100 text-green-800',
-      'Sweeper'         => 'bg-yellow-100 text-yellow-800',
-      'Fullback'        => 'bg-blue-100 text-blue-800',
-      'Midfielder'      => 'bg-cyan-100 text-cyan-800',
-      'Forward Striker' => 'bg-rose-100 text-rose-800',
-      ];
-      $posClass = $posColors[$position ?? ''] ?? 'bg-white text-gray-900';
-
+        $POSITIONS = ['GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'];
+        $posColors = [
+          'GoalKeeper'      => 'bg-green-100 text-green-800',
+          'Sweeper'         => 'bg-yellow-100 text-yellow-800',
+          'Fullback'        => 'bg-blue-100 text-blue-800',
+          'Midfielder'      => 'bg-cyan-100 text-cyan-800',
+          'Forward Striker' => 'bg-rose-100 text-rose-800',
+        ];
+        $currentPos = $r['position'] ?? '';
+        $posClass = $posColors[$currentPos] ?? 'bg-white text-gray-900';
       ?>
-      <div class="p-2 w-30 text-gray-600 text-xs font-semibold" data-col="department">
-        <select data-autosave="1" name="department" style="appearance:none;"
-                class="w-full px-2 py-1 rounded-xl <?= $deptClass ?>">
-          <?php foreach ($DEPTS as $opt): ?>
-            <option value="<?= $opt ?>" <?= (($r['department'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+      <div class="p-2 w-30 text-gray-600 text-xs font-semibold" data-col="position">
+        <select data-autosave="1" name="position" style="appearance:none;"
+                class="w-full px-2 py-1 rounded-xl <?= $posClass ?>">
+          <?php foreach ($POSITIONS as $opt): ?>
+            <option value="<?= $opt ?>" <?= ($currentPos === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -641,27 +641,31 @@ $fixedCount = 6; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($ha
                class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition" />
       </div>
 
-      <!-- Department -->
+      <!-- Position -->
       <?php
-      $POSITIONS = ['GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'];
-      $posColors = [
-        'GoalKeeper'      => 'bg-green-100 text-green-800',
-        'Sweeper'         => 'bg-yellow-100 text-yellow-800',
-        'Fullback'        => 'bg-blue-100 text-blue-800',
-        'Midfielder'      => 'bg-cyan-100 text-cyan-800',
-        'Forward Striker' => 'bg-rose-100 text-rose-800',
-      ];
-      $posClass = $posColors[$position ?? ''] ?? 'bg-white text-gray-900';
-
+        $POSITIONS = ['GoalKeeper','Sweeper','Fullback','Midfielder','Forward Striker'];
+        $posColors = [
+          'GoalKeeper'      => 'bg-green-100 text-green-800',
+          'Sweeper'         => 'bg-yellow-100 text-yellow-800',
+          'Fullback'        => 'bg-blue-100 text-blue-800',
+          'Midfielder'      => 'bg-cyan-100 text-cyan-800',
+          'Forward Striker' => 'bg-rose-100 text-rose-800',
+        ];
+        $currentPos = $r['position'] ?? '';
+        $posClass = $posColors[$currentPos] ?? 'bg-white text-gray-900';
       ?>
+
       <div class="p-2 w-30 text-gray-600 text-xs font-semibold" data-col="position">
-        <select data-autosave="1" name="position" style="appearance:none;"
+        <select name="position" data-autosave="1" style="appearance:none;"
                 class="w-full px-2 py-1 rounded-xl <?= $posClass ?>">
           <?php foreach ($POSITIONS as $opt): ?>
-            <option value="<?= $opt ?>" <?= (($r['position'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+            <option value="<?= $opt ?>" <?= ($currentPos === $opt) ? 'selected' : '' ?>>
+              <?= $opt ?>
+            </option>
           <?php endforeach; ?>
         </select>
       </div>
+
 
       <!-- Home Address -->
       <div class="p-2 text-gray-600" data-col="home_address">

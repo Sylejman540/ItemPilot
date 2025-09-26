@@ -227,7 +227,7 @@ SET linked_initiatives = ?, executive_sponsor = ?, status = ?, complete = ?, not
 
     $validColsAjax = $validCols; // from earlier query
     $dynCount = 0; foreach ($fieldsAjax as $m) { if (in_array($m['field_name'], $validColsAjax, true)) $dynCount++; }
-    $fixedCount = 5; $hasAction = true; $totalColsInline = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
+    $fixedCount = 9; $hasAction = true; $totalColsInline = $fixedCount + $dynCount + ($hasAction ? 1 : 0);
 
     $statusColors = [ 'To Do' => 'bg-red-100 text-red-800', 'In Progress' => 'bg-yellow-100 text-yellow-800', 'Done' => 'bg-green-100 text-green-800' ];
     $colorClass = $statusColors[$status] ?? 'bg-white text-gray-900';

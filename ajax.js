@@ -369,7 +369,36 @@ document.body.addEventListener('click', e => {
     }
   }
 
-  function departmentClasses(dep) {
+// ---- FOOTBALL POSITIONS ----
+function positionClasses(pos) {
+  const t = norm(pos);
+  switch (t) {
+    case 'goalkeeper':
+      return 'bg-green-100 text-green-800';
+    case 'sweeper':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'fullback':
+      return 'bg-blue-100 text-blue-800';
+    case 'midfielder':
+      return 'bg-cyan-100 text-cyan-800';
+    case 'forward striker':
+      return 'bg-rose-100 text-rose-800';
+    default:
+      return 'bg-white text-gray-900';
+  }
+}
+
+function applyPositionColor(selectEl, pos) {
+  if (!selectEl) return;
+  // reset to base select styling
+  selectEl.className = 'w-full px-2 py-1 rounded-xl';
+  // add position color classes
+  selectEl.classList.add(...positionClasses(pos).split(' '));
+}
+
+
+  // ---- GROCERIES DEPARTMENTS ----
+function departmentClasses(dep) {
   const t = norm(dep);
   switch (t) {
     case 'produce':
@@ -395,19 +424,67 @@ document.body.addEventListener('click', e => {
 
 function applyDepartmentColor(selectEl, dep) {
   if (!selectEl) return;
-  // remove any existing dept classes
-  selectEl.classList.remove(
-    'bg-green-100','text-green-800',
-    'bg-yellow-100','text-yellow-800',
-    'bg-blue-100','text-blue-800',
-    'bg-cyan-100','text-cyan-800',
-    'bg-rose-100','text-rose-800',
-    'bg-amber-100','text-amber-800',
-    'bg-gray-100','text-gray-800',
-    'bg-white','text-gray-900'
-  );
-  // add new classes
+  // reset base classes
+  selectEl.className = 'w-full px-2 py-1 rounded-xl';
+  // add department color classes
   selectEl.classList.add(...departmentClasses(dep).split(' '));
+}
+
+function stageClasses(stage) {
+  const t = norm(stage);
+  if (t === 'applied') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700';
+  if (t === 'interviewing') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700';
+  if (t === 'hire') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700';
+  if (t === 'no hire' || t === 'rejected') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700';
+  if (t === 'decision needed') return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700';
+  return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white text-gray-900';
+}
+
+
+function applyStageColor(selectEl, stage) {
+  if (!selectEl) return;
+  // keep base styles intact
+  selectEl.classList.remove(
+    'bg-gray-100','text-gray-700','ring-gray-200',
+    'bg-blue-100','text-blue-700','ring-blue-200',
+    'bg-green-100','text-green-700','ring-green-200',
+    'bg-red-100','text-red-700','ring-red-200'
+  );
+  selectEl.classList.add(...stageClasses(stage).split(' ')
+    .filter(c => c.startsWith('bg-') || c.startsWith('text-') || c.startsWith('ring-')));
+}
+
+
+ function scoreClasses(score) {
+  const t = norm(score);
+  if (t === 'failed') 
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700';
+  if (t === 'probably no hire') 
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700';
+  if (t === 'worth consideration') 
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700';
+  if (t === 'good candidate') 
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700';
+  if (t === 'hire this person') 
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700';
+  
+  return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700';
+}
+
+function applyScoreColor(selectEl, score) {
+  if (!selectEl) return;
+  // remove old colors
+  selectEl.classList.remove(
+    'bg-red-100','text-red-700',
+    'bg-orange-100','text-orange-700',
+    'bg-yellow-100','text-yellow-700',
+    'bg-blue-100','text-blue-700',
+    'bg-green-100','text-green-700',
+    'bg-gray-100','text-gray-700'
+  );
+  // add new
+  selectEl.classList.add(...scoreClasses(score).split(' ')
+    .filter(c => c.startsWith('bg-') || c.startsWith('text-') || c.startsWith('ring-')));
 }
 
 
@@ -530,31 +607,68 @@ function applyDepartmentColor(selectEl, dep) {
       const rowHtml = data.row_html || data.rowHtml || '';
       const tId = data.table_id ?? data.tableId ?? extractTableId(form, 0);
 
-      if (rowHtml) {
-        insertOrReplaceRow(form, rowHtml, tId);
-      } else {
-        // Fallback: minimally update existing row in place (status badge, attachment)
-        const row = form.closest(ROW_SEL);
-        if (row) {
-          const newStatus =
-            data.status ??
-            form.querySelector('[name="status"]')?.value ??
-            row.querySelector('[name="status"]')?.value;
+if (rowHtml) {
+  insertOrReplaceRow(form, rowHtml, tId);
+} else {
+  // Fallback: minimally update existing row in place
+  const row = form.closest(ROW_SEL);
+  if (row) {
+    // ---------- STATUS ----------
+    const newStatus =
+      data.status ??
+      form.querySelector('[name="status"]')?.value ??
+      row.querySelector('[name="status"]')?.value;
+    const badge = row.querySelector('.status-badge');
+    if (badge && newStatus) {
+      badge.textContent = newStatus;
+      badge.className = 'status-badge ' + statusClasses(newStatus);
+    }
+    const statusSel = row.querySelector('select[name="status"]');
+    if (statusSel) applyStatusColor(statusSel, newStatus);
 
-          const badge = row.querySelector('.status-badge');
-          if (badge && newStatus) {
-            badge.textContent = newStatus;
-            badge.className = 'status-badge ' + statusClasses(newStatus);
-          }
-          const sel = row.querySelector('select[name="status"]');
-          if (sel) applyStatusColor(sel, newStatus);
+    // ---------- POSITION (football) ----------
+    const newPos =
+      data.position ??
+      form.querySelector('[name="position"]')?.value ??
+      row.querySelector('[name="position"]')?.value;
+    const posSel = row.querySelector('select[name="position"]');
+    if (posSel) applyPositionColor(posSel, newPos);
 
-          if (data.attachment_url) {
-            const link = row.querySelector('[data-attachment]');
-            if (link) { link.href = data.attachment_url; link.classList.remove('hidden'); }
-          }
-        }
+    // ---------- DEPARTMENT (groceries) ----------
+    const newDep =
+      data.department ??
+      form.querySelector('[name="department"]')?.value ??
+      row.querySelector('[name="department"]')?.value;
+    const depSel = row.querySelector('select[name="department"]');
+    if (depSel) applyDepartmentColor(depSel, newDep);
+
+    // ---------- STAGE (applicants) ----------
+    const newStage =
+      data.stage ??
+      form.querySelector('[name="stage"]')?.value ??
+      row.querySelector('[name="stage"]')?.value;
+    const stageSel = row.querySelector('select[name="stage"]');
+    if (stageSel) applyStageColor(stageSel, newStage);
+
+    // ---------- INTERVIEW SCORE (applicants) ----------
+    const newScore =
+      data.interview_score ??
+      form.querySelector('[name="interview_score"]')?.value ??
+      row.querySelector('[name="interview_score"]')?.value;
+    const scoreSel = row.querySelector('select[name="interview_score"]');
+    if (scoreSel) applyScoreColor(scoreSel, newScore);
+
+    // ---------- ATTACHMENT ----------
+    if (data.attachment_url) {
+      const link = row.querySelector('[data-attachment]');
+      if (link) {
+        link.href = data.attachment_url;
+        link.classList.remove('hidden');
       }
+    }
+  }
+}
+
 
       // If it was the modal "new-record" form, reset and close modal
       if (form.classList.contains('new-record-form')) {

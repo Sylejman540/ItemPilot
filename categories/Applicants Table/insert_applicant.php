@@ -288,13 +288,23 @@ $stmt->close();
   </div>
 
   <!-- Stage -->
-  <div class="p-2 text-xs font-semibold" data-col="stage">
-    <select data-autosave="1" name="stage" style="appearance:none;" class="w-full px-2 py-1 rounded-xl">
-
-      <option value="No Hire"          <?= $stage === 'No Hire' ? 'selected' : '' ?>>No Hire</option>
-      <option value="Interviewing"     <?= $stage === 'Interviewing' ? 'selected' : '' ?>>Interviewing</option>
-      <option value="Hire"             <?= $stage === 'Hire' ? 'selected' : '' ?>>Hire</option>
-      <option value="Decision needed"  <?= $stage === 'Decision needed' ? 'selected' : '' ?>>Decision needed</option>
+  <?php
+  $STAGES = ['No Hire','Interviewing','Hire','Decision needed'];
+  $stageColors = [
+    'No Hire'         => 'bg-red-100 text-red-700',
+    'Interviewing'    => 'bg-blue-100 text-blue-700',
+    'Hire'            => 'bg-green-100 text-green-700',
+    'Decision needed' => 'bg-yellow-100 text-yellow-700',
+  ];
+  $currentStage = $r['stage'] ?? '';
+  $stageClass = $stageColors[$currentStage] ?? 'bg-white text-gray-900';
+  ?>
+  <div class="p-2 text-xs font-semibold" data-col="stage" data-rows-for="ut-<?= (int)$table_id ?>">
+    <select name="stage" data-autosave="1" style="appearance:none;"
+            class="w-full px-2 py-1 rounded-xl <?= $stageClass ?>">
+      <?php foreach ($STAGES as $opt): ?>
+        <option value="<?= $opt ?>" <?= ($currentStage === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+      <?php endforeach; ?>
     </select>
   </div>
 
@@ -337,15 +347,35 @@ $stmt->close();
     <input type="text" name="interviewer" value="<?= htmlspecialchars($interviewer, ENT_QUOTES) ?>"
            class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
   </div>
+  <?php
+  $SCORES = [
+    'Failed',
+    'Probably no hire',
+    'Worth consideration',
+    'Good candidate',
+    'Hire this person'
+  ];
 
-  <!-- Interview Score -->
+  $scoreColors = [
+    'Failed'              => 'bg-red-100 text-red-700',
+    'Probably no hire'    => 'bg-orange-100 text-orange-700',
+    'Worth consideration' => 'bg-yellow-100 text-yellow-700',
+    'Good candidate'      => 'bg-blue-100 text-blue-700',
+    'Hire this person'    => 'bg-green-100 text-green-700',
+  ];
+
+  $currentScore = $r['interview_score'] ?? '';
+  $scoreClass = $scoreColors[$currentScore] ?? 'bg-gray-100 text-gray-700';
+  ?>
+
   <div class="p-2 text-xs font-semibold" data-col="interview_score">
-    <select name="interview_score" style="appearance:none;" class="w-full px-2 py-1 rounded-xl">
-      <option value="Failed"               <?= $interview_score === 'Failed' ? 'selected' : '' ?>>Failed</option>
-      <option value="Probably no hire"     <?= $interview_score === 'Probably no hire' ? 'selected' : '' ?>>Probably no hire</option>
-      <option value="Worth consideration"  <?= $interview_score === 'Worth consideration' ? 'selected' : '' ?>>Worth consideration</option>
-      <option value="Good candidate"       <?= $interview_score === 'Good candidate' ? 'selected' : '' ?>>Good candidate</option>
-      <option value="Hire this person"     <?= $interview_score === 'Hire this person' ? 'selected' : '' ?>>Hire this person</option>
+    <select name="interview_score" data-autosave="1" style="appearance:none;"
+            class="w-full px-2 py-1 rounded-xl <?= $scoreClass ?>">
+      <?php foreach ($SCORES as $opt): ?>
+        <option value="<?= $opt ?>" <?= ($currentScore === $opt) ? 'selected' : '' ?>>
+          <?= $opt ?>
+        </option>
+      <?php endforeach; ?>
     </select>
   </div>
 
@@ -836,13 +866,23 @@ $fixedCount = 10; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($h
            class="w-full bg-transparent border-none px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
   </div>
 
-  <!-- Stage -->
+  <?php
+  $STAGES = ['No Hire','Interviewing','Hire','Decision needed'];
+  $stageColors = [
+    'No Hire'         => 'bg-red-100 text-red-700',
+    'Interviewing'    => 'bg-blue-100 text-blue-700',
+    'Hire'            => 'bg-green-100 text-green-700',
+    'Decision needed' => 'bg-yellow-100 text-yellow-700',
+  ];
+  $currentStage = $r['stage'] ?? '';
+  $stageClass = $stageColors[$currentStage] ?? 'bg-white text-gray-900';
+  ?>
   <div class="p-2 text-xs font-semibold" data-col="stage" data-rows-for="ut-<?= (int)$table_id ?>">
-    <select name="stage" style="appearance:none;" data-autosave="1" class="w-full px-2 py-1 rounded-xl">
-      <option value="No Hire"        <?= ($r['stage'] ?? '') === 'No Hire' ? 'selected' : '' ?>>No Hire</option>
-      <option value="Interviewing"   <?= ($r['stage'] ?? '') === 'Interviewing' ? 'selected' : '' ?>>Interviewing</option>
-      <option value="Hire"           <?= ($r['stage'] ?? '') === 'Hire' ? 'selected' : '' ?>>Hire</option>
-      <option value="Decision needed"<?= ($r['stage'] ?? '') === 'Decision needed' ? 'selected' : '' ?>>Decision needed</option>
+    <select name="stage" data-autosave="1" style="appearance:none;"
+            class="w-full px-2 py-1 rounded-xl <?= $stageClass ?>">
+      <?php foreach ($STAGES as $opt): ?>
+        <option value="<?= $opt ?>" <?= ($currentStage === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+      <?php endforeach; ?>
     </select>
   </div>
 
@@ -892,15 +932,38 @@ $fixedCount = 10; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($h
   </div>
 
   <!-- Interview Score -->
-  <div class="p-2 text-xs font-semibold" data-col="interview_score">
-    <select data-autosave="1" name="interview_score" style="appearance:none;" class="w-full px-2 py-1 rounded-xl">
-      <option value="Failed"              <?= ($r['interview_score'] ?? '') === 'Failed' ? 'selected' : '' ?>>Failed</option>
-      <option value="Probably no hire"    <?= ($r['interview_score'] ?? '') === 'Probably no hire' ? 'selected' : '' ?>>Probably no hire</option>
-      <option value="Worth consideration" <?= ($r['interview_score'] ?? '') === 'Worth consideration' ? 'selected' : '' ?>>Worth consideration</option>
-      <option value="Good candidate"      <?= ($r['interview_score'] ?? '') === 'Good candidate' ? 'selected' : '' ?>>Good candidate</option>
-      <option value="Hire this person"    <?= ($r['interview_score'] ?? '') === 'Hire this person' ? 'selected' : '' ?>>Hire this person</option>
-    </select>
-  </div>
+<?php
+$SCORES = [
+  'Failed',
+  'Probably no hire',
+  'Worth consideration',
+  'Good candidate',
+  'Hire this person'
+];
+
+$scoreColors = [
+  'Failed'              => 'bg-red-100 text-red-700',
+  'Probably no hire'    => 'bg-orange-100 text-orange-700',
+  'Worth consideration' => 'bg-yellow-100 text-yellow-700',
+  'Good candidate'      => 'bg-blue-100 text-blue-700',
+  'Hire this person'    => 'bg-green-100 text-green-700',
+];
+
+$currentScore = $r['interview_score'] ?? '';
+$scoreClass = $scoreColors[$currentScore] ?? 'bg-gray-100 text-gray-700';
+?>
+
+<div class="p-2 text-xs font-semibold" data-col="interview_score">
+  <select name="interview_score" data-autosave="1" style="appearance:none;"
+          class="w-full px-2 py-1 rounded-xl <?= $scoreClass ?>">
+    <?php foreach ($SCORES as $opt): ?>
+      <option value="<?= $opt ?>" <?= ($currentScore === $opt) ? 'selected' : '' ?>>
+        <?= $opt ?>
+      </option>
+    <?php endforeach; ?>
+  </select>
+</div>
+
 
   <!-- Notes -->
   <div class="p-2 text-gray-600" data-col="notes">
