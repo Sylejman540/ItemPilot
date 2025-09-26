@@ -233,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST"
           action="/ItemPilot/categories/Groceries%20Table/edit_tbody.php?id=<?= (int)$row_id ?>"
           enctype="multipart/form-data"
-          class="sales-row border-b border-gray-200 hover:bg-gray-50 text-sm"
+          class="groceries-row border-b border-gray-200 hover:bg-gray-50 text-sm"
           style="--cols: <?= (int)$totalColsInline ?>;"
           data-status="<?= htmlspecialchars($status, ENT_QUOTES) ?>">
 
