@@ -435,7 +435,7 @@ $fixedCount = 9; $hasAction = true; $totalCols  = $fixedCount + $dynCount + ($ha
 
   <div class="flex justify-between">
     <div>
-      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countU" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72"/>
+      <input id="rowSearchU" type="search" placeholder="Search rows…" data-rows=".universal-row" data-count="#countD" class="rounded-full pl-3 pr-3 border border-gray-200 h-10 w-72"/>
       <span id="countU" class="ml-2 text-xs text-gray-600"></span>
     </div>
 
