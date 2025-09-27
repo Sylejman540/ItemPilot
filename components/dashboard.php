@@ -83,28 +83,13 @@
   </div>
 
   <!-- Row 2 -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+  <div class="w-full">
     <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow">
       <h3 class="text-base font-semibold mb-4">Tables Per Month</h3>
       <div id="barChart" class="min-h-[330px]"></div>
     </div>
-    <div class="bg-white p-6 rounded-xl shadow">
-      <h3 class="text-base font-semibold mb-4">Status</h3>
-      <div id="radarChart" class="min-h-[330px]"></div>
-    </div>
   </div>
 
-  <!-- Row 3 -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow">
-      <h3 class="text-base font-semibold mb-4">All Records</h3>
-      <div id="gradientLineChart" class="min-h-[330px]"></div>
-    </div>
-    <div class="bg-white p-6 rounded-xl shadow">
-      <h3 class="text-base font-semibold mb-4">Status</h3>
-      <div id="pieChart" class="min-h-[330px]"></div>
-    </div>
-  </div>
 </article>
 </section>
 </header>
