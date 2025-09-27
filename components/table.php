@@ -15,11 +15,11 @@
     <div class="md:flex md:justify-between md:px-8 ml-2 mr-2 mt-20 md:mb-10 mb-5">
       <div class="flex gap-4">
         <!-- ✅ Search -->
-        <input type="search" placeholder="Search tables..."
+        <input id="tableSearch" type="search" placeholder="Search tables..."
           class="rounded-lg px-3 border bg-white border-gray-300 h-10 w-80 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
 
         <!-- ✅ Sort -->
-        <select
+        <select id="tableSort"
           class="border border-gray-300 bg-white rounded-lg px-3 h-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="name">Sort by name</option>
           <option value="date">Sort by date</option>

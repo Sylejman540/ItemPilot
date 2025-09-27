@@ -81,6 +81,43 @@ if ($uid <= 0) {
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const searchInput = document.getElementById("tableSearch");
+  const sortSelect  = document.getElementById("tableSort");
+  const list        = document.querySelector("ul.grid");
+  const cards       = Array.from(list.querySelectorAll("li"));
+
+  // ✅ Filter cards by search
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.toLowerCase();
+    cards.forEach(card => {
+      const name = card.getAttribute("data-name") || "";
+      card.style.display = name.includes(q) ? "" : "none";
+    });
+  });
+
+  // ✅ Sort cards
+  sortSelect.addEventListener("change", () => {
+    const val = sortSelect.value;
+    const sorted = [...cards].sort((a, b) => {
+      if (val === "name") {
+        return (a.dataset.name > b.dataset.name) ? 1 : -1;
+      }
+      if (val === "date") {
+        return parseInt(b.dataset.date) - parseInt(a.dataset.date); // newest first
+      }
+      if (val === "status") {
+        return (a.dataset.status > b.dataset.status) ? 1 : -1;
+      }
+      return 0;
+    });
+
+    // Re-append sorted cards
+    sorted.forEach(card => list.appendChild(card));
+  });
+});
+
+
 (() => {
   const render = (id, opt) => {
     const el = document.querySelector(id);

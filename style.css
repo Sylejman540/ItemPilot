@@ -12,20 +12,6 @@
 
 :root { --sbw: 0px; }                  /* updated by your JS when sidebar opens */
 
-#appHeader2{
-  position: fixed;
-  top: 0;
-  left: var(--sbw);                    /* start after the sidebar */
-  right: 0;                            /* stretch to right edge */
-  width: auto;                         /* ignore any Tailwind w-* */
-  max-width: none;                     /* ignore any Tailwind max-w-* */
-  margin: 0;                           /* ignore any mx-*, ml-*, mr-* */
-  box-sizing: border-box;
-  z-index: 50;
-  transition:
-    left .3s ease, background-color .2s ease, backdrop-filter .2s ease;
-}
-
 #appHeader{
   top: 0;
   left: var(--sbw);                    /* start after the sidebar */
