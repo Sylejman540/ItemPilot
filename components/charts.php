@@ -264,6 +264,7 @@ $barSql =
      ) AS combined
    GROUP BY mth
    ORDER BY mth ASC";
+
 if ($tableId) {
   $barData = fetch_all_assoc(
     $conn, $barSql,
@@ -271,8 +272,31 @@ if ($tableId) {
     [$uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId, $uid,$tableId]
   );
 } else {
-  $barData = fetch_all_assoc($conn, $barSql, "iiiii", [$uid, $uid, $uid, $uid, $uid]);
+  $barData = fetch_all_assoc(
+    $conn, $barSql,
+    "iiiii",
+    [$uid, $uid, $uid, $uid, $uid]
+  );
 }
+
+// ✅ Build months array regardless of $tableId
+$year = !empty($barData) 
+  ? substr(max(array_column($barData, 'mth')), 0, 4) 
+  : date('Y');
+
+$months = [];
+for ($i = 1; $i <= 12; $i++) {
+    $key = sprintf('%s-%02d', $year, $i);
+    $months[$key] = 0;
+}
+
+foreach ($barData as $row) {
+    $months[$row['mth']] = (int)$row['cnt'];
+}
+
+$categories = array_keys($months);
+$values     = array_values($months);
+
 
 /* 4) Radar → Status Distribution (ONLY universal + dresses; football/applicants excluded) */
 if ($tableId) {

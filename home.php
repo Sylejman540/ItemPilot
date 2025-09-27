@@ -112,50 +112,44 @@ if ($uid <= 0) {
     stroke: { colors: ['#fff'] }
   });
 
-  /* 3. Bar Chart - Records Per Month */
-  render('#barChart', {
-    chart: { type: 'bar', height: 330 },
-    series: [{ name: 'Records', data: <?= json_encode(array_column($barData, 'cnt')) ?> }],
-    xaxis: { categories: <?= json_encode(array_column($barData, 'mth')) ?> },
-    plotOptions: { bar: { columnWidth: '10%', borderRadius: 4 } },
-    colors: ['#10b981'],
-    dataLabels: { enabled: false }
-  });
+render('#barChart', {
+  chart: { type: 'area', height: 330, toolbar: { show: false } },
+  series: [{
+    name: 'Records',
+    data: <?= json_encode($values) ?>
+  }],
+  xaxis: {
+    categories: <?= json_encode($categories) ?>,
+    type: 'category',
+    axisBorder: { show: false },
+    axisTicks: { show: false }
+  },
+  yaxis: {
+    axisBorder: { show: false },
+    axisTicks: { show: false }
+  },
+  grid: {
+    xaxis: { lines: { show: false } }, // no vertical grid
+    yaxis: { lines: { show: true } }   // keep horizontal
+  },
+  stroke: { curve: 'smooth', width: 3 },
+  markers: { size: 4 },
+  colors: ['#3b82f6'],
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shade: 'light',
+      type: "vertical",
+      opacityFrom: 0.7,
+      opacityTo: 0.1
+    }
+  },
+  dataLabels: { enabled: false }
+});
 
-  /* 4. Radar Chart - Status Distribution */
-  render('#radarChart', {
-    chart: { type: 'radar', height: 330 },
-    series: [{
-      name: 'Records',
-      data: <?= json_encode(array_column($radarData, 'cnt')) ?>
-    }],
-    labels: <?= json_encode(array_column($radarData, 'status')) ?>,
-    colors: ['#f59e0b'],
-    stroke: { width: 2 }
-  });
 
-  /* 5. Gradient Line Chart - Records Over Time */
-  render('#gradientLineChart', {
-    chart: { type: 'line', height: 330, toolbar: { show: false } },
-    series: [{
-      name: 'Records',
-      data: <?= json_encode(array_map(fn($r)=>['x'=>$r['dt'], 'y'=>$r['cnt']], $lineData)) ?>
-    }],
-    xaxis: { type: 'datetime' },
-    stroke: { curve: 'smooth', width: 3 },
-    markers: { size: 4 },
-    colors: ['#3b82f6'],
-    fill: { type: 'gradient', gradient: { shade: 'light', type: "vertical", opacityFrom: 0.7, opacityTo: 0.1 } }
-  });
 
-  /* 6. Pie Chart - Status Breakdown */
-  render('#pieChart', {
-  chart: { type: 'pie', height: 330 },
-  series: <?= json_encode(array_values($statusMap)) ?>, // [toDo, inProgress, done]
-  labels: <?= json_encode(array_keys($statusMap)) ?>,   // ["To Do","In Progress","Done"]
-  colors: ['#3b82f6','#10b981','#f59e0b','#ef4444'],
-  legend: { position: 'bottom' }
-  });
+
 })();
 </script>
 <script src="ajax.js"></script>
